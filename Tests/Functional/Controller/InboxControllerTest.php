@@ -286,6 +286,7 @@ final class InboxControllerTest extends FunctionalTestCase
 
         self::assertSame(303, $response->getStatusCode());
         self::assertSame(0, $this->get(MailRepository::class)->count(MailFilter::all()));
+        $this->assertFlashMessage(ContextualFeedbackSeverity::OK, 'All mails deleted.');
     }
 
     #[Test]
@@ -335,14 +336,39 @@ final class InboxControllerTest extends FunctionalTestCase
         $this->append('Stays');
         $this->append('Goes');
         $id = $this->firstId();
-        $request = $this->request('system_letterbox.delete', [], 'POST');
+        $request = $this->request('system_letterbox.delete', ['q' => 'Goes', 'filter' => 'unread'], 'POST');
         $request = $request->withParsedBody(['id' => $id, 'letterboxToken' => $this->token($request)]);
 
         $response = $this->controller()->deleteAction($request);
 
         self::assertSame(303, $response->getStatusCode());
+        $location = $response->getHeaderLine('Location');
+        self::assertStringContainsString('q=Goes', $location);
+        self::assertStringContainsString('filter=unread', $location);
+        self::assertStringNotContainsString('id=', $location);
+        $this->assertFlashMessage(ContextualFeedbackSeverity::OK, 'Mail deleted.');
         $mails = $this->get(MailRepository::class)->find(MailFilter::all(), 0, 10);
         self::assertSame(['Stays'], array_map(static fn ($mail): string => $mail->subject, $mails));
+    }
+
+    #[Test]
+    public function deleteButtonAsksForConfirmationAndSubmitsTheForm(): void
+    {
+        $this->append('"><b>Bold</b>');
+
+        $body = (string) $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $this->firstId(), 'q' => 'Bold']))->getBody();
+
+        self::assertSame(1, preg_match('/<form id="letterbox-delete-form" method="post" action="([^"]+)">(.*?)<\/form>/s', $body, $form));
+        self::assertStringContainsString('q=Bold', $form[1] ?? '');
+        self::assertSame(1, preg_match('/<button\s+type="submit"\s+class="[^"]*t3js-modal-trigger"[^>]*>/', $form[2] ?? '', $button));
+        $button = $button[0] ?? '';
+        self::assertStringContainsString('data-severity="error"', $button);
+        self::assertStringContainsString('data-title="Delete mail?"', $button);
+        self::assertStringContainsString('data-content="The mail “&quot;&gt;&lt;b&gt;Bold&lt;/b&gt;” will be deleted. This cannot be undone."', $button);
+        self::assertStringContainsString('data-button-close-text="Cancel"', $button);
+        self::assertStringContainsString('data-button-ok-text="Delete"', $button);
+        self::assertStringNotContainsString('data-target-form', $button);
+        self::assertStringNotContainsString('<b>Bold', $body);
     }
 
     #[Test]
@@ -548,7 +574,12 @@ final class InboxControllerTest extends FunctionalTestCase
 
     private function assertErrorFlashMessage(string $fragment): void
     {
-        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages(ContextualFeedbackSeverity::ERROR);
+        $this->assertFlashMessage(ContextualFeedbackSeverity::ERROR, $fragment);
+    }
+
+    private function assertFlashMessage(ContextualFeedbackSeverity $severity, string $fragment): void
+    {
+        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages($severity);
 
         self::assertCount(1, $messages);
         self::assertStringContainsString($fragment, $messages[0]->getMessage());

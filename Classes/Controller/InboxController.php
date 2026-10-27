@@ -143,13 +143,14 @@ final readonly class InboxController
             return $this->error(404, 'Mail not found.');
         }
 
+        $listUrl = $this->mailListView->url(InboxQuery::fromRequest($request), ['id' => null, 'tab' => null]);
         try {
             $deleted = $this->repository->delete($id);
         } catch (RuntimeException) {
-            return $this->redirectWithError('flash.deleteFailed');
+            return $this->redirectWithFlash('flash.deleteFailed', ContextualFeedbackSeverity::ERROR, $listUrl);
         }
 
-        return $deleted ? $this->redirectToIndex() : $this->error(404, 'Mail not found.');
+        return $deleted ? $this->redirectWithFlash('flash.deleted', ContextualFeedbackSeverity::OK, $listUrl) : $this->error(404, 'Mail not found.');
     }
 
     public function clearAction(ServerRequestInterface $request): ResponseInterface
@@ -162,10 +163,10 @@ final readonly class InboxController
         try {
             $this->repository->clear();
         } catch (RuntimeException) {
-            return $this->redirectWithError('flash.clearFailed');
+            return $this->redirectWithFlash('flash.clearFailed', ContextualFeedbackSeverity::ERROR);
         }
 
-        return $this->redirectToIndex();
+        return $this->redirectWithFlash('flash.cleared', ContextualFeedbackSeverity::OK);
     }
 
     private function createView(ServerRequestInterface $request, InboxQuery $query): ModuleTemplate
@@ -328,18 +329,13 @@ final readonly class InboxController
         }
     }
 
-    private function redirectToIndex(): RedirectResponse
-    {
-        return new RedirectResponse((string) $this->uriBuilder->buildUriFromRoute(self::MODULE), 303);
-    }
-
-    private function redirectWithError(string $messageKey): RedirectResponse
+    private function redirectWithFlash(string $messageKey, ContextualFeedbackSeverity $severity, ?string $url = null): RedirectResponse
     {
         $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(
-            new FlashMessage($this->translate($messageKey), '', ContextualFeedbackSeverity::ERROR, true),
+            new FlashMessage($this->translate($messageKey), '', $severity, true),
         );
 
-        return $this->redirectToIndex();
+        return new RedirectResponse($url ?? (string) $this->uriBuilder->buildUriFromRoute(self::MODULE), 303);
     }
 
     private function error(int $status, string $message): ResponseInterface

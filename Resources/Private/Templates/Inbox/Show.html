@@ -20,21 +20,32 @@
                     <div class="d-flex justify-content-between align-items-start gap-3">
                         <f:variable name="subject" value="{f:if(condition: mail.subject, then: mail.subject, else: '{f:translate(key: \'inbox.noSubject\', extensionName: \'Typo3Letterbox\')}')}" />
                         <h2 id="letterbox-subject" class="text-break">{subject}</h2>
-                        <div class="btn-group">
-                            <f:variable name="downloadLabel" value="{f:translate(key: 'inbox.downloadEml', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
-                            <f:variable name="deleteLabel" value="{f:translate(key: 'inbox.delete', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
-                            <a class="btn btn-sm btn-default" href="{f:be.uri(route: 'system_letterbox.source', parameters: {id: mail.id})}" title="{downloadLabel}" aria-label="{downloadLabel}">
-                                <span aria-hidden="true"><core:icon identifier="actions-download" /></span>
-                            </a>
-                            <button type="submit" form="letterbox-delete-form" class="btn btn-sm btn-default" title="{deleteLabel}" aria-label="{deleteLabel}">
-                                <span aria-hidden="true"><core:icon identifier="actions-delete" /></span>
-                            </button>
-                        </div>
+                        <form id="letterbox-delete-form" method="post" action="{deleteUrl}">
+                            <input type="hidden" name="id" value="{mail.id}" />
+                            <input type="hidden" name="letterboxToken" value="{token}" />
+                            <div class="btn-group">
+                                <f:variable name="downloadLabel" value="{f:translate(key: 'inbox.downloadEml', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
+                                <f:variable name="deleteLabel" value="{f:translate(key: 'inbox.delete', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
+                                <a class="btn btn-sm btn-default" href="{f:be.uri(route: 'system_letterbox.source', parameters: {id: mail.id})}" title="{downloadLabel}" aria-label="{downloadLabel}">
+                                    <span aria-hidden="true"><core:icon identifier="actions-download" /></span>
+                                </a>
+                                <f:comment>Without JavaScript the button submits directly; with it, core's modal asks first and then submits this form.</f:comment>
+                                <button
+                                    type="submit"
+                                    class="btn btn-sm btn-default t3js-modal-trigger"
+                                    title="{deleteLabel}"
+                                    aria-label="{deleteLabel}"
+                                    data-severity="error"
+                                    data-title="{f:translate(key: 'inbox.delete.confirm.title', extensionName: 'Typo3Letterbox')}"
+                                    data-content="{f:translate(key: 'inbox.delete.confirm.content', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"
+                                    data-button-close-text="{f:translate(key: 'inbox.cancel', extensionName: 'Typo3Letterbox')}"
+                                    data-button-ok-text="{f:translate(key: 'inbox.delete.confirm.ok', extensionName: 'Typo3Letterbox')}"
+                                >
+                                    <span aria-hidden="true"><core:icon identifier="actions-delete" /></span>
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <form id="letterbox-delete-form" method="post" action="{f:be.uri(route: 'system_letterbox.delete')}">
-                        <input type="hidden" name="id" value="{mail.id}" />
-                        <input type="hidden" name="letterboxToken" value="{token}" />
-                    </form>
 
                     <dl class="letterbox-headers text-break">
                         <dt class="text-variant"><f:translate key="inbox.detail.from" extensionName="Typo3Letterbox" /></dt>

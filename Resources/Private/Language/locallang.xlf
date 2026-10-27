@@ -162,6 +162,21 @@
 			<trans-unit id="inbox.detail.date" resname="inbox.detail.date">
 				<source>Date</source>
 			</trans-unit>
+			<trans-unit id="inbox.delete.confirm.title" resname="inbox.delete.confirm.title">
+				<source>Delete mail?</source>
+			</trans-unit>
+			<trans-unit id="inbox.delete.confirm.content" resname="inbox.delete.confirm.content">
+				<source>The mail “%s” will be deleted. This cannot be undone.</source>
+			</trans-unit>
+			<trans-unit id="inbox.delete.confirm.ok" resname="inbox.delete.confirm.ok">
+				<source>Delete</source>
+			</trans-unit>
+			<trans-unit id="flash.deleted" resname="flash.deleted">
+				<source>Mail deleted.</source>
+			</trans-unit>
+			<trans-unit id="flash.cleared" resname="flash.cleared">
+				<source>All mails deleted.</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

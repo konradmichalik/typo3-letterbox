@@ -31,6 +31,7 @@ final readonly class MailListView
 {
     private const ROUTE_INDEX = 'system_letterbox';
     private const ROUTE_SHOW = 'system_letterbox.show';
+    private const ROUTE_DELETE = 'system_letterbox.delete';
 
     public function __construct(
         private UriBuilder $uriBuilder,
@@ -57,6 +58,8 @@ final readonly class MailListView
             'quickFilters' => $this->quickFilters($query, $counts),
             'resetUrl' => $this->url($query, ['q' => null, 'filter' => null, 'page' => null]),
             'search' => $this->form($query->toParameters(['q' => null, 'page' => null])),
+            // The delete route keeps search, filter and page, so the redirect after deleting returns to the same list.
+            'deleteUrl' => (string) $this->uriBuilder->buildUriFromRoute(self::ROUTE_DELETE, $query->toParameters(['id' => null, 'tab' => null])),
         ];
     }
 

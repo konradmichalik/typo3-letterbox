@@ -11,7 +11,7 @@ The module is under System › Letterbox and is available to administrators only
 * Unread mails carry a dot. A mail counts as read once its detail view has been opened, separately for each backend user.
 * The HTML preview runs in a sandboxed frame and remote images are blocked.
 * The source of a mail and each attachment can be downloaded.
-* A single mail can be deleted. Clearing all mails asks for confirmation first.
+* Deleting a single mail and clearing all mails ask for confirmation first, and a message confirms the result. After a delete the list keeps its search and filter.
 * Without caught mails the module shows an empty state. When `debugMode` is already enabled in the [extension settings](configuration.md#extension-settings), it also shows the command that sends test mails.
 
 The number of mails per page and the module itself are set in the [extension settings](configuration.md#extension-settings).
