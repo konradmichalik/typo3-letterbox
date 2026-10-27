@@ -1,0 +1,8 @@
+From first@example.org Tue Oct 27 10:00:00 2026
+Subject: Quoted
+
+line before
+From someone@example.org Tue Oct 27 10:00:00 2026
+>From escaped@example.org Tue Oct 27 10:00:00 2026
+end
+
