@@ -39,16 +39,8 @@
   fill: var(--module-bg);
 }
 
-.letterbox-empty-solid {
-  fill: currentColor;
-}
-
 .letterbox-empty-primary {
   fill: var(--typo3-text-color-primary);
-}
-
-.letterbox-empty-variant {
-  stroke: var(--typo3-text-color-variant);
 }
 
 .letterbox-empty-border {
