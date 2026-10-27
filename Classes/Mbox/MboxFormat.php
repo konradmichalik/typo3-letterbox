@@ -17,13 +17,11 @@ use DateTimeImmutable;
 
 use function sprintf;
 
-
 /**
  * MboxFormat.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-
 final class MboxFormat
 {
     private const SEPARATOR_PATTERN = '/^From \S+ (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [ \d]\d \d{2}:\d{2}:\d{2} \d{4}\n?$/';
@@ -31,6 +29,7 @@ final class MboxFormat
     public function separatorLine(string $sender, DateTimeImmutable $date): string
     {
         $timestamp = $date->getTimestamp();
+        $sender = preg_replace('/\s+/', '', $sender) ?? '';
 
         return sprintf(
             "From %s %s%2d%s\n",
@@ -53,6 +52,10 @@ final class MboxFormat
 
     public function decode(string $stored): string
     {
+        if (str_ends_with($stored, "\n\n")) {
+            $stored = substr($stored, 0, -1);
+        }
+
         return preg_replace('/^>(>*From )/m', '$1', $stored) ?? $stored;
     }
 

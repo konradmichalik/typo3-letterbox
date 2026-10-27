@@ -16,16 +16,14 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox;
 use DateTimeImmutable;
 use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Mbox\MboxFormat;
-use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
-
 
 /**
  * MboxFormatTest.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-
 final class MboxFormatTest extends TestCase
 {
     #[Test]
@@ -53,7 +51,12 @@ final class MboxFormatTest extends TestCase
 
         self::assertStringContainsString("\n>From here\n>>From there\nnot From\n", $stored);
         self::assertStringNotContainsString("\r", $stored);
-        self::assertSame("Subject: x\n\nFrom here\n>From there\nnot From\n", rtrim($f->decode($stored), "\n")."\n");
+        self::assertSame('Subject: x
+
+From here
+>From there
+not From
+', $f->decode($stored));
     }
 
     #[Test]
@@ -81,5 +84,48 @@ final class MboxFormatTest extends TestCase
         self::assertTrue($f->isSeparator("From a@example.org Mon Oct 16 23:02:03 2026\n"));
         self::assertFalse($f->isSeparator('From here on we talk'));
         self::assertFalse($f->isSeparator('>From a@example.org Mon Oct  6 23:02:03 2026'));
+    }
+
+    #[Test]
+    public function decodeInvertsEncodeToCanonicalForm(): void
+    {
+        $f = new MboxFormat();
+
+        self::assertSame("a\n", $f->decode($f->encode('a')));
+        self::assertSame("a\n", $f->decode($f->encode("a\r\n\r\n")));
+    }
+
+    #[Test]
+    public function decodeRemovesExactlyOneEscapeLevel(): void
+    {
+        self::assertSame(">From x\n", (new MboxFormat())->decode(">>From x\n"));
+    }
+
+    #[Test]
+    public function fromAsFirstLineIsEscapedAndRestored(): void
+    {
+        $f = new MboxFormat();
+
+        self::assertStringStartsWith(">From first\n", $f->encode("From first\nbody"));
+        self::assertSame("From first\nbody\n", $f->decode($f->encode("From first\nbody")));
+    }
+
+    #[Test]
+    #[DataProvider('senders')]
+    public function separatorLineIsAlwaysAValidSeparator(string $sender): void
+    {
+        $f = new MboxFormat();
+        $line = $f->separatorLine($sender, new DateTimeImmutable('2026-10-06 23:02:03', new DateTimeZone('UTC')));
+
+        self::assertSame(1, substr_count($line, "\n"));
+        self::assertTrue($f->isSeparator(rtrim($line, "\n")));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function senders(): array
+    {
+        return ['space' => ['john doe@x.org'], 'newline' => ["a@x.org\nFrom b@x.org Mon Oct  6 23:02:03 2026"]];
     }
 }
