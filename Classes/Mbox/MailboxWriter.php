@@ -112,6 +112,11 @@ final readonly class MailboxWriter
         });
     }
 
+    private function canCreate(string $temp): bool
+    {
+        return $this->isWritable() && is_writable(dirname($temp));
+    }
+
     private function isWritable(): bool
     {
         return is_file($this->path) ? is_writable($this->path) : is_writable(dirname($this->path));
@@ -151,7 +156,7 @@ final readonly class MailboxWriter
         if (false === $source) {
             throw new RuntimeException(sprintf('Cannot open mailbox "%s" for reading.', $this->path), 8800415279);
         }
-        $target = $this->isWritable() ? @fopen($temp, 'w') : false;
+        $target = $this->canCreate($temp) ? fopen($temp, 'w') : false;
         if (false === $target) {
             fclose($source);
             throw new RuntimeException(sprintf('Cannot write temporary file for mailbox "%s".', $this->path), 2593671261);

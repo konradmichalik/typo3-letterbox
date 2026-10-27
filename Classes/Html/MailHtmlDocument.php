@@ -187,6 +187,10 @@ final class MailHtmlDocument
         $document = $root instanceof DOMDocument ? $root : $root->ownerDocument;
         $nodes = null === $document ? false : (new DOMXPath($document))->query('descendant::node()', $root);
 
-        return false === $nodes ? [] : iterator_to_array($nodes, false);
+        if (false === $nodes) {
+            return [];
+        }
+
+        return array_values(array_filter(iterator_to_array($nodes, false), static fn (object $node): bool => $node instanceof DOMNode));
     }
 }

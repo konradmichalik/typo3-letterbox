@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use KonradMichalik\Typo3Letterbox\Mbox\{Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageSpan};
+use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
