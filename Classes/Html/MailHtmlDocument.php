@@ -20,6 +20,7 @@ use DOMDocumentType;
 use DOMElement;
 use DOMNode;
 use DOMProcessingInstruction;
+use DOMXPath;
 use KonradMichalik\Typo3Letterbox\Domain\Model\Mail;
 use Masterminds\HTML5;
 use Throwable;
@@ -35,6 +36,7 @@ use function strlen;
 final class MailHtmlDocument
 {
     private const MAX_BYTES = 2097152;
+    private const MAX_ELEMENTS = 50000;
     private const SHELL_PREFIX = '<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'"><meta name="referrer" content="no-referrer"></head><body>';
     private const SHELL_SUFFIX = '</body></html>';
     private const INLINE_IMAGE_PATTERN = '#^image/(png|jpe?g|gif|webp|svg\+xml)$#iD';
@@ -50,6 +52,10 @@ final class MailHtmlDocument
         try {
             $html5 = new HTML5();
             $document = $html5->loadHTML(1 === preg_match('/<(?:html|body)\b/i', $mail->html) ? $mail->html : '<body>'.$mail->html);
+
+            if ($document->getElementsByTagName('*')->length > self::MAX_ELEMENTS) {
+                return '';
+            }
 
             foreach ($this->descendants($document) as $node) {
                 $this->sanitize($node);
@@ -75,6 +81,12 @@ final class MailHtmlDocument
         $tag = strtolower($node->tagName);
         if (in_array($tag, self::REMOVED_TAGS, true)) {
             $node->parentNode?->removeChild($node);
+
+            return;
+        }
+        if ('a' === $tag && $node->hasAttribute('href')) {
+            $node->setAttribute('target', '_blank');
+            $node->setAttribute('rel', 'noopener noreferrer');
 
             return;
         }
@@ -172,12 +184,9 @@ final class MailHtmlDocument
      */
     private function descendants(DOMNode $root): array
     {
-        $found = [];
-        foreach (iterator_to_array($root->childNodes) as $child) {
-            $found[] = $child;
-            array_push($found, ...$this->descendants($child));
-        }
+        $document = $root instanceof DOMDocument ? $root : $root->ownerDocument;
+        $nodes = null === $document ? false : (new DOMXPath($document))->query('descendant::node()', $root);
 
-        return $found;
+        return false === $nodes ? [] : iterator_to_array($nodes, false);
     }
 }

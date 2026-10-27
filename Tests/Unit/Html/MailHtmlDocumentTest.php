@@ -69,6 +69,35 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
+    public function linksOpenInNewTabWithoutOpenerOrReferrer(): void
+    {
+        $doc = (new MailHtmlDocument())->build($this->mailWithHtml('<a href="https://example.org/" target="_self" rel="opener">x</a><a name="anchor">y</a>'));
+
+        self::assertStringContainsString('<a href="https://example.org/" target="_blank" rel="noopener noreferrer">x</a>', $doc);
+        self::assertStringContainsString('<a name="anchor">y</a>', $doc);
+    }
+
+    #[Test]
+    public function deeplyNestedInputIsSanitisedQuickly(): void
+    {
+        $html = str_repeat('<div>', 5000).'deep<script>alert(1)</script>'.str_repeat('</div>', 5000);
+
+        $start = microtime(true);
+        $doc = (new MailHtmlDocument())->build($this->mailWithHtml($html));
+
+        self::assertLessThan(5.0, microtime(true) - $start);
+        self::assertStringContainsString('deep', $doc);
+        self::assertStringNotContainsString('<script', $doc);
+    }
+
+    #[Test]
+    public function inputWithTooManyElementsYieldsEmptyString(): void
+    {
+        self::assertSame('', (new MailHtmlDocument())->build($this->mailWithHtml(str_repeat('<i></i>', 50001))));
+        self::assertNotSame('', (new MailHtmlDocument())->build($this->mailWithHtml(str_repeat('<i></i>', 1000))));
+    }
+
+    #[Test]
     public function emptyHtmlYieldsEmptyString(): void
     {
         self::assertSame('', (new MailHtmlDocument())->build($this->mailWithHtml('')));
