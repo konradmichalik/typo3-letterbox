@@ -31,10 +31,13 @@ use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\{NormalizedParams, ServerRequest};
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Locking\LockFactory;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 use function dirname;
+use function function_exists;
 
 /**
  * InboxControllerTest.
@@ -247,6 +250,47 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function clearOnReadOnlyFileRedirectsWithErrorFlashMessage(): void
+    {
+        $this->skipWhenRoot();
+        $this->append('Stays');
+        chmod($this->path, 0o444);
+        $request = $this->request('system_letterbox.clear', [], 'POST');
+        $request = $request->withParsedBody(['letterboxToken' => $this->token($request)]);
+
+        try {
+            $response = $this->controller()->clearAction($request);
+        } finally {
+            chmod($this->path, 0o644);
+        }
+
+        self::assertSame(303, $response->getStatusCode());
+        $this->assertErrorFlashMessage('could not be cleared');
+        self::assertSame(1, $this->get(MailRepository::class)->count(MailFilter::all()));
+    }
+
+    #[Test]
+    public function deleteInReadOnlyDirectoryRedirectsWithErrorFlashMessage(): void
+    {
+        $this->skipWhenRoot();
+        $this->append('Stays');
+        $id = $this->firstId();
+        $request = $this->request('system_letterbox.delete', [], 'POST');
+        $request = $request->withParsedBody(['id' => $id, 'letterboxToken' => $this->token($request)]);
+        chmod(dirname($this->path), 0o555);
+
+        try {
+            $response = $this->controller()->deleteAction($request);
+        } finally {
+            chmod(dirname($this->path), 0o755);
+        }
+
+        self::assertSame(303, $response->getStatusCode());
+        $this->assertErrorFlashMessage('could not be deleted');
+        self::assertSame(1, $this->get(MailRepository::class)->count(MailFilter::all()));
+    }
+
+    #[Test]
     public function deleteWithValidTokenRemovesMail(): void
     {
         $this->append('Stays');
@@ -324,6 +368,21 @@ final class InboxControllerTest extends FunctionalTestCase
 
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['enableBackendModule'] = '0';
         self::assertSame([], $modules());
+    }
+
+    private function skipWhenRoot(): void
+    {
+        if (function_exists('posix_geteuid') && 0 === posix_geteuid()) {
+            self::markTestSkipped('File permissions are not enforced for root.');
+        }
+    }
+
+    private function assertErrorFlashMessage(string $fragment): void
+    {
+        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages(ContextualFeedbackSeverity::ERROR);
+
+        self::assertCount(1, $messages);
+        self::assertStringContainsString($fragment, $messages[0]->getMessage());
     }
 
     private function controller(): InboxController

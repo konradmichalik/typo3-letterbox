@@ -26,8 +26,11 @@ use TYPO3\CMS\Backend\Template\Components\Buttons\{InputButton, LinkButton};
 use TYPO3\CMS\Backend\Template\{ModuleTemplate, ModuleTemplateFactory};
 use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use RuntimeException;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
+use TYPO3\CMS\Core\Messaging\{FlashMessage, FlashMessageService};
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Imaging\{IconFactory, IconSize};
 use TYPO3\CMS\Core\Information\Typo3Version;
@@ -69,6 +72,7 @@ final readonly class InboxController
         private PageRenderer $pageRenderer,
         private Typo3Version $typo3Version,
         private Context $context,
+        private FlashMessageService $flashMessageService,
     ) {}
 
     public function indexAction(ServerRequestInterface $request): ResponseInterface
@@ -126,11 +130,17 @@ final readonly class InboxController
 
         $body = $request->getParsedBody();
         $id = $this->validId(is_array($body) ? ($body['id'] ?? null) : null);
-        if (null === $id || !$this->repository->delete($id)) {
+        if (null === $id) {
             return $this->error(404, 'Mail not found.');
         }
 
-        return $this->redirectToIndex();
+        try {
+            $deleted = $this->repository->delete($id);
+        } catch (RuntimeException) {
+            return $this->redirectWithError('flash.deleteFailed');
+        }
+
+        return $deleted ? $this->redirectToIndex() : $this->error(404, 'Mail not found.');
     }
 
     public function clearAction(ServerRequestInterface $request): ResponseInterface
@@ -140,7 +150,11 @@ final readonly class InboxController
             return $rejected;
         }
 
-        $this->repository->clear();
+        try {
+            $this->repository->clear();
+        } catch (RuntimeException) {
+            return $this->redirectWithError('flash.clearFailed');
+        }
 
         return $this->redirectToIndex();
     }
@@ -303,6 +317,15 @@ final readonly class InboxController
     private function redirectToIndex(): RedirectResponse
     {
         return new RedirectResponse((string) $this->uriBuilder->buildUriFromRoute(self::MODULE), 303);
+    }
+
+    private function redirectWithError(string $messageKey): RedirectResponse
+    {
+        $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(
+            new FlashMessage($this->translate($messageKey), '', ContextualFeedbackSeverity::ERROR, true),
+        );
+
+        return $this->redirectToIndex();
     }
 
     private function error(int $status, string $message): ResponseInterface

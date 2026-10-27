@@ -69,6 +69,12 @@
 			<trans-unit id="inbox.delete" resname="inbox.delete">
 				<source>Delete mail: %s</source>
 			</trans-unit>
+			<trans-unit id="flash.clearFailed" resname="flash.clearFailed">
+				<source>The mailbox file could not be cleared. Check that it exists and that the web server may write to it.</source>
+			</trans-unit>
+			<trans-unit id="flash.deleteFailed" resname="flash.deleteFailed">
+				<source>The mail could not be deleted. Check that the mailbox file exists and that the web server may write to it.</source>
+			</trans-unit>
 			<trans-unit id="inbox.clearAll" resname="inbox.clearAll">
 				<source>Clear all</source>
 			</trans-unit>
