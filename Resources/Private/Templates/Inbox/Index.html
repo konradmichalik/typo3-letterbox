@@ -27,36 +27,48 @@
                 </div>
             </f:then>
             <f:else>
-                <div class="callout callout-info">
-                    <div class="callout-icon" aria-hidden="true">
-                        <span class="icon-emphasized">
-                            <core:icon identifier="actions-envelope" />
-                        </span>
-                    </div>
-                    <div class="callout-content">
-                        <div class="callout-title">
-                            <f:if condition="{configured}">
-                                <f:then><f:translate key="inbox.empty.noMails" extensionName="Typo3Letterbox" /></f:then>
-                                <f:else><f:translate key="inbox.empty.notConfigured" extensionName="Typo3Letterbox" /></f:else>
-                            </f:if>
-                        </div>
-                        <div class="callout-body">
-                            <f:if condition="{configured}">
-                                <f:then>
-                                    <p class="mb-0"><f:translate key="inbox.empty.path" extensionName="Typo3Letterbox" arguments="{0: path}" /></p>
-                                </f:then>
-                                <f:else>
+                <f:if condition="{configured}">
+                    <f:then>
+                        <f:render section="NoMails" arguments="{_all}" />
+                    </f:then>
+                    <f:else>
+                        <div class="callout callout-info">
+                            <div class="callout-icon" aria-hidden="true">
+                                <span class="icon-emphasized">
+                                    <core:icon identifier="actions-envelope" />
+                                </span>
+                            </div>
+                            <div class="callout-content">
+                                <div class="callout-title"><f:translate key="inbox.empty.notConfigured" extensionName="Typo3Letterbox" /></div>
+                                <div class="callout-body">
                                     <p><f:translate key="inbox.empty.howto" extensionName="Typo3Letterbox" /></p>
                                     <pre class="mb-0"><code>$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = \KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport::class;
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/html/var/log/mails.mbox';</code></pre>
-                                </f:else>
-                            </f:if>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </f:else>
+                </f:if>
             </f:else>
         </f:if>
     </main>
+</f:section>
+
+<f:section name="NoMails">
+    <section class="letterbox-empty text-center" aria-labelledby="letterbox-empty-title">
+        <f:render partial="EmptyIllustration" />
+        <h2 id="letterbox-empty-title"><f:translate key="inbox.empty.noMails" extensionName="Typo3Letterbox" /></h2>
+        <p><f:translate key="inbox.empty.sentence" extensionName="Typo3Letterbox" /></p>
+        <p>
+            <a class="btn btn-default" href="{f:be.uri(route: 'system_letterbox')}">
+                <span aria-hidden="true"><core:icon identifier="actions-refresh" /></span>
+                <f:translate key="inbox.reload" extensionName="Typo3Letterbox" />
+            </a>
+        </p>
+        <f:if condition="{debugMode}">
+            <p class="text-variant"><f:translate key="inbox.empty.debugHint" extensionName="Typo3Letterbox" /> <code>vendor/bin/typo3 letterbox:testmails:send</code></p>
+        </f:if>
+    </section>
 </f:section>
 
 </html>

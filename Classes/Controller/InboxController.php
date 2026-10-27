@@ -166,6 +166,7 @@ final readonly class InboxController
             'selectedId' => $selectedId,
             'token' => $token,
             'clearFormId' => self::CLEAR_FORM_ID,
+            'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
         ]);
 
         return $view;
@@ -243,13 +244,18 @@ final readonly class InboxController
 
     private function mailsPerPage(): int
     {
-        try {
-            $value = (int) $this->extensionConfiguration->get('typo3_letterbox', 'mailsPerPage');
-        } catch (ExtensionConfigurationExtensionNotConfiguredException|ExtensionConfigurationPathDoesNotExistException) {
-            return self::DEFAULT_MAILS_PER_PAGE;
-        }
+        $value = (int) $this->extensionSetting('mailsPerPage');
 
         return $value > 0 ? $value : self::DEFAULT_MAILS_PER_PAGE;
+    }
+
+    private function extensionSetting(string $name): mixed
+    {
+        try {
+            return $this->extensionConfiguration->get('typo3_letterbox', $name);
+        } catch (ExtensionConfigurationExtensionNotConfiguredException|ExtensionConfigurationPathDoesNotExistException) {
+            return null;
+        }
     }
 
     private function redirectToIndex(): RedirectResponse

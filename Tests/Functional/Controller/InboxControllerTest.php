@@ -91,9 +91,19 @@ final class InboxControllerTest extends FunctionalTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $body = (string) $response->getBody();
-        self::assertStringContainsString('callout', $body);
-        self::assertStringContainsString('No mails yet', $body);
-        self::assertStringContainsString($this->path, $body);
+        self::assertStringContainsString('No mails caught yet', $body);
+        self::assertStringContainsString('aria-hidden="true" focusable="false"', $body);
+        self::assertStringNotContainsString('letterbox:testmails:send', $body);
+    }
+
+    #[Test]
+    public function emptyStateShowsTestMailCommandInDebugMode(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['debugMode'] = '1';
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertStringContainsString('letterbox:testmails:send', $body);
     }
 
     #[Test]

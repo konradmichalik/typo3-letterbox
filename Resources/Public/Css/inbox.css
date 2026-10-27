@@ -21,6 +21,41 @@
   word-break: break-word;
 }
 
+.letterbox-empty {
+  margin-inline: auto;
+  max-width: 40rem;
+  padding-block: 1rem;
+}
+
+.letterbox-empty-illustration {
+  color: var(--typo3-text-color-variant);
+  display: block;
+  height: auto;
+  margin: 0 auto 1rem;
+  max-width: 100%;
+}
+
+.letterbox-empty-surface {
+  fill: var(--typo3-component-bg);
+}
+
+.letterbox-empty-ground {
+  fill: var(--typo3-surface-container-low);
+  stroke: none;
+}
+
+.letterbox-empty-line {
+  stroke: var(--typo3-component-border-color);
+}
+
+.letterbox-empty-flag {
+  stroke: var(--typo3-text-color-primary);
+}
+
+.letterbox-empty-sparkle {
+  fill: var(--typo3-text-color-primary);
+}
+
 @media (min-width: 992px) {
   .letterbox-inbox {
     align-items: start;
