@@ -23,6 +23,7 @@ use Symfony\Component\Mime\Email;
 use TYPO3\CMS\Core\Mail\MailerInterface;
 
 use function count;
+use function is_string;
 use function sprintf;
 
 /**
@@ -33,6 +34,7 @@ use function sprintf;
 #[AsCommand(name: 'letterbox:testmails:send', description: 'Send test mails through the configured mail transport')]
 final class SendTestMailsCommand extends Command
 {
+    private const MAX_COUNT = 100;
     private const INLINE_IMAGE = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
     public function __construct(private readonly MailerInterface $mailer)
@@ -48,7 +50,13 @@ final class SendTestMailsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $count = max(1, (int) $input->getOption('count'));
+        $option = $input->getOption('count');
+        if (!is_string($option) || 1 !== preg_match('/^\d{1,9}$/D', $option) || (int) $option < 1 || (int) $option > self::MAX_COUNT) {
+            $io->error(sprintf('The option --count must be a whole number between 1 and %d.', self::MAX_COUNT));
+
+            return Command::INVALID;
+        }
+        $count = (int) $option;
         $builders = $this->builders();
 
         for ($i = 0; $i < $count; ++$i) {

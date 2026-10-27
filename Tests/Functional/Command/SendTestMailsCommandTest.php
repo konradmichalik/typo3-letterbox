@@ -17,7 +17,8 @@ use KonradMichalik\Typo3Letterbox\Command\SendTestMailsCommand;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
-use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\{DataProvider, Test};
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 use TYPO3\CMS\Core\Console\CommandRegistry;
 use TYPO3\CMS\Core\Core\Environment;
@@ -67,6 +68,37 @@ final class SendTestMailsCommandTest extends FunctionalTestCase
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertSame(3, $this->get(MailRepository::class)->count(MailFilter::all()));
+    }
+
+    #[Test]
+    #[DataProvider('invalidCounts')]
+    public function rejectsInvalidCountWithoutSending(string $count): void
+    {
+        $tester = new CommandTester(new SendTestMailsCommand(GeneralUtility::makeInstance(Mailer::class)));
+
+        $tester->execute(['--count' => $count]);
+
+        self::assertSame(Command::INVALID, $tester->getStatusCode());
+        self::assertStringContainsString('between 1 and 100', $tester->getDisplay());
+        self::assertSame(0, $this->get(MailRepository::class)->count(MailFilter::all()));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidCounts(): array
+    {
+        return ['zero' => ['0'], 'negative' => ['-1'], 'text' => ['abc'], 'above cap' => ['101']];
+    }
+
+    #[Test]
+    public function acceptsTheCap(): void
+    {
+        $tester = new CommandTester(new SendTestMailsCommand(GeneralUtility::makeInstance(Mailer::class)));
+
+        $tester->execute(['--count' => '100']);
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode());
     }
 
     #[Test]
