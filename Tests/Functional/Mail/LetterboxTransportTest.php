@@ -75,6 +75,9 @@ final class LetterboxTransportTest extends FunctionalTestCase
         self::assertStringContainsString('X-Letterbox-Envelope-To: qa@letterbox.invalid', $this->mbox());
         self::assertStringNotContainsString('X-Letterbox-Envelope-To: customer@example.org', $this->mbox());
         self::assertSame([['customer@example.org']], RecordingTransport::$recipients);
+        self::assertCount(1, RecordingTransport::$messages);
+        self::assertStringNotContainsString('qa@letterbox.invalid', RecordingTransport::$messages[0]);
+        self::assertStringNotContainsString('X-Letterbox-Envelope-To', RecordingTransport::$messages[0]);
     }
 
     #[Test]

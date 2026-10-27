@@ -31,6 +31,11 @@ final class RecordingTransport implements TransportInterface, Stringable
     public static array $recipients = [];
 
     /**
+     * @var list<string>
+     */
+    public static array $messages = [];
+
+    /**
      * @param array<string, mixed> $mailSettings
      */
     public function __construct(array $mailSettings = [])
@@ -46,12 +51,15 @@ final class RecordingTransport implements TransportInterface, Stringable
     public static function reset(): void
     {
         self::$recipients = [];
+        self::$messages = [];
     }
 
     public function send(RawMessage $message, ?Envelope $envelope = null): SentMessage
     {
         $envelope ??= Envelope::create($message);
         self::$recipients[] = array_values(array_map(static fn ($address): string => $address->getAddress(), $envelope->getRecipients()));
+
+        self::$messages[] = $message->toString();
 
         return new SentMessage($message, $envelope);
     }

@@ -112,6 +112,31 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function indexShowsEmptyStateForEmptyFile(): void
+    {
+        file_put_contents($this->path, '');
+
+        $response = $this->controller()->indexAction($this->request('system_letterbox'));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('No mails caught yet', (string) $response->getBody());
+    }
+
+    #[Test]
+    public function mailWithoutMessageIdFromAndSubjectIsListedAndOpens(): void
+    {
+        $this->appendRaw("To: r@example.org\nContent-Type: text/plain; charset=utf-8\n\nJust a body\n");
+
+        $index = $this->controller()->indexAction($this->request('system_letterbox'));
+        self::assertSame(200, $index->getStatusCode());
+        self::assertStringNotContainsString('No mails caught yet', (string) $index->getBody());
+
+        $show = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $this->firstId()]));
+        self::assertSame(200, $show->getStatusCode());
+        self::assertStringContainsString('Just a body', (string) $show->getBody());
+    }
+
+    #[Test]
     public function indexExplainsConfigurationWhenNotConfigured(): void
     {
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '';
