@@ -6,22 +6,24 @@ The reference designs for every Letterbox screen live on a design canvas: https:
 
 The canvas draws the TYPO3 shell (top bar, module menu) for context only. The module renders its body and doc header; the shell comes from core. Values in the mockups are examples.
 
-The rules behind these screens are in [rules.md](rules.md). When a board changes on the canvas, export it and add or replace its preview in `screens/`.
+The rules behind these screens are in [rules.md](rules.md). The previews are exports of the canvas; click one for the full size. When a board changes on the canvas, export it again and replace its file in `screens/`.
 
 ## Backend module
 
-| Board | Screen | What it settles |
-| --- | --- | --- |
-| Inbox (light) | Inbox with list and detail | Heading and meta line, list rows, quick filter, pagination, mail header, icon actions, tabs, preview frame and width toggles, list hide button |
-| Inbox, list collapsed | Inbox with hidden list | The 52px rail and its show button |
-| Inbox (dark) | Same as light in dark mode | Core dark values apply without own tokens |
-| Empty inbox (light, dark) | Inbox without mails | Illustration, heading, sentence, Reload and the debug hint in place of both columns |
-| Inbox, resizable list | Alternative to the hide button | Splitter with mouse, keyboard and double-click; under review |
-| External access | Sub page of the module | Status card, tester links table, create link form, API card with example |
+| Board | Screen | What it settles | Preview |
+| --- | --- | --- | --- |
+| Inbox (light) | Inbox with list and detail | Heading and meta line, list rows, quick filter, pagination, mail header, icon actions, tabs, preview frame and width toggles, list hide button | <a href="screens/01-inbox.png"><img src="screens/01-inbox.png" width="200" alt="Inbox, light"></a> |
+| Inbox, list collapsed | Inbox with hidden list | The 52px rail and its show button | <a href="screens/02-inbox-list-collapsed.png"><img src="screens/02-inbox-list-collapsed.png" width="200" alt="Inbox with collapsed list"></a> |
+| Inbox (dark) | Same as light in dark mode | Core dark values apply without own tokens | <a href="screens/03-inbox-dark.png"><img src="screens/03-inbox-dark.png" width="200" alt="Inbox, dark"></a> |
+| Inbox, resizable list | Alternative to the hide button | Splitter with mouse, keyboard and double-click; under review | <a href="screens/04-inbox-resizable-list.png"><img src="screens/04-inbox-resizable-list.png" width="200" alt="Inbox with resizable list"></a> |
+| Empty inbox (light) | Inbox without mails | Illustration, heading, sentence, Reload and the debug hint in place of both columns | <a href="screens/08-empty-inbox.png"><img src="screens/08-empty-inbox.png" width="200" alt="Empty inbox, light"></a> |
+| Empty inbox (dark) | Same in dark mode | The illustration follows the theme | <a href="screens/09-empty-inbox-dark.png"><img src="screens/09-empty-inbox-dark.png" width="200" alt="Empty inbox, dark"></a> |
+| Empty inbox, illustration options | Discarded motifs | Why the paper plane was chosen; not a target | <a href="screens/10-empty-illustration-options.png"><img src="screens/10-empty-illustration-options.png" width="200" alt="Illustration options"></a> |
+| External access | Sub page of the module | Status card, tester links table, create link form, API card with example | <a href="screens/05-external-access.png"><img src="screens/05-external-access.png" width="200" alt="External access"></a> |
 
 ## Outside the backend and system surfaces
 
-| Board | Screen | What it settles |
-| --- | --- | --- |
-| Tester inbox | Page for testers without a backend account | Header, scope note, list, reset link callout, view switch, 44px targets |
-| Toolbar item, dashboard widget, status | Toolbar dropdown, "Recent mails" widget, reports entry | Wording, admin-only content, warning severity |
+| Board | Screen | What it settles | Preview |
+| --- | --- | --- | --- |
+| Tester inbox | Page for testers without a backend account | Header, scope note, list, reset link callout, view switch, 44px targets | <a href="screens/06-tester-inbox.png"><img src="screens/06-tester-inbox.png" width="200" alt="Tester inbox"></a> |
+| Toolbar item, dashboard widget, status | Toolbar dropdown, "Recent mails" widget, reports entry | Wording, admin-only content, warning severity | <a href="screens/07-toolbar-widget-status.png"><img src="screens/07-toolbar-widget-status.png" width="200" alt="Toolbar item, dashboard widget and status"></a> |
