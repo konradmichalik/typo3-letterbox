@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox;
 
 use DateTimeImmutable;
+use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use KonradMichalik\Typo3Letterbox\Mbox\{Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageSpan};
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
@@ -66,6 +67,19 @@ final class MailboxTest extends TestCase
     public function splitsOnlyOnSeparatorsAfterEmptyLine(): void
     {
         self::assertCount(1, iterator_to_array($this->mailbox('body-with-from-line.mbox')->spans(), false));
+    }
+
+    #[Test]
+    public function splitsMailboxesWrittenByExtMboxWithUnpaddedDays(): void
+    {
+        file_put_contents($this->tempPath(), ExtMboxFixture::contents());
+        $box = new Mailbox($this->tempPath(), new MboxFormat());
+        $spans = iterator_to_array($box->spans(), false);
+
+        self::assertCount(3, $spans);
+        foreach (ExtMboxFixture::SUBJECTS as $index => $subject) {
+            self::assertStringContainsString('Subject: '.$subject."\r\n", $box->read($spans[$index]));
+        }
     }
 
     #[Test]

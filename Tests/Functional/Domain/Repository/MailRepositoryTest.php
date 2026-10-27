@@ -16,6 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Domain\Repository;
 use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
+use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageParser};
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -126,6 +127,18 @@ final class MailRepositoryTest extends FunctionalTestCase
 
         self::assertSame(['three', 'one'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
         self::assertFalse($this->repository->delete($two->id));
+    }
+
+    #[Test]
+    public function deleteInExtMboxFormatLeavesTheOtherMails(): void
+    {
+        file_put_contents($this->path, ExtMboxFixture::contents());
+        self::assertSame(['Third', 'Second', 'First'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
+        $second = $this->repository->find(MailFilter::all(), 1, 1)[0];
+
+        self::assertTrue($this->repository->delete($second->id));
+
+        self::assertSame(['Third', 'First'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
     }
 
     #[Test]

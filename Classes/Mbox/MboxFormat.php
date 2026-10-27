@@ -24,7 +24,7 @@ use function sprintf;
  */
 final class MboxFormat
 {
-    private const SEPARATOR_PATTERN = '/^From \S+ (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [ \d]\d \d{2}:\d{2}:\d{2} \d{4}\n?$/';
+    private const SEPARATOR_PATTERN = '/^From \S+ (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (?: \d|\d{1,2}) \d{2}:\d{2}:\d{2} \d{4}\n?$/';
 
     public function separatorLine(string $sender, DateTimeImmutable $date): string
     {

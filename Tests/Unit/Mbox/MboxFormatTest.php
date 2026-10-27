@@ -82,6 +82,10 @@ not From
 
         self::assertTrue($f->isSeparator('From a@example.org Mon Oct  6 23:02:03 2026'));
         self::assertTrue($f->isSeparator("From a@example.org Mon Oct 16 23:02:03 2026\n"));
+        self::assertTrue($f->isSeparator('From a@example.org Sun Nov 1 10:00:00 2026'));
+        self::assertTrue($f->isSeparator("From a@example.org Sun Nov 1 10:00:00 2026\n"));
+        self::assertTrue($f->isSeparator('From a@example.org Sun Nov 10 10:00:00 2026'));
+        self::assertFalse($f->isSeparator('From a@example.org Sun Nov 100 10:00:00 2026'));
         self::assertFalse($f->isSeparator('From here on we talk'));
         self::assertFalse($f->isSeparator('>From a@example.org Mon Oct  6 23:02:03 2026'));
     }
