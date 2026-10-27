@@ -39,7 +39,7 @@ final readonly class DownloadResponseFactory
 
     public function attachment(Attachment $attachment): ResponseInterface
     {
-        return $this->download($attachment->filename, $attachment->content);
+        return $this->download('' === $attachment->filename ? 'attachment.bin' : $attachment->filename, $attachment->content);
     }
 
     private function download(string $filename, string $content): ResponseInterface

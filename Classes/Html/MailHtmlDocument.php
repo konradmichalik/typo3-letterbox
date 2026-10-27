@@ -13,12 +13,19 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Html;
 
+use DOMCdataSection;
+use DOMComment;
 use DOMDocument;
+use DOMDocumentType;
 use DOMElement;
+use DOMNode;
+use DOMProcessingInstruction;
 use KonradMichalik\Typo3Letterbox\Domain\Model\Mail;
 use Masterminds\HTML5;
+use Throwable;
 
 use function in_array;
+use function strlen;
 
 /**
  * MailHtmlDocument.
@@ -27,86 +34,130 @@ use function in_array;
  */
 final class MailHtmlDocument
 {
-    private const CSP = "default-src 'none'; img-src data:; style-src 'unsafe-inline'";
-    private const INLINE_IMAGE_PATTERN = '#^image/(png|jpe?g|gif|webp|svg\+xml)$#i';
+    private const MAX_BYTES = 2097152;
+    private const SHELL_PREFIX = '<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'"><meta name="referrer" content="no-referrer"></head><body>';
+    private const SHELL_SUFFIX = '</body></html>';
+    private const INLINE_IMAGE_PATTERN = '#^image/(png|jpe?g|gif|webp|svg\+xml)$#iD';
+    private const REMOVED_TAGS = ['script', 'xmp', 'plaintext', 'noembed', 'noframes', 'iframe', 'object', 'embed', 'link', 'base', 'meta'];
+    private const WRAPPER_TAGS = ['html', 'head', 'body'];
 
     public function build(Mail $mail): string
     {
-        if ('' === trim($mail->html)) {
+        if ('' === trim($mail->html) || strlen($mail->html) > self::MAX_BYTES) {
             return '';
         }
 
-        $html5 = new HTML5();
-        $document = $html5->loadHTML($mail->html);
+        try {
+            $html5 = new HTML5();
+            $document = $html5->loadHTML($mail->html);
 
-        foreach ($this->elements($document, ['base', 'meta']) as $element) {
-            if ('base' === $element->tagName || $this->isHttpEquiv($element, ['refresh', 'content-security-policy'])) {
-                $element->parentNode?->removeChild($element);
+            foreach ($this->descendants($document) as $node) {
+                $this->sanitize($node);
+            }
+            $this->inlineCidImages($document, $mail);
+
+            return self::SHELL_PREFIX.$this->serializeContent($html5, $document).self::SHELL_SUFFIX;
+        } catch (Throwable) {
+            return '';
+        }
+    }
+
+    private function sanitize(DOMNode $node): void
+    {
+        if ($node instanceof DOMProcessingInstruction || $node instanceof DOMCdataSection || $node instanceof DOMComment) {
+            $node->parentNode?->removeChild($node);
+
+            return;
+        }
+        if (!$node instanceof DOMElement) {
+            return;
+        }
+        $tag = strtolower($node->tagName);
+        if (in_array($tag, self::REMOVED_TAGS, true)) {
+            $node->parentNode?->removeChild($node);
+
+            return;
+        }
+        if ('style' === $tag) {
+            foreach ($node->childNodes as $child) {
+                $child->nodeValue = str_replace('</', '<\\/', (string) $child->nodeValue);
             }
         }
+    }
 
-        $this->inlineCidImages($document, $mail);
+    private function serializeContent(HTML5 $html5, DOMDocument $document): string
+    {
+        [$styles, $content] = $this->collect($html5, $document);
 
-        $head = $document->getElementsByTagName('head')->item(0);
-        if (null === $head) {
-            $head = $document->createElement('head');
-            $document->documentElement?->insertBefore($head, $document->documentElement->firstChild);
+        return $styles.$content;
+    }
+
+    /**
+     * @return array{string, string} head styles and remaining content
+     */
+    private function collect(HTML5 $html5, DOMNode $parent): array
+    {
+        $styles = '';
+        $content = '';
+        foreach (iterator_to_array($parent->childNodes) as $child) {
+            if ($child instanceof DOMDocumentType) {
+                continue;
+            }
+            if ($child instanceof DOMElement && in_array(strtolower($child->tagName), self::WRAPPER_TAGS, true)) {
+                [$nestedStyles, $nestedContent] = $this->collect($html5, $child);
+                $styles .= $nestedStyles;
+                $content .= $nestedContent;
+                continue;
+            }
+            if ($child instanceof DOMElement && 'style' === strtolower($child->tagName) && 'head' === strtolower($parent->nodeName)) {
+                $styles .= $html5->saveHTML($child);
+                continue;
+            }
+            $content .= $html5->saveHTML($child);
         }
-        $csp = $document->createElement('meta');
-        $csp->setAttribute('http-equiv', 'Content-Security-Policy');
-        $csp->setAttribute('content', self::CSP);
-        $head->insertBefore($csp, $head->firstChild);
 
-        return $html5->saveHTML($document);
+        return [$styles, $content];
     }
 
     private function inlineCidImages(DOMDocument $document, Mail $mail): void
     {
-        $images = [];
+        $byId = [];
         foreach ($mail->attachments as $attachment) {
             $id = trim($attachment->contentId, '<>');
             if ('' !== $id && 1 === preg_match(self::INLINE_IMAGE_PATTERN, $attachment->mimeType)) {
-                $images[$id] = 'data:'.$attachment->mimeType.';base64,'.base64_encode($attachment->content);
+                $byId[$id] = $attachment;
             }
         }
-        if ([] === $images) {
+        if ([] === $byId) {
             return;
         }
 
-        foreach ($this->elements($document, ['*']) as $element) {
+        foreach ($this->descendants($document) as $element) {
+            if (!$element instanceof DOMElement) {
+                continue;
+            }
             $src = $element->getAttribute('src');
             if (!str_starts_with(strtolower($src), 'cid:')) {
                 continue;
             }
-            $id = trim(rawurldecode(substr($src, 4)), '<>');
-            if (isset($images[$id])) {
-                $element->setAttribute('src', $images[$id]);
+            $attachment = $byId[trim(rawurldecode(substr($src, 4)), '<>')] ?? null;
+            if (null !== $attachment) {
+                $element->setAttribute('src', 'data:'.$attachment->mimeType.';base64,'.base64_encode($attachment->content));
             }
         }
     }
 
     /**
-     * @param list<string> $tags
-     *
-     * @return list<DOMElement>
+     * @return list<DOMNode>
      */
-    private function elements(DOMDocument $document, array $tags): array
+    private function descendants(DOMNode $root): array
     {
         $found = [];
-        foreach ($tags as $tag) {
-            foreach ($document->getElementsByTagName($tag) as $element) {
-                $found[] = $element;
-            }
+        foreach (iterator_to_array($root->childNodes) as $child) {
+            $found[] = $child;
+            array_push($found, ...$this->descendants($child));
         }
 
         return $found;
-    }
-
-    /**
-     * @param list<string> $values
-     */
-    private function isHttpEquiv(DOMElement $element, array $values): bool
-    {
-        return in_array(strtolower(trim($element->getAttribute('http-equiv'))), $values, true);
     }
 }

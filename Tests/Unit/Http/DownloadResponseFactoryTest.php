@@ -48,6 +48,14 @@ final class DownloadResponseFactoryTest extends TestCase
     }
 
     #[Test]
+    public function emptyFilenameFallsBackToAttachmentBin(): void
+    {
+        $r = $this->factory()->attachment(new Attachment(0, '', '', 'text/plain', 1, 'x'));
+
+        self::assertStringStartsWith('attachment; filename="attachment.bin"', $r->getHeaderLine('Content-Disposition'));
+    }
+
+    #[Test]
     public function sourceIsCrlfEmlDownload(): void
     {
         $mail = new Mail('abc123', '<m@x>', 's', null, null, [], [], [], [], '', '', [], [], 0, "Subject: x\n\nbody\n", []);
