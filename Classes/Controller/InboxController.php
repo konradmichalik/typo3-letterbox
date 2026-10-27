@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Controller;
 
+use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
@@ -25,13 +26,14 @@ use TYPO3\CMS\Backend\Template\Components\Buttons\{InputButton, LinkButton};
 use TYPO3\CMS\Backend\Template\{ModuleTemplate, ModuleTemplateFactory};
 use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Imaging\{IconFactory, IconSize};
 use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Pagination\SimplePagination;
+use TYPO3\CMS\Core\Pagination\SlidingWindowPagination;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function is_array;
@@ -52,6 +54,7 @@ final readonly class InboxController
     private const CLEAR_FORM_ID = 'letterbox-clear-form';
     private const LANGUAGE_FILE = 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:';
     private const DEFAULT_MAILS_PER_PAGE = 10;
+    private const PAGE_LINKS = 5;
 
     public function __construct(
         private ModuleTemplateFactory $moduleTemplateFactory,
@@ -65,6 +68,7 @@ final readonly class InboxController
         private IconFactory $iconFactory,
         private PageRenderer $pageRenderer,
         private Typo3Version $typo3Version,
+        private Context $context,
     ) {}
 
     public function indexAction(ServerRequestInterface $request): ResponseInterface
@@ -83,6 +87,8 @@ final readonly class InboxController
         $view = $this->createView($request, $mail->id);
         $view->assignMultiple([
             'mail' => $mail,
+            'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
+            'hasHtml' => '' !== trim($mail->html),
             'htmlDocument' => $htmlDocument,
             'defaultTab' => '' === $htmlDocument ? 'text' : 'html',
         ]);
@@ -160,8 +166,9 @@ final readonly class InboxController
             'size' => $this->repository->sizeInBytes(),
             'total' => $total,
             'mails' => $paginator->getPaginatedItems(),
+            'listDates' => $this->listDates($paginator->getPaginatedItems()),
             'paginator' => $paginator,
-            'pagination' => new SimplePagination($paginator),
+            'pagination' => new SlidingWindowPagination($paginator, self::PAGE_LINKS),
             'page' => $paginator->getCurrentPageNumber(),
             'selectedId' => $selectedId,
             'token' => $token,
@@ -240,6 +247,41 @@ final readonly class InboxController
         $page = $request->getQueryParams()['page'] ?? '1';
 
         return is_string($page) && 1 === preg_match('/^[1-9]\d{0,8}$/D', $page) ? (int) $page : 1;
+    }
+
+    /**
+     * List rows show the time for today's mails, "Yesterday", or the date, in the backend's timezone.
+     *
+     * @param iterable<Mail> $mails
+     *
+     * @return array<string, string>
+     */
+    private function listDates(iterable $mails): array
+    {
+        $now = $this->now();
+        $today = $now->format('Y-m-d');
+        $yesterday = $now->modify('-1 day')->format('Y-m-d');
+        $labels = [];
+        foreach ($mails as $mail) {
+            if (null === $mail->date) {
+                continue;
+            }
+            $local = $mail->date->setTimezone($now->getTimezone());
+            $labels[$mail->id] = match ($local->format('Y-m-d')) {
+                $today => $local->format('H:i'),
+                $yesterday => $this->translate('inbox.yesterday'),
+                default => $local->format('Y-m-d'),
+            };
+        }
+
+        return $labels;
+    }
+
+    private function now(): DateTimeImmutable
+    {
+        $now = $this->context->getPropertyFromAspect('date', 'full');
+
+        return $now instanceof DateTimeImmutable ? $now : new DateTimeImmutable();
     }
 
     private function mailsPerPage(): int

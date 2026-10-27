@@ -15,8 +15,8 @@
             <div>
                 <f:render partial="MailList" arguments="{_all}" />
             </div>
-            <article class="card letterbox-detail" aria-labelledby="letterbox-subject">
-                <div class="card-body">
+            <article class="letterbox-detail" aria-labelledby="letterbox-subject">
+                <div>
                     <div class="d-flex justify-content-between align-items-start gap-3">
                         <f:variable name="subject" value="{f:if(condition: mail.subject, then: mail.subject, else: '{f:translate(key: \'inbox.noSubject\', extensionName: \'Typo3Letterbox\')}')}" />
                         <h2 id="letterbox-subject" class="text-break">{subject}</h2>
@@ -47,7 +47,7 @@
                             <f:translate key="inbox.detail.cc" extensionName="Typo3Letterbox" />
                             <f:render section="Addresses" arguments="{addresses: mail.cc}" />
                         </f:if>
-                        <f:if condition="{mail.date}">· <f:format.date date="{mail.date}" format="Y-m-d H:i:s" /></f:if>
+                        <f:if condition="{mailDate}">· <f:format.date date="{mailDate}" format="Y-m-d H:i:s" /></f:if>
                     </p>
 
                     <f:if condition="{mail.attachments}">
@@ -64,25 +64,29 @@
                     </f:if>
 
                     <ul class="nav nav-tabs" role="tablist">
-                        <f:render section="Tab" arguments="{name: 'html', defaultTab: defaultTab}" />
+                        <f:if condition="{hasHtml}">
+                            <f:render section="Tab" arguments="{name: 'html', defaultTab: defaultTab}" />
+                        </f:if>
                         <f:render section="Tab" arguments="{name: 'text', defaultTab: defaultTab}" />
                         <f:render section="Tab" arguments="{name: 'source', defaultTab: defaultTab}" />
                     </ul>
                     <div class="tab-content">
-                        <div class="tab-pane{f:if(condition: '{defaultTab} == \'html\'', then: ' active')}" id="letterbox-pane-html" role="tabpanel" aria-labelledby="letterbox-tab-html" tabindex="0">
-                            <f:if condition="{htmlDocument}">
-                                <f:then>
-                                    <iframe class="letterbox-preview" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"></iframe>
-                                </f:then>
-                                <f:else>
-                                    <div class="callout callout-info mt-3">
-                                        <div class="callout-content">
-                                            <div class="callout-body"><f:translate key="inbox.noHtml" extensionName="Typo3Letterbox" /></div>
+                        <f:if condition="{hasHtml}">
+                            <div class="tab-pane{f:if(condition: '{defaultTab} == \'html\'', then: ' active')}" id="letterbox-pane-html" role="tabpanel" aria-labelledby="letterbox-tab-html" tabindex="0">
+                                <f:if condition="{htmlDocument}">
+                                    <f:then>
+                                        <iframe class="letterbox-preview" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"></iframe>
+                                    </f:then>
+                                    <f:else>
+                                        <div class="callout callout-info mt-3">
+                                            <div class="callout-content">
+                                                <div class="callout-body"><f:translate key="inbox.noHtml" extensionName="Typo3Letterbox" /></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </f:else>
-                            </f:if>
-                        </div>
+                                    </f:else>
+                                </f:if>
+                            </div>
+                        </f:if>
                         <div class="tab-pane{f:if(condition: '{defaultTab} == \'text\'', then: ' active')}" id="letterbox-pane-text" role="tabpanel" aria-labelledby="letterbox-tab-text" tabindex="0">
                             <f:if condition="{mail.text}">
                                 <f:then><pre class="letterbox-text">{mail.text}</pre></f:then>

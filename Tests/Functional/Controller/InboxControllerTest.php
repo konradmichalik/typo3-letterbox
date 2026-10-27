@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Controller;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Controller\InboxController;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
@@ -24,6 +25,7 @@ use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\{Router, UriBuilder};
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Context\{Context, DateTimeAspect};
 use TYPO3\CMS\Core\Core\{Environment, SystemEnvironmentBuilder};
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\{NormalizedParams, ServerRequest};
@@ -175,6 +177,36 @@ final class InboxControllerTest extends FunctionalTestCase
 
         self::assertStringContainsString('1 mail ', $body);
         self::assertStringNotContainsString('1 mails', $body);
+    }
+
+    #[Test]
+    public function textOnlyMailHasNoHtmlTab(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Plain\n\nJust text.\n");
+
+        $body = (string) $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $this->firstId()]))->getBody();
+
+        self::assertStringNotContainsString('letterbox-tab-html', $body);
+        self::assertStringNotContainsString('No HTML preview available', $body);
+        self::assertMatchesRegularExpression('/id="letterbox-tab-text"[^>]*aria-selected="true"/', $body);
+    }
+
+    #[Test]
+    public function listShowsTimeTodayYesterdayOrDate(): void
+    {
+        $timezone = new DateTimeZone(date_default_timezone_get());
+        $now = new DateTimeImmutable('2026-10-27 12:00:00', $timezone);
+        $this->get(Context::class)->setAspect('date', new DateTimeAspect($now));
+        foreach (['older' => '2026-10-01 08:00:00', 'yesterday' => '2026-10-26 20:15:00', 'today' => '2026-10-27 09:30:00'] as $subject => $date) {
+            $header = (new DateTimeImmutable($date, $timezone))->format(\DATE_RFC2822);
+            $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: {$subject}\nDate: {$header}\n\nbody\n");
+        }
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertMatchesRegularExpression('/>today<.*?<small class="text-nowrap">09:30<\/small>/s', $body);
+        self::assertMatchesRegularExpression('/>yesterday<.*?<small class="text-nowrap">Yesterday<\/small>/s', $body);
+        self::assertMatchesRegularExpression('/>older<.*?<small class="text-nowrap">2026-10-01<\/small>/s', $body);
     }
 
     #[Test]
@@ -339,5 +371,10 @@ final class InboxControllerTest extends FunctionalTestCase
     private function writer(): MailboxWriter
     {
         return new MailboxWriter($this->path, new MboxFormat(), new MailboxLock($this->get(LockFactory::class)));
+    }
+
+    private function appendRaw(string $raw): void
+    {
+        $this->writer()->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), $raw);
     }
 }

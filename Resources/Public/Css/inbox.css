@@ -4,6 +4,13 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* The link fills the whole list item, so hover area and click area match. */
+.letterbox-list .letterbox-row {
+  display: grid;
+  gap: 6px;
+  padding: 14px 18px;
+}
+
 .letterbox-preview {
   background-color: Canvas;
   border: 0;
