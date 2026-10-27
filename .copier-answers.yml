@@ -1,0 +1,21 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 8d561cd
+_src_path: /Users/k.michalik/Sites/Packages/typo3-extension-template
+author_email: hej@konradmichalik.dev
+author_name: Konrad Michalik
+category: be
+composer_name: konradmichalik/typo3-letterbox
+copyright_year: 2026
+description: Catches TYPO3 mails in an mbox file and shows them in the backend, for
+    local, stage and test systems.
+extension_key: typo3_letterbox
+functional_tests: true
+icon_file: Extension.svg
+php_min: '8.2'
+php_namespace: KonradMichalik\Typo3Letterbox
+repository_name: typo3-letterbox
+ter_publish: true
+title: Letterbox
+typo3_constraint: ^13.4 || ^14.0
+typoscript: false
+vendor: konradmichalik

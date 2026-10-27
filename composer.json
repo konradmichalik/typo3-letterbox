@@ -1,0 +1,93 @@
+{
+	"name": "konradmichalik/typo3-letterbox",
+	"description": "Letterbox - Catches TYPO3 mails in an mbox file and shows them in the backend, for local, stage and test systems.",
+	"license": [
+		"GPL-2.0-or-later"
+	],
+	"type": "typo3-cms-extension",
+	"authors": [
+		{
+			"name": "Konrad Michalik",
+			"email": "hej@konradmichalik.dev",
+			"role": "Maintainer"
+		},
+		{
+			"name": "Armin Vieweg",
+			"email": "armin@v.ieweg.de",
+			"role": "Original author of EXT:mbox and armin/mbox-parser"
+		}
+	],
+	"require": {
+		"php": "~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
+		"typo3/cms-core": "^13.4 || ^14.0",
+		"zbateson/mail-mime-parser": "^4.0.7"
+	},
+	"require-dev": {
+		"eliashaeussler/version-bumper": "^4.1.2",
+		"konradmichalik/ttt": "^0.4.0",
+		"phpunit/phpcov": "^10.0.1 || ^11.0.4 || ^12.0 || ^13.1.0",
+		"phpunit/phpunit": "^11.0 || ^12.0 || ^13.0",
+		"typo3/cms-base-distribution": "^13.4 || ^14.0",
+		"typo3/cms-lowlevel": "^13.4 || ^14.0",
+		"typo3/testing-framework": "^8.2 || ^9.0 || ^10.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"KonradMichalik\\Typo3Letterbox\\": "Classes/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"KonradMichalik\\Typo3Letterbox\\Tests\\": "Tests/"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"eliashaeussler/version-bumper": true,
+			"ergebnis/composer-normalize": true,
+			"php-http/discovery": true,
+			"typo3/class-alias-loader": true,
+			"typo3/cms-composer-installers": true
+		},
+		"platform": {
+			"php": "8.2"
+		},
+		"sort-packages": true
+	},
+	"extra": {
+		"konradmichalik/php-cs-fixer-preset": {
+			"copyright": 2026
+		},
+		"typo3/cms": {
+			"Package": {
+				"providesPackages": {}
+			},
+			"cms-package-dir": "{$vendor-dir}/typo3/cms",
+			"extension-key": "typo3_letterbox",
+			"version": "1.0.0",
+			"web-dir": "public"
+		}
+	},
+	"scripts": {
+		"post-install-cmd": [
+			"@cgl install"
+		],
+		"cgl": "@composer -d Tests/CGL --",
+		"test": [
+			"@test:unit",
+			"@test:functional"
+		],
+		"test:coverage": [
+			"@test:coverage:clean",
+			"@test:coverage:unit",
+			"@test:coverage:functional",
+			"@test:coverage:merge"
+		],
+		"test:coverage:clean": "rm -rf .Build/coverage",
+		"test:coverage:functional": "phpunit -c phpunit.functional.xml --coverage-php .Build/coverage/php/functional.cov",
+		"test:coverage:merge": "phpcov merge --clover .Build/coverage/clover.xml --html .Build/coverage/html --text php://stdout .Build/coverage/php",
+		"test:coverage:unit": "phpunit -c phpunit.xml --coverage-php .Build/coverage/php/unit.cov",
+		"test:functional": "phpunit -c phpunit.functional.xml --no-coverage",
+		"test:unit": "phpunit -c phpunit.xml --no-coverage"
+	}
+}

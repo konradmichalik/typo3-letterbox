@@ -1,0 +1,8 @@
+# cat=basic; type=boolean; label=Enable debug mode: registers the letterbox:testmails:send command
+debugMode = 0
+
+# cat=basic; type=boolean; label=Enable the backend module
+enableBackendModule = 1
+
+# cat=basic; type=int+; label=Mails per page
+mailsPerPage = 10
