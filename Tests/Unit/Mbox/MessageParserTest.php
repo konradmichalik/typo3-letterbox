@@ -123,6 +123,15 @@ final class MessageParserTest extends TestCase
         self::assertSame('2026-10-27T10:00:00+00:00', $entry->date?->format('c'));
     }
 
+    #[Test]
+    public function summarizeCarriesFromNameAndAttachmentCount(): void
+    {
+        $entry = (new MessageParser())->summarize($this->fixture('html-with-attachment.eml'), new MessageSpan(0, 10));
+
+        self::assertSame('Sender Name', $entry->fromName);
+        self::assertSame(2, $entry->attachmentCount);
+    }
+
     private function fixture(string $name): string
     {
         return (string) file_get_contents(__DIR__.'/Fixtures/'.$name);

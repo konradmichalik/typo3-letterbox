@@ -77,25 +77,21 @@
     </span>
     <span class="d-flex justify-content-between align-items-center gap-2">
         <small class="text-truncate{f:if(condition: isSelected, else: ' text-variant')}">
-            <f:render section="AddressName" arguments="{address: mail.from}" />
-            <f:if condition="{mail.to.0}">
+            <f:if condition="{mail.sender}">
+                <f:then>{f:if(condition: mail.fromName, then: mail.fromName, else: mail.sender)}</f:then>
+                <f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else>
+            </f:if>
+            <f:if condition="{mail.recipients.0}">
                 <f:translate key="inbox.to" extensionName="Typo3Letterbox" />
-                <f:render section="AddressName" arguments="{address: mail.to.0}" />
+                {mail.recipients.0}
             </f:if>
         </small>
-        <f:if condition="{mail.attachments}">
+        <f:if condition="{mail.attachmentCount}">
             <span class="flex-shrink-0" aria-hidden="true"><core:icon identifier="actions-file" size="small" /></span>
         </f:if>
     </span>
 </f:section>
 
-<f:section name="LinkText"><f:if condition="{mail.subject}"><f:then>{mail.subject}</f:then><f:else><f:translate key="inbox.noSubject" extensionName="Typo3Letterbox" /></f:else></f:if><f:if condition="{mail.attachments}"><span class="visually-hidden">, <f:translate key="inbox.hasAttachments" extensionName="Typo3Letterbox" /></span></f:if></f:section>
-
-<f:section name="AddressName">
-    <f:if condition="{address}">
-        <f:then>{f:if(condition: address.name, then: address.name, else: address.address)}</f:then>
-        <f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else>
-    </f:if>
-</f:section>
+<f:section name="LinkText"><f:if condition="{mail.subject}"><f:then>{mail.subject}</f:then><f:else><f:translate key="inbox.noSubject" extensionName="Typo3Letterbox" /></f:else></f:if><f:if condition="{mail.attachmentCount}"><span class="visually-hidden">, <f:translate key="inbox.hasAttachments" extensionName="Typo3Letterbox" /></span></f:if></f:section>
 
 </html>

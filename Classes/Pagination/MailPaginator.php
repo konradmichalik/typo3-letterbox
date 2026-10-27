@@ -13,8 +13,9 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Pagination;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
+use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
+use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
 use TYPO3\CMS\Core\Pagination\AbstractPaginator;
 
 use function count;
@@ -22,7 +23,7 @@ use function count;
 /**
  * MailPaginator.
  *
- * Loads only the mails of the current page from the repository.
+ * Takes only the index entries of the current page from the repository, no mail is parsed.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
@@ -31,7 +32,7 @@ final class MailPaginator extends AbstractPaginator
     private readonly int $total;
 
     /**
-     * @var list<Mail>
+     * @var list<MessageIndexEntry>
      */
     private array $paginatedItems = [];
 
@@ -49,7 +50,7 @@ final class MailPaginator extends AbstractPaginator
     }
 
     /**
-     * @return list<Mail>
+     * @return list<MessageIndexEntry>
      */
     public function getPaginatedItems(): iterable
     {
@@ -63,7 +64,7 @@ final class MailPaginator extends AbstractPaginator
 
     protected function updatePaginatedItems(int $itemsPerPage, int $offset): void
     {
-        $this->paginatedItems = $this->repository->find($this->filter, $offset, $itemsPerPage);
+        $this->paginatedItems = $this->repository->findEntries($this->filter, $offset, $itemsPerPage);
     }
 
     protected function getTotalAmountOfItems(): int

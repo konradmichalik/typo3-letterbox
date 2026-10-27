@@ -30,7 +30,9 @@ final readonly class MessageIndexEntry
         public string $id,
         public ?DateTimeImmutable $date,
         public string $sender,
+        public string $fromName,
         public array $recipients,
         public string $subject,
+        public int $attachmentCount,
     ) {}
 }

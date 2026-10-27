@@ -76,13 +76,17 @@ final readonly class MessageParser
             $recipients[] = strtolower(trim($address));
         }
 
+        $from = $this->addresses($message, 'From')[0] ?? new Address('');
+
         return new MessageIndexEntry(
             $span,
             self::idOf($raw),
             $this->date($message),
-            ($this->addresses($message, 'From')[0] ?? new Address(''))->address,
+            $from->address,
+            $from->name,
             array_values(array_unique(array_filter($recipients, static fn (string $a): bool => '' !== $a))),
             $message->getSubject() ?? '',
+            $message->getAttachmentCount(),
         );
     }
 

@@ -55,6 +55,14 @@ final readonly class MailRepository
         return $mails;
     }
 
+    /**
+     * @return list<MessageIndexEntry> newest first
+     */
+    public function findEntries(MailFilter $filter, int $offset, int $limit): array
+    {
+        return array_slice($this->matching($filter), max(0, $offset), max(0, $limit));
+    }
+
     public function findById(string $id, MailFilter $filter): ?Mail
     {
         foreach ($this->matching($filter) as $entry) {

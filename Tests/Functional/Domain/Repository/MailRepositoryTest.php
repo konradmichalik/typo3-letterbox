@@ -16,7 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Domain\Repository;
 use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageParser};
+use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry, MessageParser};
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -83,6 +83,42 @@ final class MailRepositoryTest extends FunctionalTestCase
         self::assertSame(3, $this->repository->count(MailFilter::all()));
         self::assertSame(['three', 'two', 'one'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
         self::assertSame(['two'], $this->subjects($this->repository->find(MailFilter::all(), 1, 1)));
+    }
+
+    #[Test]
+    public function findEntriesReturnsNewestFirstWithoutReadingTheMails(): void
+    {
+        $padding = str_repeat('x', 4000);
+        for ($i = 1; $i <= 30; ++$i) {
+            $this->writer->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), "From: s@example.org\nTo: r@example.org\nSubject: mail {$i}\n\n{$padding}\n");
+        }
+        self::assertSame(30, $this->repository->count(MailFilter::all()));
+
+        // Same-length damage to mail 13 outside the fingerprinted tail keeps the index valid but makes a full load of that mail fail.
+        $mtime = (int) filemtime($this->path);
+        $contents = (string) file_get_contents($this->path);
+        $position = (int) strpos($contents, 'Subject: mail 13');
+        file_put_contents($this->path, substr_replace($contents, 'Subject: mail XX', $position, 16));
+        touch($this->path, $mtime);
+
+        $entries = $this->repository->findEntries(MailFilter::all(), 10, 10);
+
+        self::assertSame(
+            array_map(static fn (int $i): string => 'mail '.$i, range(20, 11)),
+            array_map(static fn (MessageIndexEntry $entry): string => $entry->subject, $entries),
+        );
+        self::assertCount(9, $this->repository->find(MailFilter::all(), 10, 10));
+    }
+
+    #[Test]
+    public function staleV1CacheIsIgnored(): void
+    {
+        $this->append('one');
+        $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
+        $mailbox = new Mailbox($this->path, new MboxFormat());
+        $cache->set('v1_'.hash('sha256', $this->path), ['fingerprint' => $mailbox->fingerprint(), 'entries' => []]);
+
+        self::assertSame(1, $this->repository->count(MailFilter::all()));
     }
 
     #[Test]

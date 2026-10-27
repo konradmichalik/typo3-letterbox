@@ -18,6 +18,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
+use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
 use KonradMichalik\Typo3Letterbox\Pagination\MailPaginator;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use RuntimeException;
@@ -266,22 +267,22 @@ final readonly class InboxController
     /**
      * List rows show the time for today's mails, "Yesterday", or the date, in the backend's timezone.
      *
-     * @param iterable<Mail> $mails
+     * @param iterable<MessageIndexEntry> $entries
      *
      * @return array<string, string>
      */
-    private function listDates(iterable $mails): array
+    private function listDates(iterable $entries): array
     {
         $now = $this->now();
         $today = $now->format('Y-m-d');
         $yesterday = $now->modify('-1 day')->format('Y-m-d');
         $labels = [];
-        foreach ($mails as $mail) {
-            if (null === $mail->date) {
+        foreach ($entries as $entry) {
+            if (null === $entry->date) {
                 continue;
             }
-            $local = $mail->date->setTimezone($now->getTimezone());
-            $labels[$mail->id] = match ($local->format('Y-m-d')) {
+            $local = $entry->date->setTimezone($now->getTimezone());
+            $labels[$entry->id] = match ($local->format('Y-m-d')) {
                 $today => $local->format('H:i'),
                 $yesterday => $this->translate('inbox.yesterday'),
                 default => $local->format('Y-m-d'),
