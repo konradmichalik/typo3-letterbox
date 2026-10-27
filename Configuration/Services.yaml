@@ -6,3 +6,16 @@ services:
 
   KonradMichalik\Typo3Letterbox\:
     resource: '../Classes/*'
+
+  cache.typo3_letterbox_index:
+    class: TYPO3\CMS\Core\Cache\Frontend\FrontendInterface
+    factory: ['@TYPO3\CMS\Core\Cache\CacheManager', 'getCache']
+    arguments: ['typo3_letterbox_index']
+
+  KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory:
+    arguments:
+      $cache: '@cache.typo3_letterbox_index'
+
+  KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository:
+    public: true
+    factory: ['@KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory', 'create']

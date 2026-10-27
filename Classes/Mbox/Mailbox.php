@@ -31,6 +31,11 @@ final readonly class Mailbox
         private MboxFormat $format,
     ) {}
 
+    public function path(): string
+    {
+        return $this->path;
+    }
+
     public function exists(): bool
     {
         return is_file($this->path);
