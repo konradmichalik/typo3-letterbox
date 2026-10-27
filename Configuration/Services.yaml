@@ -6,6 +6,7 @@ services:
 
   KonradMichalik\Typo3Letterbox\:
     resource: '../Classes/*'
+    exclude: '../Classes/Command/*'
 
   cache.typo3_letterbox_index:
     class: TYPO3\CMS\Core\Cache\Frontend\FrontendInterface
