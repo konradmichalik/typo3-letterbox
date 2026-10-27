@@ -1,0 +1,87 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the "typo3_letterbox" TYPO3 CMS extension.
+ *
+ * (c) 2026 Konrad Michalik <hej@konradmichalik.dev>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Backend;
+
+use KonradMichalik\Typo3Letterbox\Backend\ReadState;
+use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
+
+/**
+ * ReadStateTest.
+ *
+ * @author Konrad Michalik <hej@konradmichalik.dev>
+ */
+final class ReadStateTest extends FunctionalTestCase
+{
+    protected array $testExtensionsToLoad = [
+        'typo3_letterbox',
+    ];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->importCSVDataSet(__DIR__.'/../Fixtures/be_users.csv');
+        $this->setUpBackendUser(1);
+    }
+
+    #[Test]
+    public function markReadPersistsForTheBackendUser(): void
+    {
+        $state = new ReadState();
+        self::assertFalse($state->isRead('a'));
+
+        $state->markRead('a');
+
+        self::assertTrue($state->isRead('a'));
+        self::assertSame(['a'], $state->readIds());
+        $uc = unserialize((string) $this->storedUc(), ['allowed_classes' => false]);
+        self::assertSame(['a'], $uc['letterbox']['read']);
+    }
+
+    #[Test]
+    public function readListIsCappedAt2000(): void
+    {
+        $state = new ReadState();
+        for ($i = 1; $i <= 2001; ++$i) {
+            $state->markRead('id'.$i);
+        }
+
+        $ids = $state->readIds();
+        self::assertCount(2000, $ids);
+        self::assertFalse($state->isRead('id1'));
+        self::assertSame('id2', $ids[0]);
+        self::assertSame('id2001', $ids[1999]);
+    }
+
+    #[Test]
+    public function markingTwiceKeepsOneEntry(): void
+    {
+        $state = new ReadState();
+        $state->markRead('a');
+        $state->markRead('b');
+        $state->markRead('a');
+
+        self::assertSame(['b', 'a'], $state->readIds());
+    }
+
+    private function storedUc(): mixed
+    {
+        return $this->get(ConnectionPool::class)
+            ->getConnectionForTable('be_users')
+            ->select(['uc'], 'be_users', ['uid' => 1])
+            ->fetchOne();
+    }
+}
