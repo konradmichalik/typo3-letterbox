@@ -47,7 +47,7 @@ final readonly class LetterboxSettings
         }
 
         $delivery = (string) ($mail['transport_letterbox_delivery'] ?? '');
-        if (LetterboxTransport::class === ltrim($delivery, '\\')) {
+        if (0 === strcasecmp(ltrim($delivery, '\\'), LetterboxTransport::class)) {
             throw new InvalidArgumentException('transport_letterbox_delivery must not be the Letterbox transport itself.', 1761561611);
         }
 

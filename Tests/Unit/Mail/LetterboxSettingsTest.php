@@ -15,7 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mail;
 
 use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport};
-use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -68,6 +68,30 @@ final class LetterboxSettingsTest extends TestCase
             'transport_mbox_file' => '/tmp/m.mbox',
             'transport_letterbox_delivery' => LetterboxTransport::class,
         ], 'Development');
+    }
+
+    #[Test]
+    #[DataProvider('selfReferences')]
+    public function rejectsSelfAsDeliveryInAnyNotation(string $delivery): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        LetterboxSettings::fromMailSettings([
+            'transport_mbox_file' => '/tmp/m.mbox',
+            'transport_letterbox_delivery' => $delivery,
+        ], 'Development');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function selfReferences(): array
+    {
+        return [
+            'lowercase' => [strtolower(LetterboxTransport::class)],
+            'leading backslash' => ['\\'.LetterboxTransport::class],
+            'lowercase with leading backslash' => ['\\'.strtolower(LetterboxTransport::class)],
+        ];
     }
 
     #[Test]
