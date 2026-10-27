@@ -103,6 +103,9 @@ final class MailHtmlDocumentTest extends TestCase
         yield 'cdata' => ['<![CDATA[ x> <meta http-equiv="refresh" content="0;url=https://evil.test/c"> ]]>'];
         yield 'style end tag space' => ['<style></style ><meta http-equiv="refresh" content="0;url=https://evil.test/s"></style>'];
         yield 'style end tag slash' => ['<style></style/><meta http-equiv="refresh" content="0;url=https://evil.test/s"></style>'];
+        yield 'svg style meta' => ['<svg><style><meta http-equiv="refresh" content="0;url=https://evil.test/"></style></svg>'];
+        yield 'math style meta' => ['<math><style><meta http-equiv="refresh" content="0;url=https://evil.test/"></style></math>'];
+        yield 'svg style base' => ['<svg><style><p><base href="https://evil.test/"><a href="x">'];
         yield 'svg cdata' => ['<svg><![CDATA[ x> <base href="https://evil.test/"> ]]></svg>'];
     }
 
@@ -128,6 +131,11 @@ final class MailHtmlDocumentTest extends TestCase
         self::assertStringNotContainsStringIgnoringCase('<base', $outsideStyle);
         self::assertStringNotContainsString('evil.test', $outsideStyle);
         self::assertStringNotContainsString('</style >', $doc);
+        $reparsed = (new \Masterminds\HTML5())->loadHTML($doc);
+        $body = $reparsed->getElementsByTagName('body')->item(0);
+        self::assertNotNull($body);
+        self::assertCount(0, $body->getElementsByTagName('meta'));
+        self::assertSame(0, $reparsed->getElementsByTagName('base')->length);
         self::assertStringNotContainsString('</style/>', $doc);
     }
 
@@ -136,7 +144,16 @@ final class MailHtmlDocumentTest extends TestCase
     {
         $doc = (new MailHtmlDocument())->build($this->mailWithHtml('<html><head><style>p{color:red}</style ></head><body><p>x</p></body></html>'));
 
-        self::assertStringContainsString('<style>p{color:red}<\/style >', $doc);
+        self::assertStringContainsString('<style>p{color:red}\3C /style >', $doc);
+    }
+
+    #[Test]
+    public function leadingTextIsKept(): void
+    {
+        $builder = new MailHtmlDocument();
+
+        self::assertStringContainsString('Hello world', $builder->build($this->mailWithHtml('Hello world')));
+        self::assertStringContainsString('Dear user,<br>text', $builder->build($this->mailWithHtml('Dear user,<br>text')));
     }
 
     #[Test]

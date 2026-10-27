@@ -49,7 +49,7 @@ final class MailHtmlDocument
 
         try {
             $html5 = new HTML5();
-            $document = $html5->loadHTML($mail->html);
+            $document = $html5->loadHTML(1 === preg_match('/<(?:html|body)\b/i', $mail->html) ? $mail->html : '<body>'.$mail->html);
 
             foreach ($this->descendants($document) as $node) {
                 $this->sanitize($node);
@@ -78,11 +78,31 @@ final class MailHtmlDocument
 
             return;
         }
-        if ('style' === $tag) {
-            foreach ($node->childNodes as $child) {
-                $child->nodeValue = str_replace('</', '<\\/', (string) $child->nodeValue);
+        if ('style' !== $tag) {
+            return;
+        }
+        if ($this->isForeignStyle($node)) {
+            $node->parentNode?->removeChild($node);
+
+            return;
+        }
+        foreach ($node->childNodes as $child) {
+            $child->nodeValue = str_replace('<', '\\3C ', (string) $child->nodeValue);
+        }
+    }
+
+    private function isForeignStyle(DOMElement $style): bool
+    {
+        if (null !== $style->namespaceURI && 'http://www.w3.org/1999/xhtml' !== $style->namespaceURI) {
+            return true;
+        }
+        for ($ancestor = $style->parentNode; null !== $ancestor; $ancestor = $ancestor->parentNode) {
+            if ($ancestor instanceof DOMElement && in_array(strtolower($ancestor->tagName), ['svg', 'math'], true)) {
+                return true;
             }
         }
+
+        return false;
     }
 
     private function serializeContent(HTML5 $html5, DOMDocument $document): string
