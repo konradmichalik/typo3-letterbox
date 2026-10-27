@@ -28,7 +28,7 @@
 }
 
 .letterbox-empty-illustration {
-  color: var(--typo3-text-color-variant);
+  color: var(--typo3-text-color-base);
   display: block;
   height: auto;
   margin: 0 auto 1rem;
@@ -36,24 +36,23 @@
 }
 
 .letterbox-empty-surface {
-  fill: var(--typo3-component-bg);
+  fill: var(--module-bg);
 }
 
-.letterbox-empty-ground {
-  fill: var(--typo3-surface-container-low);
-  stroke: none;
+.letterbox-empty-solid {
+  fill: currentColor;
 }
 
-.letterbox-empty-line {
-  stroke: var(--typo3-component-border-color);
-}
-
-.letterbox-empty-flag {
-  stroke: var(--typo3-text-color-primary);
-}
-
-.letterbox-empty-sparkle {
+.letterbox-empty-primary {
   fill: var(--typo3-text-color-primary);
+}
+
+.letterbox-empty-variant {
+  stroke: var(--typo3-text-color-variant);
+}
+
+.letterbox-empty-border {
+  stroke: var(--typo3-component-border-color);
 }
 
 @media (min-width: 992px) {
