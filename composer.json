@@ -25,6 +25,7 @@
 		"zbateson/mail-mime-parser": "^4.0.7"
 	},
 	"require-dev": {
+		"eliashaeussler/typo3-vendor-bundler": "^4.1.1",
 		"eliashaeussler/version-bumper": "^4.1.2",
 		"konradmichalik/ttt": "^0.4.0",
 		"phpunit/phpcov": "^10.0.1 || ^11.0.4 || ^12.0 || ^13.1.0",
@@ -45,6 +46,7 @@
 	},
 	"config": {
 		"allow-plugins": {
+			"eliashaeussler/typo3-vendor-bundler": true,
 			"eliashaeussler/version-bumper": true,
 			"ergebnis/composer-normalize": true,
 			"php-http/discovery": true,
