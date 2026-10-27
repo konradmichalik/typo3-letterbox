@@ -26,6 +26,8 @@ use function strlen;
  */
 final readonly class Mailbox
 {
+    private const FINGERPRINT_TAIL_BYTES = 65536;
+
     public function __construct(
         private string $path,
         private MboxFormat $format,
@@ -93,9 +95,12 @@ final readonly class Mailbox
         }
 
         $firstLine = (string) fgets($handle);
+        fseek($handle, max(0, $stat['size'] - self::FINGERPRINT_TAIL_BYTES));
+        $tail = (string) stream_get_contents($handle);
         fclose($handle);
 
-        return sprintf('%d|%d|%d|%s', $stat['size'], $stat['mtime'], $stat['ino'], hash('sha256', $firstLine));
+        // The tail covers a file rewritten to the same size within the same second, which size and mtime cannot tell apart.
+        return sprintf('%d|%d|%d|%s|%s', $stat['size'], $stat['mtime'], $stat['ino'], hash('sha256', $firstLine), hash('sha256', $tail));
     }
 
     private function isReadable(): bool

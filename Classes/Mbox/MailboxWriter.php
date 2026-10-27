@@ -61,17 +61,24 @@ final readonly class MailboxWriter
     }
 
     /**
-     * @param list<MessageSpan> $spans
+     * @param list<MessageSpan>       $spans
+     * @param (callable(): bool)|null $guard evaluated under the lock, the spans are only removed when it returns true
+     *
+     * @return bool whether the spans were removed
      */
-    public function remove(array $spans): void
+    public function remove(array $spans, ?callable $guard = null): bool
     {
         if ([] === $spans) {
-            return;
+            return false;
         }
 
         usort($spans, static fn (MessageSpan $a, MessageSpan $b): int => $a->offset <=> $b->offset);
 
-        $this->lock->run(function () use ($spans): void {
+        return $this->lock->run(function () use ($spans, $guard): bool {
+            if (null !== $guard && !$guard()) {
+                return false;
+            }
+
             $temp = $this->path.'.'.bin2hex(random_bytes(6)).'.tmp';
 
             try {
@@ -89,6 +96,8 @@ final readonly class MailboxWriter
             }
 
             GeneralUtility::fixPermissions($this->path);
+
+            return true;
         });
     }
 

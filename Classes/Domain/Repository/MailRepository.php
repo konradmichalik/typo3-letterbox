@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Domain\Repository;
 
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxWriter, MessageIndexEntry, MessageParser};
+use RuntimeException;
 
 use function array_slice;
 use function count;
@@ -85,9 +86,7 @@ final readonly class MailRepository
     {
         foreach ($this->index->entries() as $entry) {
             if ($entry->id === $id) {
-                $this->writer->remove([$entry->span]);
-
-                return true;
+                return $this->writer->remove([$entry->span], fn (): bool => $this->isCurrent($entry));
             }
         }
 
@@ -97,6 +96,11 @@ final readonly class MailRepository
     public function clear(): void
     {
         $this->writer->truncate();
+    }
+
+    public function isConfigured(): bool
+    {
+        return '' !== $this->mailbox->path();
     }
 
     public function path(): string
@@ -119,9 +123,22 @@ final readonly class MailRepository
 
     private function load(MessageIndexEntry $entry): ?Mail
     {
-        $mail = $this->parser->parse($this->mailbox->read($entry->span));
+        try {
+            $mail = $this->parser->parse($this->mailbox->read($entry->span));
+        } catch (RuntimeException) {
+            return null;
+        }
 
         // The file changed after the index was read when the content at the span no longer matches.
         return $mail->id === $entry->id ? $mail : null;
+    }
+
+    private function isCurrent(MessageIndexEntry $entry): bool
+    {
+        try {
+            return MessageParser::idOf($this->mailbox->read($entry->span)) === $entry->id;
+        } catch (RuntimeException) {
+            return false;
+        }
     }
 }

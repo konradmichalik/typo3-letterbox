@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Domain\Repository;
 
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageParser};
-use RuntimeException;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 
 use function is_string;
@@ -33,10 +32,8 @@ final readonly class MailRepositoryFactory
 
     public function create(): MailRepository
     {
-        $path = $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] ?? '';
-        if (!is_string($path) || '' === $path) {
-            throw new RuntimeException('The mbox file is not configured: set $GLOBALS[\'TYPO3_CONF_VARS\'][\'MAIL\'][\'transport_mbox_file\'].', 4108829573);
-        }
+        $configured = $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] ?? '';
+        $path = is_string($configured) ? $configured : '';
 
         $format = new MboxFormat();
         $mailbox = new Mailbox($path, $format);

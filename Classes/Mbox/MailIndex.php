@@ -25,6 +25,8 @@ use function is_string;
  */
 final readonly class MailIndex
 {
+    private const CACHE_VERSION = 'v1_';
+
     public function __construct(
         private Mailbox $mailbox,
         private MessageParser $parser,
@@ -41,7 +43,7 @@ final readonly class MailIndex
             return [];
         }
 
-        $key = hash('sha256', $this->mailbox->path());
+        $key = self::CACHE_VERSION.hash('sha256', $this->mailbox->path());
         $cached = $this->cache->get($key);
         $entries = $this->usable($cached, $fingerprint);
 
@@ -61,12 +63,17 @@ final readonly class MailIndex
      */
     private function usable(mixed $cached, string $fingerprint): ?array
     {
-        if (!is_array($cached) || !is_string($cached['fingerprint'] ?? null) || !is_array($cached['entries'] ?? null)) {
+        if (!is_array($cached) || !is_string($cached['fingerprint'] ?? null) || !is_array($cached['entries'] ?? null) || !array_is_list($cached['entries'])) {
             return null;
+        }
+        foreach ($cached['entries'] as $entry) {
+            if (!$entry instanceof MessageIndexEntry) {
+                return null;
+            }
         }
 
         if ($cached['fingerprint'] === $fingerprint) {
-            return array_values($cached['entries']);
+            return $cached['entries'];
         }
 
         [$size, , $inode, $firstLine] = [...explode('|', $cached['fingerprint']), '', '', '', ''];
@@ -74,8 +81,8 @@ final readonly class MailIndex
 
         $grown = $inode === $newInode && $firstLine === $newFirstLine && (int) $newSize > (int) $size;
 
-        return $grown && $this->endsWithKnownMessage(array_values($cached['entries']), (int) $size)
-            ? array_values($cached['entries'])
+        return $grown && $this->endsWithKnownMessage($cached['entries'], (int) $size)
+            ? $cached['entries']
             : null;
     }
 

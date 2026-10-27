@@ -153,6 +153,45 @@ final class MailRepositoryTest extends FunctionalTestCase
         self::assertSame(['brand new subject that is long enough to grow beyond the old size'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
     }
 
+    #[Test]
+    public function indexIsRebuiltAfterRegrowToTheSameSize(): void
+    {
+        $date = new DateTimeImmutable('2026-10-27 10:00:00');
+        $raw = static fn (string $subject): string => "From: s@example.org\nTo: r@example.org\nSubject: {$subject}\n\nbody\n";
+        $this->writer->append('s@example.org', $date, $raw('AAAA'));
+        self::assertSame(['AAAA'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
+        $sizeBefore = $this->repository->sizeInBytes();
+        $mtimeBefore = filemtime($this->path);
+
+        $this->writer->truncate();
+        $this->writer->append('s@example.org', $date, $raw('BBBB'));
+        touch($this->path, (int) $mtimeBefore);
+
+        self::assertSame($sizeBefore, $this->repository->sizeInBytes());
+        $mails = $this->repository->find(MailFilter::all(), 0, 10);
+        self::assertSame(['BBBB'], $this->subjects($mails));
+        self::assertSame('BBBB', $this->repository->findById($mails[0]->id, MailFilter::all())?->subject);
+    }
+
+    #[Test]
+    public function unconfiguredMailboxYieldsEmptyRepository(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '';
+
+        $repository = $this->get(MailRepository::class);
+
+        self::assertFalse($repository->isConfigured());
+        self::assertSame(0, $repository->count(MailFilter::all()));
+        self::assertSame([], $repository->find(MailFilter::all(), 0, 10));
+        self::assertSame(0, $repository->sizeInBytes());
+    }
+
+    #[Test]
+    public function configuredRepositoryReportsConfigured(): void
+    {
+        self::assertTrue($this->repository->isConfigured());
+    }
+
     private function append(string $subject): void
     {
         $raw = "From: s@example.org\nTo: r@example.org\nSubject: {$subject}\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\n"
