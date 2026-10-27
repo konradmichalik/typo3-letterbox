@@ -19,7 +19,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
-use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
+use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, TextSegments};
 use KonradMichalik\Typo3Letterbox\Pagination\MailPaginator;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use RuntimeException;
@@ -103,6 +103,8 @@ final readonly class InboxController
             'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
             'hasHtml' => $hasHtml,
             'htmlDocument' => $htmlDocument,
+            'textSegments' => TextSegments::split($mail->text),
+            'headersUrl' => $this->mailListView->url($query, ['id' => $mail->id, 'tab' => 'headers']),
             'defaultTab' => $this->defaultTab($query->tab, $hasHtml, '' !== $htmlDocument),
         ]);
 
@@ -181,6 +183,7 @@ final readonly class InboxController
 
         $this->pageRenderer->addCssFile('EXT:typo3_letterbox/Resources/Public/Css/inbox.css');
         $this->pageRenderer->loadJavaScriptModule('@typo3/backend/modal.js');
+        $this->pageRenderer->loadJavaScriptModule('@typo3/backend/copy-to-clipboard.js');
         $this->pageRenderer->loadJavaScriptModule($this->typo3Version->getMajorVersion() >= 14 ? '@typo3/backend/tab.js' : '@typo3/backend/tabs.js');
 
         $view = $this->moduleTemplateFactory->create($request);
@@ -207,7 +210,7 @@ final readonly class InboxController
 
     private function defaultTab(?string $requested, bool $hasHtml, bool $hasPreview): string
     {
-        $available = $hasHtml ? ['html', 'text', 'source'] : ['text', 'source'];
+        $available = $hasHtml ? ['html', 'text', 'headers', 'source', 'links', 'attachments'] : ['text', 'headers', 'source', 'links', 'attachments'];
         if (null !== $requested && in_array($requested, $available, true)) {
             return $requested;
         }

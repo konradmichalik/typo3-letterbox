@@ -119,6 +119,10 @@
   margin: 0;
 }
 
+.letterbox-header-table th {
+  width: 1%;
+}
+
 .letterbox-preview {
   background-color: Canvas;
   border: 0;

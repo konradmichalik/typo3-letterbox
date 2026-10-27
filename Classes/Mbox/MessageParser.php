@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Mbox;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailLink};
 use ZBateson\MailMimeParser\Header\{AddressHeader, DateHeader};
 use ZBateson\MailMimeParser\{IMessage, MailMimeParser};
 
@@ -28,6 +28,8 @@ use function strlen;
 final readonly class MessageParser
 {
     public const ENVELOPE_HEADER = 'X-Letterbox-Envelope-To';
+    public const URL_PATTERN = '#https?://[^\s<>"\']+#i';
+    public const URL_TRAILING_PUNCTUATION = '.,;:!?)]}';
 
     private MailMimeParser $parser;
 
@@ -160,14 +162,14 @@ final readonly class MessageParser
     }
 
     /**
-     * @return list<string>
+     * @return list<MailLink>
      */
     private function links(string $text, string $html): array
     {
         $links = [];
-        if (0 < (int) preg_match_all('#https?://[^\s<>"\']+#i', $text, $matches)) {
+        if (0 < (int) preg_match_all(self::URL_PATTERN, $text, $matches)) {
             foreach ($matches[0] as $url) {
-                $links[] = rtrim($url, '.,;:!?)]}');
+                $links[] = rtrim($url, self::URL_TRAILING_PUNCTUATION);
             }
         }
         if (0 < (int) preg_match_all('#\bhref\s*=\s*(["\'])(.*?)\1#is', $html, $matches)) {
@@ -179,6 +181,24 @@ final readonly class MessageParser
             }
         }
 
-        return array_values(array_unique($links));
+        return array_map(
+            static fn (string $url): MailLink => new MailLink($url, self::isPasswordReset($url)),
+            array_values(array_unique($links)),
+        );
+    }
+
+    /**
+     * felogin: tx_felogin_login[action]=showChangePassword or tx_felogin_login[hash] (RecoveryService::prepareMail).
+     * Backend: route password_reset_validate, path /typo3/login/password-reset/validate (backend Routes.php).
+     */
+    private static function isPasswordReset(string $url): bool
+    {
+        $path = (string) parse_url($url, \PHP_URL_PATH);
+        if (str_contains($path, '/typo3/login/password-reset/')) {
+            return true;
+        }
+        $query = rawurldecode((string) parse_url($url, \PHP_URL_QUERY));
+
+        return str_contains($query, 'tx_felogin_login[action]=showChangePassword') || str_contains($query, 'tx_felogin_login[hash]=');
     }
 }

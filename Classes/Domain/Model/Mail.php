@@ -29,7 +29,7 @@ final readonly class Mail
      * @param list<Address>               $replyTo
      * @param list<Attachment>            $attachments
      * @param array<string, list<string>> $headers
-     * @param list<string>                $links
+     * @param list<MailLink>              $links
      */
     public function __construct(
         public string $id,

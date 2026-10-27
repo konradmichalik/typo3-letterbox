@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\Address;
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, MailLink};
 use KonradMichalik\Typo3Letterbox\Mbox\{MessageParser, MessageSpan};
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -92,7 +92,30 @@ final class MessageParserTest extends TestCase
             'https://example.org/reset?token=1&x=2',
             'http://example.org/docs',
             'https://example.org/other',
-        ], $mail->links);
+        ], array_map(static fn (MailLink $link): string => $link->url, $mail->links));
+    }
+
+    #[Test]
+    public function feloginResetLinkIsMarked(): void
+    {
+        $links = $this->linksOf('https://example.org/?tx_felogin_login%5Baction%5D=showChangePassword&tx_felogin_login%5Bcontroller%5D=PasswordRecovery&tx_felogin_login%5Bhash%5D=abc&cHash=1');
+
+        self::assertTrue($links[0]->isPasswordReset);
+        self::assertTrue($this->linksOf('https://example.org/?tx_felogin_login[hash]=abc')[0]->isPasswordReset);
+    }
+
+    #[Test]
+    public function backendResetLinkIsMarked(): void
+    {
+        self::assertTrue($this->linksOf('https://example.org/typo3/login/password-reset/validate?t=1&i=2&e=3&c=4')[0]->isPasswordReset);
+    }
+
+    #[Test]
+    public function ordinaryLinkIsNotMarked(): void
+    {
+        $links = $this->linksOf('https://example.org/login/password-reset/info?x=tx_felogin_login');
+
+        self::assertFalse($links[0]->isPasswordReset);
     }
 
     #[Test]
@@ -130,6 +153,14 @@ final class MessageParserTest extends TestCase
 
         self::assertSame('Sender Name', $entry->fromName);
         self::assertSame(2, $entry->attachmentCount);
+    }
+
+    /**
+     * @return list<MailLink>
+     */
+    private function linksOf(string $url): array
+    {
+        return (new MessageParser())->parse("To: x@example.org\nSubject: l\n\nOpen {$url} now\n")->links;
     }
 
     private function fixture(string $name): string

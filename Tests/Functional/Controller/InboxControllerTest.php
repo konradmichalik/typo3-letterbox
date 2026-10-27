@@ -565,6 +565,95 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringContainsString('<input type="hidden" name="filter" value="unread"', $body);
     }
 
+    #[Test]
+    public function headersTabListsAllHeaders(): void
+    {
+        $this->appendRaw("From: Sender <s@example.org>\nTo: a@example.org\nCc: c@example.org\nReply-To: reply@example.org\nSubject: Headers\nMessage-ID: <h1@example.org>\nX-Letterbox-Envelope-To: env@example.org\nContent-Type: text/plain; charset=utf-8\n\nbody\n");
+
+        $body = $this->show($this->firstId(), ['tab' => 'headers']);
+
+        foreach (['Cc' => 'c@example.org', 'Reply-To' => 'reply@example.org', 'Message-ID' => 'h1@example.org', 'Content-Type' => 'text/plain; charset=utf-8', 'X-Letterbox-Envelope-To' => 'env@example.org'] as $name => $value) {
+            self::assertMatchesRegularExpression('/<th scope="row"[^>]*>'.preg_quote($name, '/').'<\/th>\s*<td[^>]*>\s*<code>'.preg_quote($value, '/').'<\/code>/', $body, $name);
+        }
+        self::assertMatchesRegularExpression('/id="letterbox-tab-headers"[^>]*aria-selected="true"/', $body);
+        self::assertMatchesRegularExpression('/id="letterbox-pane-headers" role="tabpanel"/', $body);
+    }
+
+    #[Test]
+    public function linksTabOffersCopyAndOpen(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Links\n\nReset: https://example.org/?tx_felogin_login%5Baction%5D=showChangePassword&tx_felogin_login%5Bhash%5D=abc\nDocs: https://example.org/docs\n");
+
+        $body = $this->show($this->firstId(), ['tab' => 'links']);
+
+        self::assertStringContainsString('Links (2)', (string) preg_replace('/\s+/', ' ', strip_tags($body)));
+        self::assertSame(1, substr_count($body, 'Password reset'));
+        self::assertStringContainsString('aria-label="Copy reset link"', $body);
+        self::assertStringContainsString('aria-label="Copy link"', $body);
+        self::assertSame(2, substr_count($body, 'aria-label="Open link in a new tab"'));
+        self::assertSame(2, preg_match_all('/<a class="btn btn-sm btn-primary"[^>]*target="_blank" rel="noopener noreferrer"[^>]*aria-label="Open link in a new tab"/', $body));
+        self::assertStringContainsString('<typo3-copy-to-clipboard', $body);
+        self::assertStringContainsString('text="https://example.org/docs"', $body);
+        self::assertMatchesRegularExpression('/id="letterbox-tab-links"[^>]*aria-selected="true"/', $body);
+    }
+
+    #[Test]
+    public function textTabLinksHttpUrlsOnly(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Text\n\nGo to https://example.org/a?x=1&y=2. Not javascript:alert(1) <b>x</b>\n");
+
+        $body = $this->show($this->firstId(), ['tab' => 'text']);
+
+        self::assertMatchesRegularExpression('/<pre class="letterbox-text">Go to <a href="https:\/\/example\.org\/a\?x=1&amp;y=2" target="_blank" rel="noopener noreferrer">https:\/\/example\.org\/a\?x=1&amp;y=2<\/a>\. Not javascript:alert\(1\) &lt;b&gt;x&lt;\/b&gt;/', $body);
+    }
+
+    #[Test]
+    public function attachmentsTabDownloadsByIndex(): void
+    {
+        $this->append('Attached');
+
+        $body = $this->show($this->firstId(), ['tab' => 'attachments']);
+
+        self::assertStringContainsString('Attachments (1)', (string) preg_replace('/\s+/', ' ', strip_tags($body)));
+        self::assertMatchesRegularExpression('/<a [^>]*href="[^"]*index=0[^"]*"[^>]*aria-label="Download a\.txt"/', $body);
+        self::assertDoesNotMatchRegularExpression('/<\/dl>\s*<div class="mb-3">/', $body);
+    }
+
+    #[Test]
+    public function allHeadersLinkOpensHeadersTab(): void
+    {
+        $this->append('Linked');
+        $id = $this->firstId();
+
+        $body = $this->show($id, ['q' => 'Linked', 'filter' => 'attachments', 'page' => '1']);
+
+        self::assertSame(1, preg_match('/<a [^>]*href="([^"]*)"[^>]*>\s*All headers\s*<\/a>/', $body, $match));
+        $href = html_entity_decode($match[1] ?? '');
+        foreach (['tab=headers', 'id='.$id, 'q=Linked', 'filter=attachments'] as $part) {
+            self::assertStringContainsString($part, $href);
+        }
+        self::assertMatchesRegularExpression('/id="letterbox-tab-html"[^>]*aria-selected="true"/', $body);
+    }
+
+    #[Test]
+    public function everyTabButtonHasItsVisibleText(): void
+    {
+        $this->append('Tabs');
+
+        $body = $this->show($this->firstId());
+
+        preg_match_all('/<button[^>]*role="tab"[^>]*>(.*?)<\/button>/s', $body, $labels);
+        self::assertSame(['HTML', 'Text', 'Headers', 'Source', 'Links (0)', 'Attachments (1)'], array_map(static fn (string $label): string => trim((string) preg_replace('/\s+/', ' ', $label)), $labels[1]));
+    }
+
+    /**
+     * @param array<string, string> $query
+     */
+    private function show(string $id, array $query = []): string
+    {
+        return (string) $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id] + $query))->getBody();
+    }
+
     private function skipWhenRoot(): void
     {
         if (function_exists('posix_geteuid') && 0 === posix_geteuid()) {

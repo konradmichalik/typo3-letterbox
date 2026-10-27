@@ -96,6 +96,42 @@
 			<trans-unit id="inbox.tab.source" resname="inbox.tab.source">
 				<source>Source</source>
 			</trans-unit>
+			<trans-unit id="inbox.tab.headers" resname="inbox.tab.headers">
+				<source>Headers</source>
+			</trans-unit>
+			<trans-unit id="inbox.tab.links" resname="inbox.tab.links">
+				<source>Links</source>
+			</trans-unit>
+			<trans-unit id="inbox.tab.attachments" resname="inbox.tab.attachments">
+				<source>Attachments</source>
+			</trans-unit>
+			<trans-unit id="inbox.detail.allHeaders" resname="inbox.detail.allHeaders">
+				<source>All headers</source>
+			</trans-unit>
+			<trans-unit id="inbox.link.passwordReset" resname="inbox.link.passwordReset">
+				<source>Password reset</source>
+			</trans-unit>
+			<trans-unit id="inbox.link.copy" resname="inbox.link.copy">
+				<source>Copy link</source>
+			</trans-unit>
+			<trans-unit id="inbox.link.copyReset" resname="inbox.link.copyReset">
+				<source>Copy reset link</source>
+			</trans-unit>
+			<trans-unit id="inbox.link.open" resname="inbox.link.open">
+				<source>Open link in a new tab</source>
+			</trans-unit>
+			<trans-unit id="inbox.noLinks" resname="inbox.noLinks">
+				<source>This mail contains no links.</source>
+			</trans-unit>
+			<trans-unit id="inbox.noAttachments" resname="inbox.noAttachments">
+				<source>This mail has no attachments.</source>
+			</trans-unit>
+			<trans-unit id="inbox.downloadAttachment" resname="inbox.downloadAttachment">
+				<source>Download %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.noDate" resname="inbox.noDate">
+				<source>Unknown</source>
+			</trans-unit>
 			<trans-unit id="inbox.preview" resname="inbox.preview">
 				<source>Mail preview: %s</source>
 			</trans-unit>
