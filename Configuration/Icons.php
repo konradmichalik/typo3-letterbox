@@ -12,10 +12,17 @@ declare(strict_types=1);
  */
 
 use TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider;
+use TYPO3\CMS\Core\Information\Typo3Version;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+// The v14 module menu draws monochrome icons in currentColor; v13 expects the coloured extension tile.
+$moduleIcon = GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() >= 14
+    ? 'module-letterbox.svg'
+    : 'Extension.svg';
 
 return [
     'letterbox-module' => [
         'provider' => SvgIconProvider::class,
-        'source' => 'EXT:typo3_letterbox/Resources/Public/Icons/Extension.svg',
+        'source' => 'EXT:typo3_letterbox/Resources/Public/Icons/'.$moduleIcon,
     ],
 ];
