@@ -14,14 +14,16 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Mbox\{Mailbox, MailboxLock, MailboxWriter, MboxFormat};
-use PHPUnit\Framework\Attributes\Test;
+use KonradMichalik\Typo3Letterbox\Mbox\{Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageSpan};
+use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use RuntimeException;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Locking\{LockFactory, LockingStrategyInterface};
 
 use function dirname;
+use function strlen;
 
 /**
  * MailboxTest.
@@ -36,16 +38,24 @@ final class MailboxTest extends TestCase
 
     private int $released = 0;
 
+    /** @var array<string, mixed> */
+    private array $previousEnvironment = [];
+
     protected function setUp(): void
     {
         $this->tempDir = sys_get_temp_dir().'/letterbox-mailbox-'.bin2hex(random_bytes(6));
         mkdir($this->tempDir, 0o777, true);
+        $this->previousEnvironment = (new ReflectionClass(Environment::class))->getStaticProperties();
         // GeneralUtility::fixPermissions() only touches paths below the project path.
         Environment::initialize(new ApplicationContext('Testing'), true, true, $this->tempDir, $this->tempDir, $this->tempDir, $this->tempDir, 'index.php', 'UNIX');
     }
 
     protected function tearDown(): void
     {
+        $environment = new ReflectionClass(Environment::class);
+        foreach ($this->previousEnvironment as $name => $value) {
+            $environment->setStaticPropertyValue($name, $value);
+        }
         foreach (glob($this->tempDir.'/*') ?: [] as $file) {
             unlink($file);
         }
@@ -191,6 +201,74 @@ final class MailboxTest extends TestCase
         $remaining = array_map($box->read(...), iterator_to_array($box->spans(), false));
         self::assertSame(["Subject: One\n\nFrom body\n", "Subject: Three\n\nFrom body\n"], $remaining);
         self::assertSame([$path], glob($this->tempDir.'/*'));
+    }
+
+    #[Test]
+    public function removeWithSpanPastEndThrowsAndKeepsFile(): void
+    {
+        $path = $this->tempPath();
+        $writer = $this->writer($path);
+        $writer->append('a@example.org', new DateTimeImmutable(), "Subject: One\n\nb\n");
+        $writer->append('a@example.org', new DateTimeImmutable(), "Subject: Two\n\nb\n");
+        $before = (string) file_get_contents($path);
+        $first = iterator_to_array((new Mailbox($path, new MboxFormat()))->spans(), false)[0];
+
+        try {
+            $writer->remove([new MessageSpan($first->offset, strlen($before) + 100)]);
+            self::fail('Exception expected');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString($path, $e->getMessage());
+        }
+
+        self::assertSame($before, file_get_contents($path));
+        self::assertSame([$path], glob($this->tempDir.'/*'));
+    }
+
+    #[Test]
+    public function removeWithStaleSpanThrowsBeforeWriting(): void
+    {
+        $path = $this->tempPath();
+        $writer = $this->writer($path);
+        $writer->append('a@example.org', new DateTimeImmutable(), "Subject: One\n\nbody\n");
+        $before = (string) file_get_contents($path);
+
+        try {
+            $writer->remove([new MessageSpan(5, 10)]);
+            self::fail('Exception expected');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString($path, $e->getMessage());
+        }
+
+        self::assertSame($before, file_get_contents($path));
+        self::assertSame([$path], glob($this->tempDir.'/*'));
+    }
+
+    #[Test]
+    #[DataProvider('unterminatedMailboxes')]
+    public function appendRepairsMissingTerminator(string $existing): void
+    {
+        $path = $this->tempPath();
+        file_put_contents($path, $existing);
+        $raw = "Subject: New\n\nFrom body\n";
+
+        $this->writer($path)->append('a@example.org', new DateTimeImmutable(), $raw);
+
+        $box = new Mailbox($path, new MboxFormat());
+        $spans = iterator_to_array($box->spans(), false);
+        self::assertCount(2, $spans);
+        self::assertSame("Subject: Old\n\nold body\n", $box->read($spans[0]));
+        self::assertSame($raw, $box->read($spans[1]));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unterminatedMailboxes(): iterable
+    {
+        $head = "From old@example.org Tue Oct 27 10:00:00 2026\nSubject: Old\n\nold body";
+
+        yield 'no trailing newline' => [$head];
+        yield 'single trailing newline' => [$head."\n"];
     }
 
     #[Test]

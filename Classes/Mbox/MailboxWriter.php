@@ -37,9 +37,10 @@ final readonly class MailboxWriter
 
     public function append(string $sender, DateTimeImmutable $date, string $rfc822): void
     {
-        $entry = $this->format->separatorLine($sender, $date).$this->format->encode($rfc822);
+        $message = $this->format->separatorLine($sender, $date).$this->format->encode($rfc822);
 
-        $this->lock->run(function () use ($entry): void {
+        $this->lock->run(function () use ($message): void {
+            $entry = $this->terminator().$message;
             $handle = $this->isWritable() ? fopen($this->path, 'a') : false;
             if (false === $handle) {
                 throw new RuntimeException(sprintf('Cannot open mailbox "%s" for writing.', $this->path), 9787691864);
@@ -71,35 +72,16 @@ final readonly class MailboxWriter
         usort($spans, static fn (MessageSpan $a, MessageSpan $b): int => $a->offset <=> $b->offset);
 
         $this->lock->run(function () use ($spans): void {
-            $source = is_readable($this->path) ? fopen($this->path, 'r') : false;
-            if (false === $source) {
-                throw new RuntimeException(sprintf('Cannot open mailbox "%s" for reading.', $this->path), 8800415279);
-            }
-
             $temp = $this->path.'.'.bin2hex(random_bytes(6)).'.tmp';
-            $target = $this->isWritable() ? fopen($temp, 'w') : false;
-            if (false === $target) {
-                fclose($source);
-                throw new RuntimeException(sprintf('Cannot write temporary file for mailbox "%s".', $this->path), 2593671261);
-            }
 
             try {
-                $cursor = 0;
-                foreach ($spans as $span) {
-                    $this->copy($source, $target, $cursor, $span->offset - $cursor);
-                    $cursor = $span->offset + $span->length;
-                }
-                fseek($source, $cursor);
-                stream_copy_to_stream($source, $target);
+                $this->writeWithout($spans, $temp);
             } catch (Throwable $e) {
-                fclose($source);
-                fclose($target);
-                unlink($temp);
+                if (is_file($temp)) {
+                    unlink($temp);
+                }
                 throw $e;
             }
-
-            fclose($source);
-            fclose($target);
 
             if (!rename($temp, $this->path)) {
                 unlink($temp);
@@ -126,16 +108,93 @@ final readonly class MailboxWriter
         return is_file($this->path) ? is_writable($this->path) : is_writable(dirname($this->path));
     }
 
-    /**
-     * @param resource $source
-     * @param resource $target
-     */
-    private function copy($source, $target, int $offset, int $length): void
+    private function terminator(): string
     {
-        if ($length <= 0) {
-            return;
+        $size = is_file($this->path) ? (int) filesize($this->path) : 0;
+        if (0 === $size) {
+            return '';
         }
-        fseek($source, $offset);
-        stream_copy_to_stream($source, $target, $length);
+
+        $handle = is_readable($this->path) ? fopen($this->path, 'r') : false;
+        if (false === $handle) {
+            throw new RuntimeException(sprintf('Cannot open mailbox "%s" for reading.', $this->path), 4417290635);
+        }
+
+        fseek($handle, max(0, $size - 2));
+        $tail = (string) fread($handle, 2);
+        fclose($handle);
+
+        return match (true) {
+            str_ends_with($tail, "\n\n") => '',
+            str_ends_with($tail, "\n") => "\n",
+            default => "\n\n",
+        };
+    }
+
+    /**
+     * @param list<MessageSpan> $spans sorted by offset
+     */
+    private function writeWithout(array $spans, string $temp): void
+    {
+        $this->assertSpansAreCurrent($spans);
+
+        $source = is_readable($this->path) ? fopen($this->path, 'r') : false;
+        if (false === $source) {
+            throw new RuntimeException(sprintf('Cannot open mailbox "%s" for reading.', $this->path), 8800415279);
+        }
+        $target = $this->isWritable() ? fopen($temp, 'w') : false;
+        if (false === $target) {
+            fclose($source);
+            throw new RuntimeException(sprintf('Cannot write temporary file for mailbox "%s".', $this->path), 2593671261);
+        }
+
+        try {
+            $size = (int) filesize($this->path);
+
+            $copy = function (int $offset, int $length) use ($source, $target): void {
+                if ($length <= 0) {
+                    return;
+                }
+                $copied = 0 === fseek($source, $offset) ? stream_copy_to_stream($source, $target, $length) : false;
+                if ($copied !== $length) {
+                    throw new RuntimeException(sprintf('Cannot copy %d bytes at offset %d of mailbox "%s".', $length, $offset, $this->path), 5290174836);
+                }
+            };
+
+            $cursor = 0;
+            foreach ($spans as $span) {
+                $copy($cursor, $span->offset - $cursor);
+                $cursor = max($cursor, $span->offset + $span->length);
+            }
+            $copy($cursor, $size - $cursor);
+        } finally {
+            fclose($source);
+            if (!fclose($target)) {
+                throw new RuntimeException(sprintf('Cannot write temporary file for mailbox "%s".', $this->path), 6402518838);
+            }
+        }
+    }
+
+    /**
+     * @param list<MessageSpan> $spans
+     */
+    private function assertSpansAreCurrent(array $spans): void
+    {
+        $size = (int) filesize($this->path);
+        $handle = is_readable($this->path) ? fopen($this->path, 'r') : false;
+        if (false === $handle) {
+            throw new RuntimeException(sprintf('Cannot open mailbox "%s" for reading.', $this->path), 8800415279);
+        }
+
+        try {
+            foreach ($spans as $span) {
+                $line = 0 === fseek($handle, $span->offset) ? fgets($handle) : false;
+                if ($span->length < 0 || $span->offset + $span->length > $size || false === $line || !$this->format->isSeparator($line)) {
+                    throw new RuntimeException(sprintf('Span at offset %d is stale for mailbox "%s".', $span->offset, $this->path), 7120936482);
+                }
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 }
