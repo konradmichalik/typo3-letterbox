@@ -15,13 +15,11 @@ namespace KonradMichalik\Typo3Letterbox\Domain\Model;
 
 use DateTimeImmutable;
 
-
 /**
  * Mail.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-
 final readonly class Mail
 {
     /**

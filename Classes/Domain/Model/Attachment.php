@@ -13,13 +13,11 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Domain\Model;
 
-
 /**
  * Attachment.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-
 final readonly class Attachment
 {
     public function __construct(

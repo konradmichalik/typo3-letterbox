@@ -15,13 +15,11 @@ namespace KonradMichalik\Typo3Letterbox\Domain\Model;
 
 use Stringable;
 
-
 /**
  * Address.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-
 final readonly class Address implements Stringable
 {
     public function __construct(

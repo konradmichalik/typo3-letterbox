@@ -18,13 +18,11 @@ use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
 
-
 /**
  * RecipientPatternTest.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-
 final class RecipientPatternTest extends TestCase
 {
     #[Test]
