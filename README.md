@@ -16,15 +16,17 @@
 
 Catches TYPO3 mails in an mbox file and shows them in the backend, for local, stage and test systems.
 
-<!-- Optional: one screenshot or screencast from docs/images/ -->
-
 > [!NOTE]
-> Why does this extension exist? Describe the problem it solves in two or three sentences.
+> Test systems must not send real mails to real people, but testers need to see what a mail looks like. Letterbox catches outgoing TYPO3 mails in a local mbox file and shows them in a backend module, so nothing leaves the system. It is a rewrite of [`t3/mbox`](https://github.com/a-r-m-i-n/mbox) by Armin Vieweg for TYPO3 13 and 14.
 
 ## ✨ Features
 
-* Feature one
-* Feature two
+* Mail transport that appends every caught mail to a local mbox file (RFC 4155)
+* Three delivery modes: `all` catches everything, `listed` catches only chosen recipients and delivers the rest, `off` delivers everything
+* Backend module under System › Letterbox with list, detail view, source, attachment download and delete
+* Sandboxed HTML preview that blocks remote content
+* Test mail command for development (`letterbox:testmails:send`, needs `debugMode`)
+* Works from Composer and from TER (parser libraries are bundled)
 
 ## 🔥 Installation
 
@@ -51,15 +53,33 @@ Download the zip file from [TYPO3 extension repository (TER)](https://extensions
 
 ## 🚀 Quick start
 
-The shortest path from installation to a visible result. Link to [`docs/`](docs/README.md) for everything beyond that.
+Set the transport in `config/system/additional.php`:
+
+```php
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['dsn'] = '';
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = \KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport::class;
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mails.mbox';
+```
+
+> [!WARNING]
+> If `MAIL/dsn` is not empty, TYPO3 core ignores `MAIL/transport` and sends live through the DSN. Letterbox is bypassed. Keep `dsn` empty.
+
+Then open System › Letterbox as an administrator. Outside the `Production` context all mails are caught. Other modes, recipient lists and the settings in `additional.php` are covered in [`docs/`](docs/README.md).
 
 ## 📚 Documentation
 
-Full documentation lives in [`docs/`](docs/README.md).
+* [Configuration](docs/configuration.md)
+* [Delivery modes](docs/delivery-modes.md)
+* [Migration from EXT:mbox](docs/migration-from-mbox.md)
+* [Design rules](docs/design/rules.md) and [screens](docs/design/screens.md)
 
 ## 🧑‍💻 Contributing
 
 Please have a look at [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## 🙏 Credits
+
+Letterbox is forked from [`t3/mbox`](https://github.com/a-r-m-i-n/mbox) by Armin Vieweg. The mbox parser approach comes from [`armin/mbox-parser`](https://github.com/a-r-m-i-n/mbox-parser).
 
 ## ⭐ License
 
