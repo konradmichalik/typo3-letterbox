@@ -18,6 +18,9 @@
 			<trans-unit id="inbox.count" resname="inbox.count">
 				<source>%s mails</source>
 			</trans-unit>
+			<trans-unit id="inbox.count.one" resname="inbox.count.one">
+				<source>1 mail</source>
+			</trans-unit>
 			<trans-unit id="inbox.mailList" resname="inbox.mailList">
 				<source>Mails</source>
 			</trans-unit>

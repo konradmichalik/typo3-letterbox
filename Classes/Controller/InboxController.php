@@ -47,7 +47,7 @@ final readonly class InboxController
 {
     private const MODULE = 'system_letterbox';
     private const TOKEN_FORM = 'letterbox';
-    // TYPO3 v13 reads a body field named "token" as the backend route token, so the form token needs its own name.
+    // TYPO3 reads a body field named "token" as the backend route token, so the form token needs its own name.
     private const TOKEN_FIELD = 'letterboxToken';
     private const CLEAR_FORM_ID = 'letterbox-clear-form';
     private const LANGUAGE_FILE = 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:';

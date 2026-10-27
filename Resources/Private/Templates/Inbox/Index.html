@@ -9,9 +9,7 @@
 <f:section name="Content">
     <main>
         <h1><f:translate key="inbox.heading" extensionName="Typo3Letterbox" /></h1>
-        <p class="text-variant">
-            <f:translate key="inbox.meta" extensionName="Typo3Letterbox" /> · <code>{path}</code> · <f:translate key="inbox.count" extensionName="Typo3Letterbox" arguments="{0: total}" /> · <f:format.bytes value="{size}" />
-        </p>
+        <f:render partial="InboxMeta" arguments="{_all}" />
 
         <f:if condition="{configured} && {total} > 0">
             <f:then>

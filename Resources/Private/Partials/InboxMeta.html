@@ -1,0 +1,10 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<p class="text-variant">
+    <f:translate key="inbox.meta" extensionName="Typo3Letterbox" /><f:if condition="{configured}"> · <code>{path}</code> · <f:if condition="{total} == 1"><f:then><f:translate key="inbox.count.one" extensionName="Typo3Letterbox" /></f:then><f:else><f:translate key="inbox.count" extensionName="Typo3Letterbox" arguments="{0: total}" /></f:else></f:if> · <f:format.bytes value="{size}" /></f:if>
+</p>
+
+</html>

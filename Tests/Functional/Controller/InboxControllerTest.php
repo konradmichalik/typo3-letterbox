@@ -116,6 +116,7 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertSame(200, $response->getStatusCode());
         $body = (string) $response->getBody();
         self::assertStringContainsString('Letterbox is not configured', $body);
+        self::assertStringNotContainsString('0 mails', $body);
         self::assertStringContainsString('transport_mbox_file', $body);
     }
 
@@ -137,6 +138,43 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringContainsString('title="Mail preview: Hostile"', $body);
         self::assertStringContainsString('aria-label="Delete mail: Hostile"', $body);
         self::assertSame(1, substr_count($body, 'aria-current="true"'));
+    }
+
+    #[Test]
+    public function showEscapesHostileMetadata(): void
+    {
+        $subject = '"><img src=x onerror=alert(1)>';
+        $raw = "From: \"Evil\\\"<>Name\" <s@example.org>\nTo: r@example.org\nSubject: {$subject}\nMessage-ID: <hostile@example.org>\n"
+            ."MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"b\"\n\n--b\nContent-Type: text/html; charset=utf-8\n\n<p>hi</p>\n--b\n"
+            ."Content-Type: text/plain\nContent-Disposition: attachment; filename*=utf-8''a%22%3C%3E.txt\n\nattached\n--b--\n";
+        $this->writer()->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), $raw);
+        $mail = $this->get(MailRepository::class)->find(MailFilter::all(), 0, 1)[0];
+        self::assertSame($subject, $mail->subject);
+        self::assertSame('Evil"<>Name', $mail->from?->name);
+        self::assertSame('a"<>.txt', $mail->attachments[0]->filename);
+
+        $body = (string) $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $mail->id]))->getBody();
+
+        $escapedSubject = '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;';
+        self::assertStringNotContainsString('<img src=x', $body);
+        self::assertStringNotContainsString('Evil"<>Name', $body);
+        self::assertStringNotContainsString('a"<>.txt', $body);
+        self::assertStringContainsString('title="Mail preview: '.$escapedSubject.'"', $body);
+        self::assertStringContainsString('aria-label="Delete mail: '.$escapedSubject.'"', $body);
+        self::assertStringContainsString('title="Download .eml: '.$escapedSubject.'"', $body);
+        self::assertStringContainsString('Evil&quot;&lt;&gt;Name', $body);
+        self::assertStringContainsString('a&quot;&lt;&gt;.txt', $body);
+    }
+
+    #[Test]
+    public function metaLineUsesSingularForOneMail(): void
+    {
+        $this->append('Only one');
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertStringContainsString('1 mail ', $body);
+        self::assertStringNotContainsString('1 mails', $body);
     }
 
     #[Test]
@@ -295,7 +333,11 @@ final class InboxControllerTest extends FunctionalTestCase
         $raw = "From: Sender <s@example.org>\nTo: Recipient <r@example.org>\nSubject: {$subject}\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\n"
             ."MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"b\"\n\n--b\nContent-Type: text/html; charset=utf-8\n\n{$html}\n--b\n"
             ."Content-Type: text/plain; name=\"a.txt\"\nContent-Disposition: attachment; filename=\"a.txt\"\n\nattached\n--b--\n";
-        $writer = new MailboxWriter($this->path, new MboxFormat(), new MailboxLock($this->get(LockFactory::class)));
-        $writer->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), $raw);
+        $this->writer()->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), $raw);
+    }
+
+    private function writer(): MailboxWriter
+    {
+        return new MailboxWriter($this->path, new MboxFormat(), new MailboxLock($this->get(LockFactory::class)));
     }
 }
