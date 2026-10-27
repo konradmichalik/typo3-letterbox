@@ -17,16 +17,18 @@
 Catches TYPO3 mails in an mbox file and shows them in the backend, for local, stage and test systems.
 
 > [!NOTE]
-> Test systems must not send real mails to real people, but testers need to see what a mail looks like. Letterbox catches outgoing TYPO3 mails in a local mbox file and shows them in a backend module, so nothing leaves the system. It is a rewrite of [`t3/mbox`](https://github.com/a-r-m-i-n/mbox) by Armin Vieweg for TYPO3 13 and 14.
+> Test systems must not send real mails to real people, but testers need to see what a mail looks like. Letterbox catches outgoing mails in a local mbox file and shows them in the backend, so nothing leaves the system. It is a rewrite of [`t3/mbox`](https://github.com/a-r-m-i-n/mbox) by Armin Vieweg for TYPO3 13 and 14.
+
+![Letterbox backend module with mail list and HTML preview](docs/images/backend-module.png)
 
 ## ✨ Features
 
-* Mail transport that appends every caught mail to a local mbox file (RFC 4155)
-* Three delivery modes: `all` catches everything, `listed` catches only chosen recipients and delivers the rest, `off` delivers everything
-* Backend module under System › Letterbox with list, detail view, source, attachment download and delete
+* [Mail transport](docs/delivery-modes.md) that appends every caught mail to a local mbox file (RFC 4155)
+* Three [delivery modes](docs/delivery-modes.md): `all` catches everything, `listed` catches only chosen recipients and delivers the rest, `off` delivers everything
+* [Backend module](docs/backend-module.md) under System › Letterbox with list, detail view, source, attachment download and delete
 * Sandboxed HTML preview that blocks remote content
-* Test mail command for development (`letterbox:testmails:send`, needs `debugMode`)
-* Works from Composer and from TER (parser libraries are bundled)
+* [Test mail command](docs/test-mails.md) for development (`letterbox:testmails:send`, needs `debugMode`)
+* Works from Composer and from TER (parser libraries are bundled), see [configuration](docs/configuration.md)
 
 ## 🔥 Installation
 
@@ -64,20 +66,25 @@ $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mail
 > [!WARNING]
 > If `MAIL/dsn` is not empty, TYPO3 core ignores `MAIL/transport` and sends live through the DSN. Letterbox is bypassed. Keep `dsn` empty.
 
-Then open System › Letterbox as an administrator. Outside the `Production` context all mails are caught. Other modes, recipient lists and the settings in `additional.php` are covered in [`docs/`](docs/README.md).
+Then open System › Letterbox as an administrator. Outside the exact root context `Production` all mails are caught.
 
 ## 📚 Documentation
 
-* [Configuration](docs/configuration.md)
-* [Delivery modes](docs/delivery-modes.md)
-* [Migration from EXT:mbox](docs/migration-from-mbox.md)
-* [Design rules](docs/design/rules.md) and [screens](docs/design/screens.md)
+| Page | What's inside |
+|------|---------------|
+| [Configuration](docs/configuration.md) | Transport settings and extension settings |
+| [Delivery modes](docs/delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
+| [Backend module](docs/backend-module.md) | Inbox, preview, downloads, delete and clear |
+| [Test mails](docs/test-mails.md) | Console command `letterbox:testmails:send` |
+| [Migration from EXT:mbox](docs/migration-from-mbox.md) | Switching from `t3/mbox` to Letterbox |
+| [Design rules](docs/design/rules.md) | Binding rules for every UI change |
+| [Screen designs](docs/design/screens.md) | Target screens for the backend module |
 
 ## 🧑‍💻 Contributing
 
 Please have a look at [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## 🙏 Credits
+## 💎 Credits
 
 Letterbox is forked from [`t3/mbox`](https://github.com/a-r-m-i-n/mbox) by Armin Vieweg. The mbox parser approach comes from [`armin/mbox-parser`](https://github.com/a-r-m-i-n/mbox-parser).
 

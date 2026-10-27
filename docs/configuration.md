@@ -40,13 +40,3 @@ Set in Admin Tools > Settings > Extension Configuration.
 | `mailsPerPage` | integer | `10` | Mails per page in the list. |
 
 Flush the caches after changing `debugMode` or `enableBackendModule`.
-
-## Backend module
-
-* System › Letterbox is available to administrators only.
-* The HTML preview runs in a sandboxed frame and remote images are blocked.
-* The module reads the file set in `transport_mbox_file`, so existing mbox files stay readable.
-
-## Personal data
-
-Caught mails can contain personal data of testers and test users. The mbox file is not deleted automatically, retention settings arrive in a later phase. Keep the file outside the web root, restrict access to it and clear it regularly in the module.

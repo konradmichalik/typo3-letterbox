@@ -2,7 +2,11 @@
 
 Back to [documentation overview](README.md).
 
-1. Remove `t3/mbox` and require `konradmichalik/typo3-letterbox` (TER: extension key `typo3_letterbox`).
+1. Swap the packages (TER: extension key `typo3_letterbox`):
+
+   ```bash
+   composer remove t3/mbox && composer require konradmichalik/typo3-letterbox
+   ```
 2. Replace the transport class:
 
    ```php
