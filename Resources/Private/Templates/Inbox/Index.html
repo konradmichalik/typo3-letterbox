@@ -1,0 +1,62 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <main>
+        <h1><f:translate key="inbox.heading" extensionName="Typo3Letterbox" /></h1>
+        <p class="text-variant">
+            <f:translate key="inbox.meta" extensionName="Typo3Letterbox" /> · <code>{path}</code> · <f:translate key="inbox.count" extensionName="Typo3Letterbox" arguments="{0: total}" /> · <f:format.bytes value="{size}" />
+        </p>
+
+        <f:if condition="{configured} && {total} > 0">
+            <f:then>
+                <div class="letterbox-inbox">
+                    <div>
+                        <f:render partial="MailList" arguments="{_all}" />
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-variant">
+                            <f:translate key="inbox.selectMail" extensionName="Typo3Letterbox" />
+                        </div>
+                    </div>
+                </div>
+            </f:then>
+            <f:else>
+                <div class="callout callout-info">
+                    <div class="callout-icon" aria-hidden="true">
+                        <span class="icon-emphasized">
+                            <core:icon identifier="actions-envelope" />
+                        </span>
+                    </div>
+                    <div class="callout-content">
+                        <div class="callout-title">
+                            <f:if condition="{configured}">
+                                <f:then><f:translate key="inbox.empty.noMails" extensionName="Typo3Letterbox" /></f:then>
+                                <f:else><f:translate key="inbox.empty.notConfigured" extensionName="Typo3Letterbox" /></f:else>
+                            </f:if>
+                        </div>
+                        <div class="callout-body">
+                            <f:if condition="{configured}">
+                                <f:then>
+                                    <p class="mb-0"><f:translate key="inbox.empty.path" extensionName="Typo3Letterbox" arguments="{0: path}" /></p>
+                                </f:then>
+                                <f:else>
+                                    <p><f:translate key="inbox.empty.howto" extensionName="Typo3Letterbox" /></p>
+                                    <pre class="mb-0"><code>$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = \KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport::class;
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/html/var/log/mails.mbox';</code></pre>
+                                </f:else>
+                            </f:if>
+                        </div>
+                    </div>
+                </div>
+            </f:else>
+        </f:if>
+    </main>
+</f:section>
+
+</html>

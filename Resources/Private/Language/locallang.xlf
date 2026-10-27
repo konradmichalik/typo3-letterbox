@@ -6,6 +6,108 @@
 			<trans-unit id="extension.title" resname="extension.title">
 				<source>Letterbox</source>
 			</trans-unit>
+			<trans-unit id="module.title" resname="module.title">
+				<source>Letterbox</source>
+			</trans-unit>
+			<trans-unit id="inbox.heading" resname="inbox.heading">
+				<source>Letterbox</source>
+			</trans-unit>
+			<trans-unit id="inbox.meta" resname="inbox.meta">
+				<source>Mail inbox</source>
+			</trans-unit>
+			<trans-unit id="inbox.count" resname="inbox.count">
+				<source>%s mails</source>
+			</trans-unit>
+			<trans-unit id="inbox.mailList" resname="inbox.mailList">
+				<source>Mails</source>
+			</trans-unit>
+			<trans-unit id="inbox.noSubject" resname="inbox.noSubject">
+				<source>(no subject)</source>
+			</trans-unit>
+			<trans-unit id="inbox.unknownSender" resname="inbox.unknownSender">
+				<source>(unknown sender)</source>
+			</trans-unit>
+			<trans-unit id="inbox.to" resname="inbox.to">
+				<source>to</source>
+			</trans-unit>
+			<trans-unit id="inbox.hasAttachments" resname="inbox.hasAttachments">
+				<source>has attachments</source>
+			</trans-unit>
+			<trans-unit id="inbox.selectMail" resname="inbox.selectMail">
+				<source>Select a mail on the left to read it.</source>
+			</trans-unit>
+			<trans-unit id="inbox.pagination" resname="inbox.pagination">
+				<source>Mail pages</source>
+			</trans-unit>
+			<trans-unit id="inbox.pagination.previous" resname="inbox.pagination.previous">
+				<source>Previous page</source>
+			</trans-unit>
+			<trans-unit id="inbox.pagination.next" resname="inbox.pagination.next">
+				<source>Next page</source>
+			</trans-unit>
+			<trans-unit id="inbox.pagination.range" resname="inbox.pagination.range">
+				<source>%s to %s of %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.detail.from" resname="inbox.detail.from">
+				<source>From</source>
+			</trans-unit>
+			<trans-unit id="inbox.detail.to" resname="inbox.detail.to">
+				<source>To</source>
+			</trans-unit>
+			<trans-unit id="inbox.detail.cc" resname="inbox.detail.cc">
+				<source>Cc</source>
+			</trans-unit>
+			<trans-unit id="inbox.detail.attachments" resname="inbox.detail.attachments">
+				<source>Attachments</source>
+			</trans-unit>
+			<trans-unit id="inbox.downloadEml" resname="inbox.downloadEml">
+				<source>Download .eml: %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.delete" resname="inbox.delete">
+				<source>Delete mail: %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.clearAll" resname="inbox.clearAll">
+				<source>Clear all</source>
+			</trans-unit>
+			<trans-unit id="inbox.clearAll.confirm.title" resname="inbox.clearAll.confirm.title">
+				<source>Delete all mails?</source>
+			</trans-unit>
+			<trans-unit id="inbox.clearAll.confirm.content" resname="inbox.clearAll.confirm.content">
+				<source>All mails in the mbox file will be deleted. This cannot be undone.</source>
+			</trans-unit>
+			<trans-unit id="inbox.cancel" resname="inbox.cancel">
+				<source>Cancel</source>
+			</trans-unit>
+			<trans-unit id="inbox.tab.html" resname="inbox.tab.html">
+				<source>HTML</source>
+			</trans-unit>
+			<trans-unit id="inbox.tab.text" resname="inbox.tab.text">
+				<source>Text</source>
+			</trans-unit>
+			<trans-unit id="inbox.tab.source" resname="inbox.tab.source">
+				<source>Source</source>
+			</trans-unit>
+			<trans-unit id="inbox.preview" resname="inbox.preview">
+				<source>Mail preview: %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.noHtml" resname="inbox.noHtml">
+				<source>No HTML preview available for this mail. See Text or Source.</source>
+			</trans-unit>
+			<trans-unit id="inbox.noText" resname="inbox.noText">
+				<source>This mail has no text part.</source>
+			</trans-unit>
+			<trans-unit id="inbox.empty.notConfigured" resname="inbox.empty.notConfigured">
+				<source>Letterbox is not configured</source>
+			</trans-unit>
+			<trans-unit id="inbox.empty.noMails" resname="inbox.empty.noMails">
+				<source>No mails yet</source>
+			</trans-unit>
+			<trans-unit id="inbox.empty.path" resname="inbox.empty.path">
+				<source>The mbox file %s contains no mails yet.</source>
+			</trans-unit>
+			<trans-unit id="inbox.empty.howto" resname="inbox.empty.howto">
+				<source>Letterbox shows the mails in the file set as MAIL/transport_mbox_file. Mails arrive there when MAIL/transport is set to the Letterbox transport, for example in config/system/additional.php:</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

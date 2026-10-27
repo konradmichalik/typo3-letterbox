@@ -1,0 +1,82 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<form id="{clearFormId}" method="post" action="{f:be.uri(route: 'system_letterbox.clear')}">
+    <input type="hidden" name="letterboxToken" value="{token}" />
+</form>
+
+<div class="card letterbox-list">
+    <ul class="list-group list-group-flush" aria-label="{f:translate(key: 'inbox.mailList', extensionName: 'Typo3Letterbox')}">
+        <f:for each="{mails}" as="mail">
+            <f:variable name="url" value="{f:be.uri(route: 'system_letterbox.show', parameters: {id: mail.id, page: page})}" />
+            <f:variable name="isSelected" value="{f:if(condition: '{mail.id} == {selectedId}', then: 1, else: 0)}" />
+            <li class="list-group-item list-group-item-action{f:if(condition: isSelected, then: ' active')}">
+                <span class="d-flex justify-content-between gap-2">
+                    <f:if condition="{isSelected}">
+                        <f:then>
+                            <a href="{url}" class="stretched-link text-reset text-truncate fw-bold" aria-current="true"><f:render section="LinkText" arguments="{mail: mail}" /></a>
+                        </f:then>
+                        <f:else>
+                            <a href="{url}" class="stretched-link text-reset text-truncate fw-bold"><f:render section="LinkText" arguments="{mail: mail}" /></a>
+                        </f:else>
+                    </f:if>
+                    <f:if condition="{mail.date}">
+                        <small class="text-nowrap"><f:format.date date="{mail.date}" format="Y-m-d H:i" /></small>
+                    </f:if>
+                </span>
+                <span class="d-flex justify-content-between gap-2">
+                    <small class="text-truncate{f:if(condition: isSelected, else: ' text-variant')}">
+                        <f:render section="AddressName" arguments="{address: mail.from}" />
+                        <f:if condition="{mail.to.0}">
+                            <f:translate key="inbox.to" extensionName="Typo3Letterbox" />
+                            <f:render section="AddressName" arguments="{address: mail.to.0}" />
+                        </f:if>
+                    </small>
+                    <f:if condition="{mail.attachments}">
+                        <span class="text-nowrap" aria-hidden="true"><core:icon identifier="actions-file" size="small" /></span>
+                    </f:if>
+                </span>
+            </li>
+        </f:for>
+    </ul>
+</div>
+
+<f:if condition="{paginator.numberOfPages} > 1">
+    <nav class="mt-3" aria-label="{f:translate(key: 'inbox.pagination', extensionName: 'Typo3Letterbox')}">
+        <ul class="pagination">
+            <f:if condition="{pagination.previousPageNumber}">
+                <li class="page-item">
+                    <a class="page-link" href="{f:be.uri(route: 'system_letterbox', parameters: {page: pagination.previousPageNumber})}">
+                        <f:translate key="inbox.pagination.previous" extensionName="Typo3Letterbox" />
+                    </a>
+                </li>
+            </f:if>
+            <li class="page-item active" aria-current="page">
+                <span class="page-link" aria-live="polite">
+                    <f:translate key="inbox.pagination.range" extensionName="Typo3Letterbox" arguments="{0: pagination.startRecordNumber, 1: pagination.endRecordNumber, 2: total}" />
+                </span>
+            </li>
+            <f:if condition="{pagination.nextPageNumber}">
+                <li class="page-item">
+                    <a class="page-link" href="{f:be.uri(route: 'system_letterbox', parameters: {page: pagination.nextPageNumber})}">
+                        <f:translate key="inbox.pagination.next" extensionName="Typo3Letterbox" />
+                    </a>
+                </li>
+            </f:if>
+        </ul>
+    </nav>
+</f:if>
+
+<f:section name="LinkText"><f:if condition="{mail.subject}"><f:then>{mail.subject}</f:then><f:else><f:translate key="inbox.noSubject" extensionName="Typo3Letterbox" /></f:else></f:if><f:if condition="{mail.attachments}"><span class="visually-hidden">, <f:translate key="inbox.hasAttachments" extensionName="Typo3Letterbox" /></span></f:if></f:section>
+
+<f:section name="AddressName">
+    <f:if condition="{address}">
+        <f:then>{f:if(condition: address.name, then: address.name, else: address.address)}</f:then>
+        <f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else>
+    </f:if>
+</f:section>
+
+</html>

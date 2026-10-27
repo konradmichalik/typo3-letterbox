@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7971c7405b52273899973f8d812a9b6a",
+    "content-hash": "a41f7e9f76d491e1074cc6c01524ed9e",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5317,6 +5317,99 @@
             "time": "2026-04-17T13:11:31+00:00"
         },
         {
+            "name": "typo3/cms-backend",
+            "version": "v14.3.10",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/TYPO3-CMS/backend.git",
+                "reference": "fd0421f304fe34353c99d5633adf267ca6cd72ba"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/TYPO3-CMS/backend/zipball/fd0421f304fe34353c99d5633adf267ca6cd72ba",
+                "reference": "fd0421f304fe34353c99d5633adf267ca6cd72ba",
+                "shasum": ""
+            },
+            "require": {
+                "ext-intl": "*",
+                "ext-libxml": "*",
+                "psr/event-dispatcher": "^1.0",
+                "typo3/cms-core": "14.3.10"
+            },
+            "conflict": {
+                "typo3/cms": "*"
+            },
+            "replace": {
+                "typo3/cms-about": "self.version",
+                "typo3/cms-context-help": "self.version",
+                "typo3/cms-cshmanual": "self.version",
+                "typo3/cms-func-wizards": "self.version",
+                "typo3/cms-recordlist": "self.version",
+                "typo3/cms-setup": "self.version",
+                "typo3/cms-t3editor": "self.version",
+                "typo3/cms-wizard-crpages": "self.version",
+                "typo3/cms-wizard-sortpages": "self.version"
+            },
+            "suggest": {
+                "typo3/cms-install": "Displays a link to the Environment module in the System Information toolbar."
+            },
+            "type": "typo3-cms-framework",
+            "extra": {
+                "typo3/cms": {
+                    "Package": {
+                        "protected": true,
+                        "serviceProvider": "TYPO3\\CMS\\Backend\\ServiceProvider",
+                        "partOfFactoryDefault": true,
+                        "partOfMinimalUsableSystem": true
+                    },
+                    "extension-key": "backend"
+                },
+                "branch-alias": {
+                    "dev-main": "14.3.x-dev"
+                },
+                "typo3/class-alias-loader": {
+                    "class-alias-maps": [
+                        "Migrations/Code/ClassAliasMap.php"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "TYPO3\\CMS\\Backend\\": "Classes/",
+                    "TYPO3\\CMS\\Setup\\Event\\": "DeprecatedClasses/Setup/Event/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "TYPO3 Core Team",
+                    "email": "typo3cms@typo3.org",
+                    "role": "Developer"
+                }
+            ],
+            "description": "TYPO3 CMS Backend",
+            "homepage": "https://typo3.community/",
+            "support": {
+                "chat": "https://typo3.community/meet/slack/",
+                "docs": "https://docs.typo3.org/",
+                "forum": "https://talk.typo3.org/",
+                "issues": "https://forge.typo3.org/issues/",
+                "rss": "https://news.typo3.com/rss/",
+                "security": "https://typo3.org/security/",
+                "source": "https://github.com/TYPO3/typo3/"
+            },
+            "funding": [
+                {
+                    "url": "https://typo3.org/membership",
+                    "type": "membership"
+                }
+            ],
+            "time": "2026-10-22T08:51:04+00:00"
+        },
+        {
             "name": "typo3/cms-cli",
             "version": "v3.1.3",
             "source": {
@@ -8798,99 +8891,6 @@
                 }
             ],
             "time": "2025-11-17T20:03:58+00:00"
-        },
-        {
-            "name": "typo3/cms-backend",
-            "version": "v14.3.10",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/TYPO3-CMS/backend.git",
-                "reference": "fd0421f304fe34353c99d5633adf267ca6cd72ba"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3-CMS/backend/zipball/fd0421f304fe34353c99d5633adf267ca6cd72ba",
-                "reference": "fd0421f304fe34353c99d5633adf267ca6cd72ba",
-                "shasum": ""
-            },
-            "require": {
-                "ext-intl": "*",
-                "ext-libxml": "*",
-                "psr/event-dispatcher": "^1.0",
-                "typo3/cms-core": "14.3.10"
-            },
-            "conflict": {
-                "typo3/cms": "*"
-            },
-            "replace": {
-                "typo3/cms-about": "self.version",
-                "typo3/cms-context-help": "self.version",
-                "typo3/cms-cshmanual": "self.version",
-                "typo3/cms-func-wizards": "self.version",
-                "typo3/cms-recordlist": "self.version",
-                "typo3/cms-setup": "self.version",
-                "typo3/cms-t3editor": "self.version",
-                "typo3/cms-wizard-crpages": "self.version",
-                "typo3/cms-wizard-sortpages": "self.version"
-            },
-            "suggest": {
-                "typo3/cms-install": "Displays a link to the Environment module in the System Information toolbar."
-            },
-            "type": "typo3-cms-framework",
-            "extra": {
-                "typo3/cms": {
-                    "Package": {
-                        "protected": true,
-                        "serviceProvider": "TYPO3\\CMS\\Backend\\ServiceProvider",
-                        "partOfFactoryDefault": true,
-                        "partOfMinimalUsableSystem": true
-                    },
-                    "extension-key": "backend"
-                },
-                "branch-alias": {
-                    "dev-main": "14.3.x-dev"
-                },
-                "typo3/class-alias-loader": {
-                    "class-alias-maps": [
-                        "Migrations/Code/ClassAliasMap.php"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "TYPO3\\CMS\\Backend\\": "Classes/",
-                    "TYPO3\\CMS\\Setup\\Event\\": "DeprecatedClasses/Setup/Event/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "GPL-2.0-or-later"
-            ],
-            "authors": [
-                {
-                    "name": "TYPO3 Core Team",
-                    "email": "typo3cms@typo3.org",
-                    "role": "Developer"
-                }
-            ],
-            "description": "TYPO3 CMS Backend",
-            "homepage": "https://typo3.community/",
-            "support": {
-                "chat": "https://typo3.community/meet/slack/",
-                "docs": "https://docs.typo3.org/",
-                "forum": "https://talk.typo3.org/",
-                "issues": "https://forge.typo3.org/issues/",
-                "rss": "https://news.typo3.com/rss/",
-                "security": "https://typo3.org/security/",
-                "source": "https://github.com/TYPO3/typo3/"
-            },
-            "funding": [
-                {
-                    "url": "https://typo3.org/membership",
-                    "type": "membership"
-                }
-            ],
-            "time": "2026-10-22T08:51:04+00:00"
         },
         {
             "name": "typo3/cms-base-distribution",

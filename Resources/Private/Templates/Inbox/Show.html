@@ -1,0 +1,126 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <main>
+        <h1><f:translate key="inbox.heading" extensionName="Typo3Letterbox" /></h1>
+        <p class="text-variant">
+            <f:translate key="inbox.meta" extensionName="Typo3Letterbox" /> · <code>{path}</code> · <f:translate key="inbox.count" extensionName="Typo3Letterbox" arguments="{0: total}" /> · <f:format.bytes value="{size}" />
+        </p>
+
+        <div class="letterbox-inbox">
+            <div>
+                <f:render partial="MailList" arguments="{_all}" />
+            </div>
+            <article class="card letterbox-detail" aria-labelledby="letterbox-subject">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <f:variable name="subject" value="{f:if(condition: mail.subject, then: mail.subject, else: '{f:translate(key: \'inbox.noSubject\', extensionName: \'Typo3Letterbox\')}')}" />
+                        <h2 id="letterbox-subject" class="text-break">{subject}</h2>
+                        <div class="btn-group">
+                            <f:variable name="downloadLabel" value="{f:translate(key: 'inbox.downloadEml', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
+                            <f:variable name="deleteLabel" value="{f:translate(key: 'inbox.delete', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
+                            <a class="btn btn-sm btn-default" href="{f:be.uri(route: 'system_letterbox.source', parameters: {id: mail.id})}" title="{downloadLabel}" aria-label="{downloadLabel}">
+                                <span aria-hidden="true"><core:icon identifier="actions-download" /></span>
+                            </a>
+                            <button type="submit" form="letterbox-delete-form" class="btn btn-sm btn-default" title="{deleteLabel}" aria-label="{deleteLabel}">
+                                <span aria-hidden="true"><core:icon identifier="actions-delete" /></span>
+                            </button>
+                        </div>
+                    </div>
+                    <form id="letterbox-delete-form" method="post" action="{f:be.uri(route: 'system_letterbox.delete')}">
+                        <input type="hidden" name="id" value="{mail.id}" />
+                        <input type="hidden" name="letterboxToken" value="{token}" />
+                    </form>
+
+                    <p class="text-variant text-break">
+                        <f:translate key="inbox.detail.from" extensionName="Typo3Letterbox" />
+                        <f:if condition="{mail.from}"><f:then>{mail.from}</f:then><f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else></f:if>
+                        <f:if condition="{mail.to}">
+                            <f:translate key="inbox.detail.to" extensionName="Typo3Letterbox" />
+                            <f:render section="Addresses" arguments="{addresses: mail.to}" />
+                        </f:if>
+                        <f:if condition="{mail.cc}">
+                            <f:translate key="inbox.detail.cc" extensionName="Typo3Letterbox" />
+                            <f:render section="Addresses" arguments="{addresses: mail.cc}" />
+                        </f:if>
+                        <f:if condition="{mail.date}">· <f:format.date date="{mail.date}" format="Y-m-d H:i:s" /></f:if>
+                    </p>
+
+                    <f:if condition="{mail.attachments}">
+                        <div class="mb-3">
+                            <span class="visually-hidden"><f:translate key="inbox.detail.attachments" extensionName="Typo3Letterbox" /></span>
+                            <f:for each="{mail.attachments}" as="attachment">
+                                <a class="btn btn-sm btn-default" href="{f:be.uri(route: 'system_letterbox.attachment', parameters: {id: mail.id, index: attachment.index})}">
+                                    <span aria-hidden="true"><core:icon identifier="actions-file" /></span>
+                                    {f:if(condition: attachment.filename, then: attachment.filename, else: 'attachment.bin')}
+                                    (<f:format.bytes value="{attachment.size}" />)
+                                </a>
+                            </f:for>
+                        </div>
+                    </f:if>
+
+                    <ul class="nav nav-tabs" role="tablist">
+                        <f:render section="Tab" arguments="{name: 'html', defaultTab: defaultTab}" />
+                        <f:render section="Tab" arguments="{name: 'text', defaultTab: defaultTab}" />
+                        <f:render section="Tab" arguments="{name: 'source', defaultTab: defaultTab}" />
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane{f:if(condition: '{defaultTab} == \'html\'', then: ' active')}" id="letterbox-pane-html" role="tabpanel" aria-labelledby="letterbox-tab-html" tabindex="0">
+                            <f:if condition="{htmlDocument}">
+                                <f:then>
+                                    <iframe class="letterbox-preview" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"></iframe>
+                                </f:then>
+                                <f:else>
+                                    <div class="callout callout-info mt-3">
+                                        <div class="callout-content">
+                                            <div class="callout-body"><f:translate key="inbox.noHtml" extensionName="Typo3Letterbox" /></div>
+                                        </div>
+                                    </div>
+                                </f:else>
+                            </f:if>
+                        </div>
+                        <div class="tab-pane{f:if(condition: '{defaultTab} == \'text\'', then: ' active')}" id="letterbox-pane-text" role="tabpanel" aria-labelledby="letterbox-tab-text" tabindex="0">
+                            <f:if condition="{mail.text}">
+                                <f:then><pre class="letterbox-text">{mail.text}</pre></f:then>
+                                <f:else><p class="text-variant mt-3"><f:translate key="inbox.noText" extensionName="Typo3Letterbox" /></p></f:else>
+                            </f:if>
+                        </div>
+                        <div class="tab-pane" id="letterbox-pane-source" role="tabpanel" aria-labelledby="letterbox-tab-source" tabindex="0">
+                            <pre class="letterbox-text">{mail.source}</pre>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </main>
+</f:section>
+
+<f:section name="Tab">
+    <li class="nav-item" role="presentation">
+        <button
+            type="button"
+            class="nav-link{f:if(condition: '{name} == {defaultTab}', then: ' active')}"
+            id="letterbox-tab-{name}"
+            data-bs-toggle="tab"
+            data-bs-target="#letterbox-pane-{name}"
+            role="tab"
+            aria-controls="letterbox-pane-{name}"
+            aria-selected="{f:if(condition: '{name} == {defaultTab}', then: 'true', else: 'false')}"
+            tabindex="{f:if(condition: '{name} == {defaultTab}', then: '0', else: '-1')}"
+        >
+            <f:translate key="inbox.tab.{name}" extensionName="Typo3Letterbox" />
+        </button>
+    </li>
+</f:section>
+
+<f:section name="Addresses">
+    <f:for each="{addresses}" as="address" iteration="iteration">{address}{f:if(condition: iteration.isLast, else: ', ')}</f:for>
+</f:section>
+
+</html>

@@ -1,0 +1,42 @@
+.letterbox-inbox {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.letterbox-preview {
+  background-color: Canvas;
+  border: 0;
+  color-scheme: light;
+  display: block;
+  min-height: 480px;
+  width: 100%;
+}
+
+.letterbox-text {
+  max-height: 70vh;
+  overflow: auto;
+  padding-block: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (min-width: 992px) {
+  .letterbox-inbox {
+    align-items: start;
+    grid-template-columns: 440px minmax(0, 1fr);
+  }
+}
+
+/* The doc header button API always adds btn-default, which overrides btn-danger. Map core's danger tokens back. */
+.btn.letterbox-clear-all {
+  --typo3-btn-color: var(--typo3-state-danger-color);
+  --typo3-btn-bg: var(--typo3-state-danger-bg);
+  --typo3-btn-border-color: var(--typo3-state-danger-border-color);
+  --typo3-btn-hover-color: var(--typo3-state-danger-hover-color);
+  --typo3-btn-hover-bg: var(--typo3-state-danger-hover-bg);
+  --typo3-btn-hover-border-color: var(--typo3-state-danger-hover-border-color);
+  --typo3-btn-focus-color: var(--typo3-state-danger-focus-color);
+  --typo3-btn-focus-bg: var(--typo3-state-danger-focus-bg);
+  --typo3-btn-focus-border-color: var(--typo3-state-danger-focus-border-color);
+}
