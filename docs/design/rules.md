@@ -73,7 +73,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 ## Mail detail
 
-- Header: subject as `h2`, then one line `From … To … Cc … · date`. Cc only when present. "All headers" jumps to the Headers tab; there is no second, collapsible header block.
+- Header: subject as `h2`, then a definition list (`dl`) with the rows From, To, Cc and Date. Labels sit in a narrow muted column (48px), values in the second, 4px between rows. An address shows the display name in semibold and the address in muted angle brackets, or only the address in normal weight when there is no name. Cc only when present. The Date row carries the full date and time and ends with "All headers", which jumps to the Headers tab; there is no second, collapsible header block.
 - Actions are icon-only buttons with a tooltip and an accessible name that includes the subject: download `.eml`, delete.
 - Tabs: HTML, Text, Headers, Source, Links, Attachments (Phase 1 ships HTML, Text, Source). Core tab markup with the full ARIA tabs pattern.
 - Preview width: icon-only toggles for desktop, tablet and mobile width, with tooltip and accessible name.
