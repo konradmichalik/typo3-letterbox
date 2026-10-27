@@ -7,6 +7,8 @@ Back to [documentation overview](README.md).
 The module is under System › Letterbox and is available to administrators only. It reads the file set in `transport_mbox_file`, so existing mbox files stay readable.
 
 * The mail list shows caught mails with pagination, the detail view shows headers, text and HTML.
+* The search field finds mails by sender, recipient and subject. The quick filters All, Unread and Attachments show their counts for the current search. Search, filter and page stay in every link, also while a mail is open.
+* Unread mails carry a dot. A mail counts as read once its detail view has been opened, separately for each backend user.
 * The HTML preview runs in a sandboxed frame and remote images are blocked.
 * The source of a mail and each attachment can be downloaded.
 * A single mail can be deleted. Clearing all mails asks for confirmation first.

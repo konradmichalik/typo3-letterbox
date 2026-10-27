@@ -9,21 +9,70 @@
 </form>
 
 <div class="card letterbox-list">
-    <div class="card-header">
-        <span class="fw-bold" id="letterbox-list-label"><f:translate key="inbox.mailList" extensionName="Typo3Letterbox" /></span>
-        <span class="text-variant">{total}</span>
+    <div class="card-header letterbox-list-header">
+        <div>
+            <span class="fw-bold" id="letterbox-list-label"><f:translate key="inbox.mailList" extensionName="Typo3Letterbox" /></span>
+            <span class="text-variant">{total}</span>
+        </div>
+        <form method="get" action="{search.action}" role="search">
+            <f:for each="{search.fields}" as="fieldValue" key="fieldName">
+                <input type="hidden" name="{fieldName}" value="{fieldValue}" />
+            </f:for>
+            <label for="letterbox-search" class="visually-hidden"><f:translate key="inbox.search.label" extensionName="Typo3Letterbox" /></label>
+            <div class="letterbox-search">
+                <span class="letterbox-search-icon" aria-hidden="true"><core:icon identifier="actions-search" size="small" /></span>
+                <input type="search" class="form-control" id="letterbox-search" name="q" value="{query}" maxlength="{maxQueryLength}" aria-describedby="letterbox-search-hint" />
+            </div>
+            <span id="letterbox-search-hint" class="visually-hidden"><f:translate key="inbox.search.hint" extensionName="Typo3Letterbox" /></span>
+        </form>
+        <nav aria-label="{f:translate(key: 'inbox.filter.label', extensionName: 'Typo3Letterbox')}">
+            <ul class="letterbox-quickfilter">
+                <f:for each="{quickFilters}" as="quickFilter">
+                    <li>
+                        <f:if condition="{quickFilter.active}">
+                            <f:then>
+                                <a class="letterbox-quickfilter-item" href="{quickFilter.url}" aria-current="true"><f:render section="QuickFilterLabel" arguments="{quickFilter: quickFilter}" /></a>
+                            </f:then>
+                            <f:else>
+                                <a class="letterbox-quickfilter-item" href="{quickFilter.url}"><f:render section="QuickFilterLabel" arguments="{quickFilter: quickFilter}" /></a>
+                            </f:else>
+                        </f:if>
+                    </li>
+                </f:for>
+            </ul>
+        </nav>
+        <f:if condition="{query}">
+            <p class="text-variant mb-0" aria-live="polite">
+                <f:if condition="{resultTotal} == 1">
+                    <f:then><f:translate key="inbox.search.result.one" extensionName="Typo3Letterbox" arguments="{0: query}" /></f:then>
+                    <f:else><f:translate key="inbox.search.result" extensionName="Typo3Letterbox" arguments="{0: resultTotal, 1: query}" /></f:else>
+                </f:if>
+            </p>
+        </f:if>
     </div>
+    <f:if condition="{resultTotal} == 0">
+        <div class="card-body">
+            <div class="callout callout-info mb-0">
+                <div class="callout-content">
+                    <div class="callout-title"><f:translate key="inbox.noResults" extensionName="Typo3Letterbox" /></div>
+                    <div class="callout-body">
+                        <a href="{resetUrl}"><f:translate key="inbox.noResults.reset" extensionName="Typo3Letterbox" /></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </f:if>
     <ul class="list-group list-group-flush" aria-labelledby="letterbox-list-label">
         <f:for each="{mails}" as="mail">
-            <f:variable name="url" value="{f:be.uri(route: 'system_letterbox.show', parameters: {id: mail.id, page: page})}" />
+            <f:variable name="url" value="{rowUrls.{mail.id}}" />
             <f:variable name="isSelected" value="{f:if(condition: '{mail.id} == {selectedId}', then: 1, else: 0)}" />
             <li class="list-group-item list-group-item-action p-0{f:if(condition: isSelected, then: ' active')}">
                 <f:if condition="{isSelected}">
                     <f:then>
-                        <a href="{url}" class="letterbox-row text-reset text-decoration-none" aria-current="true"><f:render section="RowContent" arguments="{mail: mail, isSelected: isSelected, listDates: listDates}" /></a>
+                        <a href="{url}" class="letterbox-row text-reset text-decoration-none" aria-current="true"><f:render section="RowContent" arguments="{mail: mail, isSelected: isSelected, listDates: listDates, unread: unread}" /></a>
                     </f:then>
                     <f:else>
-                        <a href="{url}" class="letterbox-row text-reset text-decoration-none"><f:render section="RowContent" arguments="{mail: mail, isSelected: isSelected, listDates: listDates}" /></a>
+                        <a href="{url}" class="letterbox-row text-reset text-decoration-none"><f:render section="RowContent" arguments="{mail: mail, isSelected: isSelected, listDates: listDates, unread: unread}" /></a>
                     </f:else>
                 </f:if>
             </li>
@@ -32,13 +81,13 @@
     <f:if condition="{paginator.numberOfPages} > 1">
         <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
             <span aria-live="polite">
-                <f:translate key="inbox.pagination.range" extensionName="Typo3Letterbox" arguments="{0: pagination.startRecordNumber, 1: pagination.endRecordNumber, 2: total}" />
+                <f:translate key="inbox.pagination.range" extensionName="Typo3Letterbox" arguments="{0: pagination.startRecordNumber, 1: pagination.endRecordNumber, 2: resultTotal}" />
             </span>
             <nav aria-label="{f:translate(key: 'inbox.pagination', extensionName: 'Typo3Letterbox')}">
                 <ul class="pagination mb-0">
                     <f:if condition="{pagination.previousPageNumber}">
                         <li class="page-item">
-                            <a class="page-link" href="{f:be.uri(route: 'system_letterbox', parameters: {page: pagination.previousPageNumber})}" title="{f:translate(key: 'inbox.pagination.previous', extensionName: 'Typo3Letterbox')}">
+                            <a class="page-link" href="{pageUrls.{pagination.previousPageNumber}}" title="{f:translate(key: 'inbox.pagination.previous', extensionName: 'Typo3Letterbox')}">
                                 <span aria-hidden="true"><core:icon identifier="actions-chevron-left" /></span>
                                 <span class="visually-hidden"><f:translate key="inbox.pagination.previous" extensionName="Typo3Letterbox" /></span>
                             </a>
@@ -47,16 +96,16 @@
                     <f:for each="{pagination.allPageNumbers}" as="pageNumber">
                         <f:if condition="{pageNumber} == {paginator.currentPageNumber}">
                             <f:then>
-                                <li class="page-item active"><a class="page-link" href="{f:be.uri(route: 'system_letterbox', parameters: {page: pageNumber})}" aria-current="page">{pageNumber}</a></li>
+                                <li class="page-item active"><a class="page-link" href="{pageUrls.{pageNumber}}" aria-current="page">{pageNumber}</a></li>
                             </f:then>
                             <f:else>
-                                <li class="page-item"><a class="page-link" href="{f:be.uri(route: 'system_letterbox', parameters: {page: pageNumber})}">{pageNumber}</a></li>
+                                <li class="page-item"><a class="page-link" href="{pageUrls.{pageNumber}}">{pageNumber}</a></li>
                             </f:else>
                         </f:if>
                     </f:for>
                     <f:if condition="{pagination.nextPageNumber}">
                         <li class="page-item">
-                            <a class="page-link" href="{f:be.uri(route: 'system_letterbox', parameters: {page: pagination.nextPageNumber})}" title="{f:translate(key: 'inbox.pagination.next', extensionName: 'Typo3Letterbox')}">
+                            <a class="page-link" href="{pageUrls.{pagination.nextPageNumber}}" title="{f:translate(key: 'inbox.pagination.next', extensionName: 'Typo3Letterbox')}">
                                 <span aria-hidden="true"><core:icon identifier="actions-chevron-right" /></span>
                                 <span class="visually-hidden"><f:translate key="inbox.pagination.next" extensionName="Typo3Letterbox" /></span>
                             </a>
@@ -70,7 +119,7 @@
 
 <f:section name="RowContent">
     <span class="d-flex justify-content-between gap-2">
-        <span class="text-truncate fw-bold"><f:render section="LinkText" arguments="{mail: mail}" /></span>
+        <span class="text-truncate fw-bold"><f:if condition="{unread.{mail.id}}"><span class="letterbox-unread" aria-hidden="true"></span><span class="visually-hidden"><f:translate key="inbox.unread" extensionName="Typo3Letterbox" /></span> </f:if><f:render section="LinkText" arguments="{mail: mail}" /></span>
         <f:if condition="{listDates.{mail.id}}">
             <small class="text-nowrap">{listDates.{mail.id}}</small>
         </f:if>
@@ -90,6 +139,11 @@
             <span class="flex-shrink-0" aria-hidden="true"><core:icon identifier="actions-file" size="small" /></span>
         </f:if>
     </span>
+</f:section>
+
+<f:section name="QuickFilterLabel">
+    <f:translate key="inbox.filter.{quickFilter.value}" extensionName="Typo3Letterbox" />
+    <small class="letterbox-count">{quickFilter.count}</small>
 </f:section>
 
 <f:section name="LinkText"><f:if condition="{mail.subject}"><f:then>{mail.subject}</f:then><f:else><f:translate key="inbox.noSubject" extensionName="Typo3Letterbox" /></f:else></f:if><f:if condition="{mail.attachmentCount}"><span class="visually-hidden">, <f:translate key="inbox.hasAttachments" extensionName="Typo3Letterbox" /></span></f:if></f:section>

@@ -36,19 +36,25 @@
                         <input type="hidden" name="letterboxToken" value="{token}" />
                     </form>
 
-                    <p class="text-variant text-break">
-                        <f:translate key="inbox.detail.from" extensionName="Typo3Letterbox" />
-                        <f:if condition="{mail.from}"><f:then>{mail.from}</f:then><f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else></f:if>
+                    <dl class="letterbox-headers text-break">
+                        <dt class="text-variant"><f:translate key="inbox.detail.from" extensionName="Typo3Letterbox" /></dt>
+                        <dd><f:if condition="{mail.from}"><f:then><f:render section="Address" arguments="{address: mail.from}" /></f:then><f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else></f:if></dd>
                         <f:if condition="{mail.to}">
-                            <f:translate key="inbox.detail.to" extensionName="Typo3Letterbox" />
-                            <f:render section="Addresses" arguments="{addresses: mail.to}" />
+                            <dt class="text-variant"><f:translate key="inbox.detail.to" extensionName="Typo3Letterbox" /></dt>
+                            <dd><f:render section="Addresses" arguments="{addresses: mail.to}" /></dd>
                         </f:if>
                         <f:if condition="{mail.cc}">
-                            <f:translate key="inbox.detail.cc" extensionName="Typo3Letterbox" />
-                            <f:render section="Addresses" arguments="{addresses: mail.cc}" />
+                            <dt class="text-variant"><f:translate key="inbox.detail.cc" extensionName="Typo3Letterbox" /></dt>
+                            <dd><f:render section="Addresses" arguments="{addresses: mail.cc}" /></dd>
                         </f:if>
-                        <f:if condition="{mailDate}">· <f:format.date date="{mailDate}" format="Y-m-d H:i:s" /></f:if>
-                    </p>
+                        <f:if condition="{mailDate}">
+                            <dt class="text-variant"><f:translate key="inbox.detail.date" extensionName="Typo3Letterbox" /></dt>
+                            <dd>
+                                <f:format.date date="{mailDate}" format="Y-m-d H:i:s" />
+                                <f:comment>The "All headers" link to the Headers tab goes here (Task 4).</f:comment>
+                            </dd>
+                        </f:if>
+                    </dl>
 
                     <f:if condition="{mail.attachments}">
                         <div class="mb-3">
@@ -122,7 +128,9 @@
 </f:section>
 
 <f:section name="Addresses">
-    <f:for each="{addresses}" as="address" iteration="iteration">{address}{f:if(condition: iteration.isLast, else: ', ')}</f:for>
+    <f:for each="{addresses}" as="address" iteration="iteration"><f:render section="Address" arguments="{address: address}" />{f:if(condition: iteration.isLast, else: ', ')}</f:for>
 </f:section>
+
+<f:section name="Address"><f:if condition="{address.name}"><f:then><span class="fw-semibold">{address.name}</span> <span class="text-variant">&lt;{address.address}&gt;</span></f:then><f:else>{address.address}</f:else></f:if></f:section>
 
 </html>

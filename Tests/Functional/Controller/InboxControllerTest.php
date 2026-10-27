@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Controller;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use KonradMichalik\Typo3Letterbox\Controller\InboxController;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
@@ -167,7 +168,7 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringNotContainsString('<p>Hello</p>', $body);
         self::assertStringContainsString('title="Mail preview: Hostile"', $body);
         self::assertStringContainsString('aria-label="Delete mail: Hostile"', $body);
-        self::assertSame(1, substr_count($body, 'aria-current="true"'));
+        self::assertSame(1, substr_count($body, 'class="letterbox-row text-reset text-decoration-none" aria-current="true"'));
     }
 
     #[Test]
@@ -194,6 +195,19 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringContainsString('title="Download .eml: '.$escapedSubject.'"', $body);
         self::assertStringContainsString('Evil&quot;&lt;&gt;Name', $body);
         self::assertStringContainsString('a&quot;&lt;&gt;.txt', $body);
+    }
+
+    #[Test]
+    public function showListsHeadersAsDefinitionList(): void
+    {
+        $this->appendRaw("From: Sender <s@example.org>\nTo: Anna <a@example.org>, b@example.org\nCc: c@example.org\nSubject: Headers\nDate: Tue, 27 Oct 2026 10:00:00 +0000\n\nbody\n");
+
+        $body = (string) $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $this->firstId()]))->getBody();
+
+        self::assertMatchesRegularExpression('/<dt class="text-variant">From<\/dt>\s*<dd><span class="fw-semibold">Sender<\/span> <span class="text-variant">&lt;s@example.org&gt;<\/span><\/dd>/', $body);
+        self::assertMatchesRegularExpression('/<dt class="text-variant">To<\/dt>\s*<dd>\s*<span class="fw-semibold">Anna<\/span> <span class="text-variant">&lt;a@example.org&gt;<\/span>, b@example.org\s*<\/dd>/', $body);
+        self::assertMatchesRegularExpression('/<dt class="text-variant">Cc<\/dt>\s*<dd>\s*c@example.org\s*<\/dd>/', $body);
+        self::assertMatchesRegularExpression('/<dt class="text-variant">Date<\/dt>\s*<dd>\s*2026-10-27/', $body);
     }
 
     #[Test]
@@ -232,9 +246,9 @@ final class InboxControllerTest extends FunctionalTestCase
 
         $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
 
-        self::assertMatchesRegularExpression('/>today<.*?<small class="text-nowrap">09:30<\/small>/s', $body);
-        self::assertMatchesRegularExpression('/>yesterday<.*?<small class="text-nowrap">Yesterday<\/small>/s', $body);
-        self::assertMatchesRegularExpression('/>older<.*?<small class="text-nowrap">2026-10-01<\/small>/s', $body);
+        self::assertMatchesRegularExpression('/[> ]today<.*?<small class="text-nowrap">09:30<\/small>/s', $body);
+        self::assertMatchesRegularExpression('/[> ]yesterday<.*?<small class="text-nowrap">Yesterday<\/small>/s', $body);
+        self::assertMatchesRegularExpression('/[> ]older<.*?<small class="text-nowrap">2026-10-01<\/small>/s', $body);
     }
 
     #[Test]
@@ -393,6 +407,136 @@ final class InboxControllerTest extends FunctionalTestCase
 
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['enableBackendModule'] = '0';
         self::assertSame([], $modules());
+    }
+
+    #[Test]
+    public function searchNarrowsTheList(): void
+    {
+        $this->append('Password reset');
+        $this->append('Newsletter');
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox', ['q' => 'password']))->getBody();
+
+        self::assertStringContainsString('Password reset', $body);
+        self::assertStringNotContainsString('Newsletter', $body);
+        self::assertStringContainsString('aria-describedby="letterbox-search-hint"', $body);
+        self::assertStringContainsString('Searches sender, recipient and subject', $body);
+    }
+
+    #[Test]
+    public function searchTermIsEscapedInInputCountAndLinks(): void
+    {
+        $term = '"><svg onload=alert(1)>';
+        for ($i = 1; $i <= 11; ++$i) {
+            $this->append("Hit {$term} {$i}");
+        }
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox', ['q' => $term]))->getBody();
+
+        $escaped = '&quot;&gt;&lt;svg onload=alert(1)&gt;';
+        self::assertStringNotContainsString('<svg onload', $body);
+        self::assertStringContainsString('name="q" value="'.$escaped.'"', $body);
+        self::assertStringContainsString('11 mails match “'.$escaped.'”', $body);
+        self::assertMatchesRegularExpression('/class="page-link" href="[^"]*q=%22%3E%3Csvg%20onload%3Dalert%281%29%3E/', $body);
+    }
+
+    #[Test]
+    public function quickFilterUnreadHidesReadMails(): void
+    {
+        $this->append('Already read');
+        $readId = $this->firstId();
+        $this->append('Still unread');
+        $this->get(ReadState::class)->markRead($readId);
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox', ['filter' => 'unread']))->getBody();
+
+        self::assertStringContainsString('Still unread', $body);
+        self::assertStringNotContainsString('Already read', $body);
+        self::assertMatchesRegularExpression('/aria-current="true"[^>]*>\s*Unread\s*<small[^>]*>1<\/small>/', $body);
+        self::assertSame(1, substr_count($body, '<span class="visually-hidden">Unread</span>'));
+    }
+
+    #[Test]
+    public function openingAMailMarksItRead(): void
+    {
+        $this->append('Open me');
+        $id = $this->firstId();
+        self::assertFalse($this->get(ReadState::class)->isRead($id));
+
+        $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertTrue($this->get(ReadState::class)->isRead($id));
+        self::assertStringNotContainsString('<span class="visually-hidden">Unread</span>', (string) $response->getBody());
+    }
+
+    #[Test]
+    public function paginationKeepsQueryAndFilter(): void
+    {
+        for ($i = 1; $i <= 12; ++$i) {
+            $this->append("Match {$i}");
+        }
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Match plain\n\nbody\n");
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox', ['q' => 'Match', 'filter' => 'attachments', 'page' => '2']))->getBody();
+
+        preg_match_all('/class="page-link" href="([^"]+)"/', $body, $pageLinks);
+        preg_match_all('/href="([^"]+)" class="letterbox-row/', $body, $rowLinks);
+        self::assertNotEmpty($pageLinks[1]);
+        self::assertCount(2, $rowLinks[1]);
+        foreach ([...$pageLinks[1], ...$rowLinks[1]] as $href) {
+            self::assertStringContainsString('q=Match', $href);
+            self::assertStringContainsString('filter=attachments', $href);
+        }
+        foreach ($rowLinks[1] as $href) {
+            self::assertStringContainsString('page=2', $href);
+        }
+        self::assertStringNotContainsString('Match plain', $body);
+    }
+
+    #[Test]
+    public function selectedMailOutsideFilterStillOpens(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: No attachment here\n\nbody\n");
+        $id = $this->firstId();
+        $this->append('With attachment');
+
+        $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id, 'filter' => 'attachments', 'q' => 'With']));
+
+        self::assertSame(200, $response->getStatusCode());
+        $body = (string) $response->getBody();
+        self::assertStringContainsString('>No attachment here</h2>', $body);
+        self::assertStringContainsString('With attachment', $body);
+    }
+
+    #[Test]
+    public function noResultsShowsCalloutWithResetLink(): void
+    {
+        $this->append('Something');
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox', ['q' => 'nothing-matches', 'filter' => 'unread']))->getBody();
+
+        self::assertStringContainsString('No mails match this search.', $body);
+        self::assertStringNotContainsString('No mails caught yet', $body);
+        self::assertSame(1, preg_match('/<a href="([^"]+)"[^>]*>Reset search<\/a>/', $body, $reset));
+        self::assertStringNotContainsString('q=', $reset[1] ?? '');
+        self::assertStringNotContainsString('filter=', $reset[1] ?? '');
+    }
+
+    #[Test]
+    public function searchFormCarriesTheRouteToken(): void
+    {
+        $this->append('Something');
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox', ['filter' => 'unread']))->getBody();
+
+        $uri = (string) $this->get(UriBuilder::class)->buildUriFromRoute('system_letterbox');
+        parse_str((string) parse_url($uri, \PHP_URL_QUERY), $routeQuery);
+        self::assertMatchesRegularExpression('/<form[^>]*method="get"[^>]*role="search"/', $body);
+        $token = $routeQuery['token'] ?? null;
+        self::assertIsString($token);
+        self::assertStringContainsString('<input type="hidden" name="token" value="'.$token.'"', $body);
+        self::assertStringContainsString('<input type="hidden" name="filter" value="unread"', $body);
     }
 
     private function skipWhenRoot(): void

@@ -15,8 +15,6 @@ namespace KonradMichalik\Typo3Letterbox\Domain\Model;
 
 use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
 
-use function in_array;
-
 /**
  * MailFilter.
  *
@@ -27,12 +25,12 @@ final readonly class MailFilter
     private const MAX_QUERY_LENGTH = 200;
 
     /**
-     * @param list<string> $readIds
+     * @param array<string, int> $readLookup read ids as keys, so the unread check is a hash lookup
      */
     private function __construct(
         private string $query,
         private QuickFilter $quick,
-        private array $readIds,
+        private array $readLookup,
     ) {}
 
     public static function all(): self
@@ -45,12 +43,12 @@ final readonly class MailFilter
      */
     public static function create(string $query, QuickFilter $quick, array $readIds): self
     {
-        return new self(mb_substr(trim($query), 0, self::MAX_QUERY_LENGTH), $quick, $readIds);
+        return new self(mb_substr(trim($query), 0, self::MAX_QUERY_LENGTH), $quick, array_flip($readIds));
     }
 
     public function matches(MessageIndexEntry $entry): bool
     {
-        if (QuickFilter::Unread === $this->quick && in_array($entry->id, $this->readIds, true)) {
+        if (QuickFilter::Unread === $this->quick && isset($this->readLookup[$entry->id])) {
             return false;
         }
         if (QuickFilter::Attachments === $this->quick && $entry->attachmentCount < 1) {
@@ -72,7 +70,7 @@ final readonly class MailFilter
 
     public function withQuick(QuickFilter $quick): self
     {
-        return new self($this->query, $quick, $this->readIds);
+        return new self($this->query, $quick, $this->readLookup);
     }
 
     private function queryMatches(MessageIndexEntry $entry): bool

@@ -41,8 +41,9 @@ final class MailPaginator extends AbstractPaginator
         private readonly MailFilter $filter,
         int $currentPageNumber = 1,
         int $itemsPerPage = 10,
+        ?int $total = null,
     ) {
-        $this->total = $repository->count($filter);
+        $this->total = $total ?? $repository->count($filter);
         $this->setCurrentPageNumber($currentPageNumber);
         $this->setItemsPerPage($itemsPerPage);
 

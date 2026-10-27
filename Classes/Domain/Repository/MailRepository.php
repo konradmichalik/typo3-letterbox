@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Domain\Repository;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail, MailFilter};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxWriter, MessageIndexEntry, MessageParser};
 use RuntimeException;
 
@@ -37,6 +37,35 @@ final readonly class MailRepository
     public function count(MailFilter $filter): int
     {
         return count($this->matching($filter));
+    }
+
+    /**
+     * Counts the mails each quick filter would show with the filter's search query, in one pass over the index.
+     *
+     * @return array<value-of<QuickFilter>, int>
+     */
+    public function quickFilterCounts(MailFilter $filter): array
+    {
+        $filters = [];
+        $counts = [];
+        foreach (QuickFilter::cases() as $quick) {
+            $filters[$quick->value] = $filter->withQuick($quick);
+            $counts[$quick->value] = 0;
+        }
+
+        foreach ($this->index->entries() as $entry) {
+            // "All" applies only the query, so an entry it rejects matches no other quick filter either.
+            if (!$filters[QuickFilter::All->value]->matches($entry)) {
+                continue;
+            }
+            foreach ($filters as $value => $quickFilter) {
+                if ($quickFilter->matches($entry)) {
+                    ++$counts[$value];
+                }
+            }
+        }
+
+        return $counts;
     }
 
     /**

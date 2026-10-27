@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Domain\Repository;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
+use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry, MessageParser};
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
@@ -239,6 +239,20 @@ final class MailRepositoryTest extends FunctionalTestCase
     public function configuredRepositoryReportsConfigured(): void
     {
         self::assertTrue($this->repository->isConfigured());
+    }
+
+    #[Test]
+    public function quickFilterCountsApplyTheQueryToEveryQuickFilter(): void
+    {
+        $this->append('Reset one');
+        $this->append('Reset two');
+        $this->append('Newsletter');
+        $this->writer->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), "From: s@example.org\nTo: r@example.org\nSubject: Reset plain\n\nbody\n");
+        $readId = $this->repository->findEntries(MailFilter::all(), 3, 1)[0]->id;
+
+        $counts = $this->repository->quickFilterCounts(MailFilter::create('reset', QuickFilter::Unread, [$readId]));
+
+        self::assertSame(['all' => 3, 'unread' => 2, 'attachments' => 2], $counts);
     }
 
     private function append(string $subject): void

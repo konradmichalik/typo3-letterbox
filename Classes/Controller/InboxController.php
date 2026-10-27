@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Controller;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
+use KonradMichalik\Typo3Letterbox\Backend\{InboxQuery, MailListView, ReadState};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
@@ -40,6 +41,7 @@ use TYPO3\CMS\Core\Pagination\SlidingWindowPagination;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function in_array;
 use function is_array;
 use function is_string;
 
@@ -74,28 +76,34 @@ final readonly class InboxController
         private Typo3Version $typo3Version,
         private Context $context,
         private FlashMessageService $flashMessageService,
+        private ReadState $readState,
+        private MailListView $mailListView,
     ) {}
 
     public function indexAction(ServerRequestInterface $request): ResponseInterface
     {
-        return $this->createView($request)->renderResponse('Inbox/Index');
+        return $this->createView($request, InboxQuery::fromRequest($request))->renderResponse('Inbox/Index');
     }
 
     public function showAction(ServerRequestInterface $request): ResponseInterface
     {
-        $mail = $this->mailFromQuery($request);
+        $query = InboxQuery::fromRequest($request);
+        // The selected mail opens even when it does not match the current search or quick filter.
+        $mail = null === $query->id ? null : $this->repository->findById($query->id, MailFilter::all());
         if (null === $mail) {
             return $this->error(404, 'Mail not found.');
         }
 
+        $this->readState->markRead($mail->id);
         $htmlDocument = $this->htmlDocument->build($mail);
-        $view = $this->createView($request, $mail->id);
+        $hasHtml = '' !== trim($mail->html);
+        $view = $this->createView($request, $query);
         $view->assignMultiple([
             'mail' => $mail,
             'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
-            'hasHtml' => '' !== trim($mail->html),
+            'hasHtml' => $hasHtml,
             'htmlDocument' => $htmlDocument,
-            'defaultTab' => '' === $htmlDocument ? 'text' : 'html',
+            'defaultTab' => $this->defaultTab($query->tab, $hasHtml, '' !== $htmlDocument),
         ]);
 
         return $view->renderResponse('Inbox/Show');
@@ -160,12 +168,14 @@ final readonly class InboxController
         return $this->redirectToIndex();
     }
 
-    private function createView(ServerRequestInterface $request, string $selectedId = ''): ModuleTemplate
+    private function createView(ServerRequestInterface $request, InboxQuery $query): ModuleTemplate
     {
-        $filter = MailFilter::all();
-        $page = $this->pageFromQuery($request);
-        $paginator = new MailPaginator($this->repository, $filter, $page, $this->mailsPerPage());
-        $total = $paginator->getTotalNumberOfItems();
+        $readIds = $this->readState->readIds();
+        $filter = MailFilter::create($query->query, $query->quick, $readIds);
+        $counts = $this->repository->quickFilterCounts($filter);
+        $total = '' === $filter->query() ? $counts[QuickFilter::All->value] : $this->repository->count(MailFilter::all());
+        $paginator = new MailPaginator($this->repository, $filter, $query->page, $this->mailsPerPage(), $counts[$filter->quick()->value]);
+        $pagination = new SlidingWindowPagination($paginator, self::PAGE_LINKS);
         $token = $this->formProtectionFactory->createFromRequest($request)->generateToken(self::TOKEN_FORM);
 
         $this->pageRenderer->addCssFile('EXT:typo3_letterbox/Resources/Public/Css/inbox.css');
@@ -183,15 +193,25 @@ final readonly class InboxController
             'mails' => $paginator->getPaginatedItems(),
             'listDates' => $this->listDates($paginator->getPaginatedItems()),
             'paginator' => $paginator,
-            'pagination' => new SlidingWindowPagination($paginator, self::PAGE_LINKS),
-            'page' => $paginator->getCurrentPageNumber(),
-            'selectedId' => $selectedId,
+            'pagination' => $pagination,
+            'selectedId' => $query->id ?? '',
             'token' => $token,
             'clearFormId' => self::CLEAR_FORM_ID,
             'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
         ]);
+        $view->assignMultiple($this->mailListView->build($query, $paginator->getPaginatedItems(), $pagination, $counts, array_flip($readIds)));
 
         return $view;
+    }
+
+    private function defaultTab(?string $requested, bool $hasHtml, bool $hasPreview): string
+    {
+        $available = $hasHtml ? ['html', 'text', 'source'] : ['text', 'source'];
+        if (null !== $requested && in_array($requested, $available, true)) {
+            return $requested;
+        }
+
+        return $hasPreview ? 'html' : 'text';
     }
 
     private function addDocHeaderButtons(ModuleTemplate $view, ServerRequestInterface $request, bool $hasMails): void
@@ -247,7 +267,7 @@ final readonly class InboxController
 
     private function mailFromQuery(ServerRequestInterface $request): ?Mail
     {
-        $id = $this->validId($request->getQueryParams()['id'] ?? null);
+        $id = InboxQuery::fromRequest($request)->id;
 
         return null === $id ? null : $this->repository->findById($id, MailFilter::all());
     }
@@ -255,13 +275,6 @@ final readonly class InboxController
     private function validId(mixed $id): ?string
     {
         return is_string($id) && 1 === preg_match('/^[0-9a-f]{32}$/D', $id) ? $id : null;
-    }
-
-    private function pageFromQuery(ServerRequestInterface $request): int
-    {
-        $page = $request->getQueryParams()['page'] ?? '1';
-
-        return is_string($page) && 1 === preg_match('/^[1-9]\d{0,8}$/D', $page) ? (int) $page : 1;
     }
 
     /**

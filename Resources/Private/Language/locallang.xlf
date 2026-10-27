@@ -126,6 +126,42 @@
 			<trans-unit id="inbox.yesterday" resname="inbox.yesterday">
 				<source>Yesterday</source>
 			</trans-unit>
+			<trans-unit id="inbox.search.label" resname="inbox.search.label">
+				<source>Search mails</source>
+			</trans-unit>
+			<trans-unit id="inbox.search.hint" resname="inbox.search.hint">
+				<source>Searches sender, recipient and subject</source>
+			</trans-unit>
+			<trans-unit id="inbox.search.result" resname="inbox.search.result">
+				<source>%1$s mails match “%2$s”</source>
+			</trans-unit>
+			<trans-unit id="inbox.search.result.one" resname="inbox.search.result.one">
+				<source>1 mail matches “%s”</source>
+			</trans-unit>
+			<trans-unit id="inbox.filter.label" resname="inbox.filter.label">
+				<source>Quick filter</source>
+			</trans-unit>
+			<trans-unit id="inbox.filter.all" resname="inbox.filter.all">
+				<source>All</source>
+			</trans-unit>
+			<trans-unit id="inbox.filter.unread" resname="inbox.filter.unread">
+				<source>Unread</source>
+			</trans-unit>
+			<trans-unit id="inbox.filter.attachments" resname="inbox.filter.attachments">
+				<source>Attachments</source>
+			</trans-unit>
+			<trans-unit id="inbox.unread" resname="inbox.unread">
+				<source>Unread</source>
+			</trans-unit>
+			<trans-unit id="inbox.noResults" resname="inbox.noResults">
+				<source>No mails match this search.</source>
+			</trans-unit>
+			<trans-unit id="inbox.noResults.reset" resname="inbox.noResults.reset">
+				<source>Reset search</source>
+			</trans-unit>
+			<trans-unit id="inbox.detail.date" resname="inbox.detail.date">
+				<source>Date</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>
