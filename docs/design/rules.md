@@ -1,8 +1,12 @@
 # Design rules
 
+Back to [documentation overview](../README.md).
+
 These rules are binding for every change to Letterbox's backend module, the tester inbox, the toolbar item, the dashboard widget and the reports entry. When a change needs to break one, change the rule here first, in the same pull request, and say why.
 
 The screens these rules produce are listed in [screens.md](screens.md).
+
+Phase 1 implements the inbox, detail view and empty state; the other screens are the target design for later phases.
 
 ## Principles
 
