@@ -98,14 +98,26 @@ final readonly class MailRelease
                 ->get([...$mailSettings, 'transport' => $settings->delivery])
                 ->send(new RawMessage($this->outgoing($mail)), new Envelope($sender, [$address]));
         } catch (Throwable $e) {
+            // The exception message may carry addresses or server answers, so only its class is logged.
+            $this->logger->warning('Release of mail {id} to a recipient at {domain} failed: {exception}', [
+                'id' => $mail->id,
+                'domain' => self::domain($address),
+                'exception' => $e::class,
+            ]);
+
             throw new RuntimeException('The delivery transport could not send the released mail.', 1761900001, $e);
         }
 
         $this->logger->info('Released mail {id} to a recipient at {domain} by backend user {uid}', [
             'id' => $mail->id,
-            'domain' => substr($address->getAddress(), (int) strrpos($address->getAddress(), '@') + 1),
+            'domain' => self::domain($address),
             'uid' => $backendUserId,
         ]);
+    }
+
+    private static function domain(Address $address): string
+    {
+        return substr($address->getAddress(), (int) strrpos($address->getAddress(), '@') + 1);
     }
 
     /**

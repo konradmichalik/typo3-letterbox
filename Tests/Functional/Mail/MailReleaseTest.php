@@ -197,23 +197,30 @@ final class MailReleaseTest extends FunctionalTestCase
     public function releaseIsLoggedWithDomainOnly(): void
     {
         $mail = $this->catch((new Email())->from('shop@example.org')->to('anna@example.org')->subject('Secret subject')->text('Body'));
-        $logger = new class extends AbstractLogger {
-            /** @var list<string> */
-            public array $lines = [];
-
-            public function log($level, string|Stringable $message, array $context = []): void
-            {
-                $replacements = [];
-                foreach ($context as $key => $value) {
-                    $replacements['{'.$key.'}'] = (string) $value;
-                }
-                $this->lines[] = $level.' '.strtr((string) $message, $replacements);
-            }
-        };
+        $logger = $this->recordingLogger();
 
         (new MailRelease($this->get(TransportFactory::class), new MboxFormat(), $logger))->release($mail, 'anna@example.org', 7);
 
         self::assertSame(['info Released mail '.$mail->id.' to a recipient at example.org by backend user 7'], $logger->lines);
+    }
+
+    #[Test]
+    public function failedReleaseIsLoggedWithoutContent(): void
+    {
+        $mail = $this->catch((new Email())->from('shop@example.org')->to('anna@example.org')->subject('Secret subject')->text('Secret body'));
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_delivery'] = 'smtp';
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_smtp_server'] = '127.0.0.1:1';
+        $logger = $this->recordingLogger();
+
+        try {
+            (new MailRelease($this->get(TransportFactory::class), new MboxFormat(), $logger))->release($mail, 'anna@example.org', 7);
+            self::fail('Expected a RuntimeException.');
+        } catch (RuntimeException $exception) {
+            self::assertSame(1761900001, $exception->getCode());
+        }
+
+        self::assertCount(1, $logger->lines);
+        self::assertMatchesRegularExpression('/^warning Release of mail '.$mail->id.' to a recipient at example\.org failed: Symfony\\\\[\w\\\\]+Exception$/', $logger->lines[0]);
     }
 
     #[Test]
@@ -263,6 +270,26 @@ final class MailReleaseTest extends FunctionalTestCase
         self::assertNotNull($mail);
 
         return $mail;
+    }
+
+    /**
+     * @return AbstractLogger&object{lines: list<string>}
+     */
+    private function recordingLogger(): AbstractLogger
+    {
+        return new class extends AbstractLogger {
+            /** @var list<string> */
+            public array $lines = [];
+
+            public function log($level, string|Stringable $message, array $context = []): void
+            {
+                $replacements = [];
+                foreach ($context as $key => $value) {
+                    $replacements['{'.$key.'}'] = (string) $value;
+                }
+                $this->lines[] = $level.' '.strtr((string) $message, $replacements);
+            }
+        };
     }
 
     private function release(): MailRelease

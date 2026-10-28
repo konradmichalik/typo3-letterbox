@@ -56,7 +56,7 @@ What is sent:
 * The envelope sender is the From address of the mail, else `MAIL/defaultMailFromAddress`.
 * Through `MAIL/transport_letterbox_delivery`, never through Letterbox itself. A configured `transport_spool_type` is ignored for the release, because the spool would be flushed back into Letterbox.
 
-The copy in Letterbox stays. TYPO3 logs `Released mail <id> to a recipient at <domain> by backend user <uid>` at info level (the domain only, not the address). A failing transport shows an error message and no log entry from Letterbox.
+The copy in Letterbox stays. TYPO3 logs `Released mail <id> to a recipient at <domain> by backend user <uid>` at info level (the domain only, not the address). A failing transport shows an error message, and TYPO3 logs `Release of mail <id> to a recipient at <domain> failed: <exception class>` at warning level. The exception message is not logged, because it can carry addresses or server answers.
 
 When release is configured but cannot work, the button still opens the dialog, which then names the setting to change and has only a Close button:
 
