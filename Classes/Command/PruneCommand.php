@@ -57,7 +57,19 @@ final class PruneCommand extends AbstractMailboxCommand
             return $this->fail($io, 'The option --max-age-days must be a whole number of 0 or more.');
         }
 
-        $io->success(sprintf('Removed %d mails.', $this->mails->prune($maxMessages, $maxAgeDays, new DateTimeImmutable())));
+        $now = new DateTimeImmutable();
+        $removed = $this->mails->prune($maxMessages, $maxAgeDays, $now);
+        // Nothing removed although mails are due: another process rewrote the file in between, try once more.
+        if (0 === $removed && $this->mails->needsPruning($maxMessages, $maxAgeDays, $now)) {
+            $removed = $this->mails->prune($maxMessages, $maxAgeDays, $now);
+            if (0 === $removed) {
+                $io->getErrorStyle()->warning('The mbox file changed while pruning, no mails were removed. Run the command again.');
+
+                return Command::FAILURE;
+            }
+        }
+
+        $io->success(sprintf('Removed %d mails.', $removed));
 
         return Command::SUCCESS;
     }

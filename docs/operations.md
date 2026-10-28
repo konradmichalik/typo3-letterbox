@@ -103,7 +103,7 @@ vendor/bin/typo3 letterbox:prune --max-age-days 7
  [OK] Removed 3 mails.
 ```
 
-An option replaces its setting for this run only. A value that is not a whole number of 0 or more exits with `1`. To run it regularly, add the task "Execute console commands" in the Scheduler (EXT:scheduler) and select `letterbox:prune`.
+If another process rewrites the file while the command prunes, it tries once more. When that also removes nothing, it prints a warning and exits with `1`. An option replaces its setting for this run only. A value that is not a whole number of 0 or more exits with `1`. To run it regularly, add the task "Execute console commands" in the Scheduler (EXT:scheduler) and select `letterbox:prune`.
 
 ## Toolbar item
 

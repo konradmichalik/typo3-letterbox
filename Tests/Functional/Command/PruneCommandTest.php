@@ -14,8 +14,12 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Command;
 
 use KonradMichalik\Typo3Letterbox\Command\PruneCommand;
+use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
+use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
+use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use Symfony\Component\Console\Tester\CommandTester;
+use TYPO3\CMS\Core\Cache\CacheManager;
 
 /**
  * PruneCommandTest.
@@ -121,6 +125,44 @@ final class PruneCommandTest extends MailboxCommandTestCase
 
         self::assertSame(1, $tester->getStatusCode());
         self::assertStringContainsString('Letterbox is not configured: MAIL/transport_mbox_file is empty.', $tester->getDisplay());
+    }
+
+    #[Test]
+    public function warnsAndFailsWhenTheFileKeepsChangingUnderneath(): void
+    {
+        foreach (['One', 'Two', 'Three'] as $subject) {
+            $this->addMail($subject);
+        }
+        $this->get(MailRepository::class)->count(MailFilter::all());
+        // Index entries whose IDs no longer match the file look like a rewrite by another process on every attempt.
+        $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
+        $key = 'v5_'.hash('sha256', $this->path);
+        $cached = $cache->get($key);
+        self::assertIsArray($cached);
+        $cached['entries'] = array_map(
+            static fn (MessageIndexEntry $entry): MessageIndexEntry => new MessageIndexEntry(
+                $entry->span,
+                str_repeat('0', 32),
+                $entry->date,
+                $entry->sender,
+                $entry->fromName,
+                $entry->recipients,
+                $entry->recipientLabels,
+                $entry->scopeRecipients,
+                $entry->subject,
+                $entry->attachmentCount,
+                $entry->received,
+            ),
+            $cached['entries'],
+        );
+        $cache->set($key, $cached);
+
+        $tester = $this->tester();
+        $tester->execute(['--max-messages' => '1']);
+
+        self::assertSame(1, $tester->getStatusCode());
+        self::assertStringContainsString('The mbox file changed while pruning', $tester->getDisplay());
+        self::assertSame(3, $this->mailCount());
     }
 
     private function tester(): CommandTester
