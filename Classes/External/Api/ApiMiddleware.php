@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\External\Api;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
+use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\{ExternalAccessGuard, ExternalResponses};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
