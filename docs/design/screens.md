@@ -18,7 +18,7 @@ The rules behind these screens are in [rules.md](rules.md). The previews are exp
 | Inbox, resizable list | Alternative to the hide button | Splitter with mouse, keyboard and double-click; under review | <a href="screens/04-inbox-resizable-list.png"><img src="screens/04-inbox-resizable-list.png" width="200" alt="Inbox with resizable list"></a> |
 | Empty inbox (light) | Inbox without mails | Illustration, heading, sentence, Reload and the debug hint in place of both columns | <a href="screens/08-empty-inbox.png"><img src="screens/08-empty-inbox.png" width="200" alt="Empty inbox, light"></a> |
 | Empty inbox (dark) | Same in dark mode | The illustration follows the theme | <a href="screens/09-empty-inbox-dark.png"><img src="screens/09-empty-inbox-dark.png" width="200" alt="Empty inbox, dark"></a> |
-| No mail selected | Inbox, nothing opened | The 150px illustration, `h2` "No mail selected" and one sentence in the detail column | Preview follows once `screens/11-no-mail-selected.png` is exported |
+| No mail selected | Inbox, nothing opened | The 150px illustration, `h2` "No mail selected" and one sentence in the detail column | <a href="screens/11-no-mail-selected.png"><img src="screens/11-no-mail-selected.png" width="200" alt="No mail selected"></a> |
 | External access | Sub page of the module | Status card, tester links table, create link form, API card with example | <a href="screens/05-external-access.png"><img src="screens/05-external-access.png" width="200" alt="External access"></a> |
 
 ## Outside the backend and system surfaces
