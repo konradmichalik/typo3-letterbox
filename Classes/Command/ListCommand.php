@@ -20,6 +20,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\{InputInterface, InputOption};
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 use function count;
@@ -45,7 +46,7 @@ final class ListCommand extends AbstractMailboxCommand
             ->addOption('subject', null, InputOption::VALUE_REQUIRED, 'Only mails whose subject contains this text');
     }
 
-    protected function handle(InputInterface $input, SymfonyStyle $io): int
+    protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
         $option = $input->getOption('limit');
         if (!is_string($option) || 1 !== preg_match('/^\d{1,9}$/D', $option) || (int) $option < 1 || (int) $option > self::MAX_LIMIT) {

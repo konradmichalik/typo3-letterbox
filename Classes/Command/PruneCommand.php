@@ -20,6 +20,7 @@ use KonradMichalik\Typo3Letterbox\Mail\RetentionSettings;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\{InputInterface, InputOption};
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 use function is_string;
@@ -45,7 +46,7 @@ final class PruneCommand extends AbstractMailboxCommand
             ->addOption('max-age-days', null, InputOption::VALUE_REQUIRED, 'Remove mails older than this many days, 0 for no limit (default: extension configuration)');
     }
 
-    protected function handle(InputInterface $input, SymfonyStyle $io): int
+    protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
         $settings = RetentionSettings::fromExtensionSettings($this->settings);
         $maxMessages = self::override($input->getOption('max-messages'), $settings->maxMessages);

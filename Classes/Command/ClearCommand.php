@@ -17,6 +17,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\{InputInterface, InputOption};
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 use function sprintf;
@@ -34,7 +35,7 @@ final class ClearCommand extends AbstractMailboxCommand
         $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Clear without asking for confirmation');
     }
 
-    protected function handle(InputInterface $input, SymfonyStyle $io): int
+    protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
         if (true !== $input->getOption('force')) {
             if (!$input->isInteractive()) {

@@ -75,12 +75,13 @@ The time is shown in the PHP default timezone, `unknown` when the arrival time i
 |--------------------|---------|---------|
 | `id` | required | The 32 character mail ID from `letterbox:list`. |
 | `--part`, `-p` | `text` | `text`, `html`, `source` or `headers`. |
+| `--raw` | off | Print control characters unchanged, also on a terminal. |
 
 ```bash
 vendor/bin/typo3 letterbox:show 3f9a1c0e5b7d4a2c8e6f1b0d9a7c5e3b --part headers
 ```
 
-The part is printed without formatting, so it can be piped or redirected. On a terminal, control characters other than tab and line feed are removed from `text`, `html` and `headers`. `source` is always printed byte for byte. An unknown ID or part exits with `1`.
+The part is printed without formatting. Piped or redirected, every part is printed byte for byte. When the output is a terminal (checked with `stream_isatty()`, not with colour support, so `NO_COLOR`, `TERM=dumb` or `--no-ansi` change nothing), control characters other than tab and line feed are removed from every part, `source` included, so a mail cannot send escape sequences to your terminal. `--raw` turns that off. An unknown ID or part exits with `1`.
 
 ### `letterbox:clear`
 

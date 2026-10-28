@@ -15,7 +15,11 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Command;
 
 use KonradMichalik\Typo3Letterbox\Command\ShowCommand;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\StreamOutput;
 use Symfony\Component\Console\Tester\CommandTester;
+
+use function strlen;
 
 /**
  * ShowCommandTest.
@@ -24,6 +28,8 @@ use Symfony\Component\Console\Tester\CommandTester;
  */
 final class ShowCommandTest extends MailboxCommandTestCase
 {
+    private const END_OF_OUTPUT = '<end of output>';
+
     #[Test]
     public function printsTheTextPartByDefault(): void
     {
@@ -117,23 +123,68 @@ final class ShowCommandTest extends MailboxCommandTestCase
     }
 
     #[Test]
-    public function stripsControlCharactersOnATerminalButKeepsTheSourceRaw(): void
+    public function pipedOutputStaysRawEvenWhenDecorated(): void
+    {
+        $this->addMail("Hello\e]0;pwned\x07", 'r@example.org', '2026-10-27 10:00:00', "Plain \e[31mred\e[0m text\x7F2J");
+        $tester = $this->tester();
+
+        foreach (['text', 'headers', 'source'] as $part) {
+            $tester->execute(['id' => $this->firstId(), '--part' => $part], ['decorated' => true]);
+
+            self::assertStringContainsString("\e", $tester->getDisplay(), $part.': a pipe gets the bytes, whatever the decoration says');
+        }
+    }
+
+    #[Test]
+    public function terminalGetsNoControlCharactersInAnyPartUnlessRaw(): void
     {
         $this->addMail("Hello\e]0;pwned\x07", 'r@example.org', '2026-10-27 10:00:00', "Plain \e[31mred\e[0m text\x7F2J");
 
-        $tester = $this->tester();
-        $tester->execute(['id' => $this->firstId()], ['decorated' => true]);
-        self::assertSame("Plain [31mred[0m text2J\n", $tester->getDisplay());
+        self::assertSame("Plain [31mred[0m text2J\n", $this->onTerminal(['--part' => 'text']));
+        foreach (['headers', 'source', 'html'] as $part) {
+            $printed = $this->onTerminal(['--part' => $part]);
+            self::assertDoesNotMatchRegularExpression('/[\x00-\x08\x0B-\x1F\x7F]/', $printed, $part);
+        }
+        self::assertStringContainsString('Subject: Hello]0;pwned', $this->onTerminal(['--part' => 'source']));
+        self::assertStringContainsString("\e]0;pwned\x07", $this->onTerminal(['--part' => 'source', '--raw' => true]));
+        self::assertStringContainsString("\e[31mred", $this->onTerminal(['--raw' => true]));
+    }
 
-        $tester->execute(['id' => $this->firstId(), '--part' => 'headers'], ['decorated' => true]);
-        self::assertStringNotContainsString("\e", $tester->getDisplay());
-        self::assertStringNotContainsString("\x07", $tester->getDisplay());
+    /**
+     * Runs the command with a pseudo terminal as output and returns the bytes that reached it. The reading side is
+     * switched to raw mode first, so the terminal passes every byte through unchanged.
+     *
+     * @param array<string, bool|string> $options
+     */
+    private function onTerminal(array $options): string
+    {
+        $capture = $this->path.'.tty';
+        if (is_file($capture)) {
+            unlink($capture);
+        }
+        $process = proc_open(['sh', '-c', 'stty raw -echo && printf R && exec cat > "$0"', $capture], [['pty'], ['pty'], ['pty']], $pipes);
+        if (false === $process || !isset($pipes[1]) || 'R' !== fread($pipes[1], 1)) {
+            self::markTestSkipped('No pseudo terminal support.');
+        }
+        $terminal = $pipes[1];
+        self::assertTrue(stream_isatty($terminal));
 
-        $tester->execute(['id' => $this->firstId(), '--part' => 'source'], ['decorated' => true]);
-        self::assertStringContainsString("\e[31mred", $tester->getDisplay());
+        $exitCode = $this->get(ShowCommand::class)->run(new ArrayInput(['id' => $this->firstId(), ...$options]), new StreamOutput($terminal));
+        fwrite($terminal, self::END_OF_OUTPUT);
+        $deadline = microtime(true) + 5;
+        while (microtime(true) < $deadline && !str_ends_with(is_file($capture) ? (string) file_get_contents($capture) : '', self::END_OF_OUTPUT)) {
+            usleep(10000);
+        }
+        proc_terminate($process);
+        array_map(fclose(...), $pipes);
+        proc_close($process);
+        $printed = (string) file_get_contents($capture);
+        unlink($capture);
 
-        $tester->execute(['id' => $this->firstId()], ['decorated' => false]);
-        self::assertStringContainsString("\e[31mred", $tester->getDisplay());
+        self::assertSame(0, $exitCode);
+        self::assertStringEndsWith(self::END_OF_OUTPUT, $printed, 'the terminal output was captured completely');
+
+        return substr($printed, 0, -strlen(self::END_OF_OUTPUT));
     }
 
     private function tester(): CommandTester

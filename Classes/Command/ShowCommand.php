@@ -37,10 +37,11 @@ final class ShowCommand extends AbstractMailboxCommand
     {
         $this
             ->addArgument('id', InputArgument::REQUIRED, 'Mail id as shown by letterbox:list')
-            ->addOption('part', 'p', InputOption::VALUE_REQUIRED, 'Part to print: '.implode(', ', self::PARTS), 'text');
+            ->addOption('part', 'p', InputOption::VALUE_REQUIRED, 'Part to print: '.implode(', ', self::PARTS), 'text')
+            ->addOption('raw', null, InputOption::VALUE_NONE, 'Print control characters unchanged, also on a terminal');
     }
 
-    protected function handle(InputInterface $input, SymfonyStyle $io): int
+    protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
         $part = $input->getOption('part');
         if (!is_string($part) || !in_array($part, self::PARTS, true)) {
@@ -54,8 +55,8 @@ final class ShowCommand extends AbstractMailboxCommand
         }
 
         $content = self::content($mail, $part);
-        // The source stays byte for byte, it is meant to be piped. Everything else is for reading on a terminal.
-        if ('source' !== $part && $io->isDecorated()) {
+        // Piped output stays byte for byte. On a terminal a mail must not send escape sequences, the source included.
+        if (true !== $input->getOption('raw') && self::isTerminal($output)) {
             $content = self::printable($content);
         }
         $io->write($content, false, OutputInterface::OUTPUT_RAW);

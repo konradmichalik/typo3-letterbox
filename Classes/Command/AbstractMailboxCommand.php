@@ -16,7 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Command;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\{OutputInterface, StreamOutput};
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
@@ -31,7 +31,7 @@ abstract class AbstractMailboxCommand extends Command
         parent::__construct();
     }
 
-    abstract protected function handle(InputInterface $input, SymfonyStyle $io): int;
+    abstract protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int;
 
     final protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -40,7 +40,7 @@ abstract class AbstractMailboxCommand extends Command
             return $this->fail($io, 'Letterbox is not configured: MAIL/transport_mbox_file is empty.');
         }
 
-        return $this->handle($input, $io);
+        return $this->handle($input, $output, $io);
     }
 
     /**
@@ -49,6 +49,14 @@ abstract class AbstractMailboxCommand extends Command
     final protected static function printable(string $text): string
     {
         return preg_replace('/[\x00-\x08\x0B-\x1F\x7F\x{80}-\x{9F}]/u', '', mb_scrub($text, 'UTF-8')) ?? '';
+    }
+
+    /**
+     * Whether the output reaches a terminal. Decoration is no answer: NO_COLOR, TERM=dumb or --no-ansi turn it off on a real terminal.
+     */
+    final protected static function isTerminal(OutputInterface $output): bool
+    {
+        return $output instanceof StreamOutput && stream_isatty($output->getStream());
     }
 
     final protected function fail(SymfonyStyle $io, string $message): int
