@@ -16,6 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Backend;
 use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use KonradMichalik\Typo3Letterbox\Backend\ToolbarItem\LetterboxToolbarItem;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
@@ -26,7 +27,6 @@ use TYPO3\CMS\Backend\Routing\{Router, UriBuilder};
 use TYPO3\CMS\Backend\View\BackendViewFactory;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\{Environment, SystemEnvironmentBuilder};
 use TYPO3\CMS\Core\Http\{NormalizedParams, ServerRequest};
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -304,7 +304,7 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
         $item = new LetterboxToolbarItem(
             $this->get(BackendViewFactory::class),
             $this->get(MailRepository::class),
-            $this->get(ExtensionConfiguration::class),
+            $this->get(ExtensionSettings::class),
             $this->get(UriBuilder::class),
             $this->get(ReadState::class),
         );

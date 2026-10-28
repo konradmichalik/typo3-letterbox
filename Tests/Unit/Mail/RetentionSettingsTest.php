@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mail;
 
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Mail\RetentionSettings;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -32,7 +33,7 @@ final class RetentionSettingsTest extends TestCase
         $configuration = $this->createMock(ExtensionConfiguration::class);
         $configuration->method('get')->willThrowException(new ExtensionConfigurationPathDoesNotExistException('missing', 1));
 
-        $settings = RetentionSettings::fromExtensionConfiguration($configuration);
+        $settings = RetentionSettings::fromExtensionSettings(new ExtensionSettings($configuration));
 
         self::assertSame(500, $settings->maxMessages);
         self::assertSame(30, $settings->maxAgeDays);
@@ -42,7 +43,7 @@ final class RetentionSettingsTest extends TestCase
     #[Test]
     public function configuredValuesWinAndNegativeValuesDisableTheLimit(): void
     {
-        $settings = RetentionSettings::fromExtensionConfiguration($this->configuration(['maxMessages' => '20', 'maxAgeDays' => '-3']));
+        $settings = RetentionSettings::fromExtensionSettings($this->configuration(['maxMessages' => '20', 'maxAgeDays' => '-3']));
 
         self::assertSame(20, $settings->maxMessages);
         self::assertSame(0, $settings->maxAgeDays);
@@ -52,17 +53,17 @@ final class RetentionSettingsTest extends TestCase
     #[Test]
     public function bothLimitsZeroIsInactive(): void
     {
-        self::assertFalse(RetentionSettings::fromExtensionConfiguration($this->configuration(['maxMessages' => '0', 'maxAgeDays' => '0']))->isActive());
+        self::assertFalse(RetentionSettings::fromExtensionSettings($this->configuration(['maxMessages' => '0', 'maxAgeDays' => '0']))->isActive());
     }
 
     /**
      * @param array<string, string> $values
      */
-    private function configuration(array $values): ExtensionConfiguration
+    private function configuration(array $values): ExtensionSettings
     {
         $configuration = $this->createMock(ExtensionConfiguration::class);
         $configuration->method('get')->willReturnCallback(static fn (string $extension, string $path): string => $values[$path]);
 
-        return $configuration;
+        return new ExtensionSettings($configuration);
     }
 }

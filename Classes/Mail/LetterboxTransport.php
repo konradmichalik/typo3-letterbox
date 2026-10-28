@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Mail;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -126,7 +127,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
     private function prune(): void
     {
         try {
-            $retention = RetentionSettings::fromExtensionConfiguration(GeneralUtility::makeInstance(ExtensionConfiguration::class));
+            $retention = RetentionSettings::fromExtensionSettings(new ExtensionSettings(GeneralUtility::makeInstance(ExtensionConfiguration::class)));
             if (!$retention->isActive()) {
                 return;
             }

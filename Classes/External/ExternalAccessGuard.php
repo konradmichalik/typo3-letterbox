@@ -14,11 +14,10 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\External;
 
 use InvalidArgumentException;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern};
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -43,7 +42,7 @@ final readonly class ExternalAccessGuard
 
     public function __construct(
         private EnvironmentVariables $environment,
-        private ExtensionConfiguration $extensionConfiguration,
+        private ExtensionSettings $extensionSettings,
     ) {}
 
     public function evaluate(ServerRequestInterface $request): ExternalAccessState
@@ -160,11 +159,7 @@ final readonly class ExternalAccessGuard
      */
     private function exclusions(): ?array
     {
-        try {
-            $value = $this->extensionConfiguration->get('typo3_letterbox', self::EXCLUSIONS_SETTING);
-        } catch (ExtensionConfigurationExtensionNotConfiguredException|ExtensionConfigurationPathDoesNotExistException) {
-            return [];
-        }
+        $value = $this->extensionSettings->raw(self::EXCLUSIONS_SETTING);
         if (null === $value) {
             return [];
         }

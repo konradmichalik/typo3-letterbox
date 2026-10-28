@@ -13,10 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Mail;
 
-use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
-
-use function is_numeric;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 
 /**
  * RetentionSettings.
@@ -37,27 +34,16 @@ final readonly class RetentionSettings
         public int $maxAgeDays,
     ) {}
 
-    public static function fromExtensionConfiguration(ExtensionConfiguration $configuration): self
+    public static function fromExtensionSettings(ExtensionSettings $settings): self
     {
         return new self(
-            self::limit($configuration, 'maxMessages', self::DEFAULT_MAX_MESSAGES),
-            self::limit($configuration, 'maxAgeDays', self::DEFAULT_MAX_AGE_DAYS),
+            max(0, $settings->int('maxMessages', self::DEFAULT_MAX_MESSAGES)),
+            max(0, $settings->int('maxAgeDays', self::DEFAULT_MAX_AGE_DAYS)),
         );
     }
 
     public function isActive(): bool
     {
         return $this->maxMessages > 0 || $this->maxAgeDays > 0;
-    }
-
-    private static function limit(ExtensionConfiguration $configuration, string $name, int $default): int
-    {
-        try {
-            $value = $configuration->get('typo3_letterbox', $name);
-        } catch (ExtensionConfigurationExtensionNotConfiguredException|ExtensionConfigurationPathDoesNotExistException) {
-            return $default;
-        }
-
-        return is_numeric($value) ? max(0, (int) $value) : $default;
     }
 }

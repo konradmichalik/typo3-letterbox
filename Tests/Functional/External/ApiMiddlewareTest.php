@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\External;
 
 use DateTimeImmutable;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\Api\{ApiMiddleware, MailJson};
@@ -25,7 +26,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Configuration\{ConfigurationManager, ExtensionConfiguration};
+use TYPO3\CMS\Core\Configuration\{ConfigurationManager};
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Http\{NormalizedParams, Response, ResponseFactory, ServerRequest, StreamFactory};
 use TYPO3\CMS\Core\Locking\LockFactory;
@@ -492,7 +493,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         $streamFactory = new StreamFactory();
 
         return new ApiMiddleware(
-            new ExternalAccessGuard($variables, $this->get(ExtensionConfiguration::class)),
+            new ExternalAccessGuard($variables, $this->get(ExtensionSettings::class)),
             new AuthenticationThrottle(new RateLimitStorage($this->get(CacheManager::class)->getCache('typo3_letterbox_ratelimit'))),
             new ExternalResponses($responseFactory, $streamFactory),
             $variables,

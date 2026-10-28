@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Backend\ReadState;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport};
@@ -27,8 +28,6 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Toolbar\{RequestAwareToolbarItemInterface, ToolbarItemInterface};
 use TYPO3\CMS\Backend\View\BackendViewFactory;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 
 use function array_flip;
@@ -54,7 +53,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
     public function __construct(
         private readonly BackendViewFactory $backendViewFactory,
         private readonly MailRepository $mailRepository,
-        private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly ExtensionSettings $extensionSettings,
         private readonly UriBuilder $uriBuilder,
         private readonly ReadState $readState,
     ) {}
@@ -67,7 +66,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
     public function checkAccess(): bool
     {
         $user = $GLOBALS['BE_USER'] ?? null;
-        if (!$user instanceof BackendUserAuthentication || !$user->isAdmin() || '0' === (string) $this->setting('showToolbarItem', '1')) {
+        if (!$user instanceof BackendUserAuthentication || !$user->isAdmin() || '0' === $this->extensionSettings->get('showToolbarItem', '1')) {
             return false;
         }
 
@@ -134,7 +133,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
             'count' => 0,
             'total' => 0,
             'mails' => [],
-            'moduleEnabled' => '0' !== (string) $this->setting('enableBackendModule', '1'),
+            'moduleEnabled' => '0' !== $this->extensionSettings->get('enableBackendModule', '1'),
             'openUrl' => '',
         ];
         if (null === $settings || !$this->mailRepository->isConfigured()) {
@@ -187,15 +186,6 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
             return LetterboxSettings::fromMailSettings($mail, (string) Environment::getContext());
         } catch (InvalidArgumentException) {
             return null;
-        }
-    }
-
-    private function setting(string $name, string $default): mixed
-    {
-        try {
-            return $this->extensionConfiguration->get('typo3_letterbox', $name);
-        } catch (ExtensionConfigurationExtensionNotConfiguredException|ExtensionConfigurationPathDoesNotExistException) {
-            return $default;
         }
     }
 

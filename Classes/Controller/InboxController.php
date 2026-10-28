@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Controller;
 
 use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Backend\{InboxQuery, MailListView, ReadState, RetentionText};
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
@@ -29,8 +30,6 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\Buttons\{InputButton, LinkButton};
 use TYPO3\CMS\Backend\Template\{ModuleTemplate, ModuleTemplateFactory};
 use TYPO3\CMS\Backend\View\BackendViewFactory;
-use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\RedirectResponse;
@@ -73,7 +72,7 @@ final readonly class InboxController
         private MailHtmlDocument $htmlDocument,
         private DownloadResponseFactory $downloadResponseFactory,
         private FormProtectionFactory $formProtectionFactory,
-        private ExtensionConfiguration $extensionConfiguration,
+        private ExtensionSettings $extensionSettings,
         private UriBuilder $uriBuilder,
         private ResponseFactoryInterface $responseFactory,
         private IconFactory $iconFactory,
@@ -220,8 +219,8 @@ final readonly class InboxController
             'configured' => $this->repository->isConfigured(),
             'path' => $this->repository->path(),
             'size' => $this->repository->sizeInBytes(),
-            'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
-            'retention' => RetentionText::of(RetentionSettings::fromExtensionConfiguration($this->extensionConfiguration), $this->translate(...)),
+            'debugMode' => '1' === $this->extensionSettings->get('debugMode', '0'),
+            'retention' => RetentionText::of(RetentionSettings::fromExtensionSettings($this->extensionSettings), $this->translate(...)),
         ]);
 
         // The same URL answers with a fragment or the full page, depending on the request header.
@@ -452,18 +451,9 @@ final readonly class InboxController
 
     private function mailsPerPage(): int
     {
-        $value = (int) $this->extensionSetting('mailsPerPage');
+        $value = $this->extensionSettings->int('mailsPerPage', self::DEFAULT_MAILS_PER_PAGE);
 
         return $value > 0 ? $value : self::DEFAULT_MAILS_PER_PAGE;
-    }
-
-    private function extensionSetting(string $name): mixed
-    {
-        try {
-            return $this->extensionConfiguration->get('typo3_letterbox', $name);
-        } catch (ExtensionConfigurationExtensionNotConfiguredException|ExtensionConfigurationPathDoesNotExistException) {
-            return null;
-        }
     }
 
     private function redirectWithFlash(string $messageKey, ContextualFeedbackSeverity $severity, ?string $url = null): RedirectResponse

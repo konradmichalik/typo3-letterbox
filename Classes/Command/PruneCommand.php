@@ -14,13 +14,13 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Command;
 
 use DateTimeImmutable;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\RetentionSettings;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\{InputInterface, InputOption};
 use Symfony\Component\Console\Style\SymfonyStyle;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
 use function is_string;
 use function sprintf;
@@ -33,7 +33,7 @@ use function sprintf;
 #[AsCommand(name: 'letterbox:prune', description: 'Remove caught mails beyond the retention limits')]
 final class PruneCommand extends AbstractMailboxCommand
 {
-    public function __construct(MailRepository $mails, private readonly ExtensionConfiguration $configuration)
+    public function __construct(MailRepository $mails, private readonly ExtensionSettings $settings)
     {
         parent::__construct($mails);
     }
@@ -47,7 +47,7 @@ final class PruneCommand extends AbstractMailboxCommand
 
     protected function handle(InputInterface $input, SymfonyStyle $io): int
     {
-        $settings = RetentionSettings::fromExtensionConfiguration($this->configuration);
+        $settings = RetentionSettings::fromExtensionSettings($this->settings);
         $maxMessages = self::override($input->getOption('max-messages'), $settings->maxMessages);
         $maxAgeDays = self::override($input->getOption('max-age-days'), $settings->maxAgeDays);
         if (null === $maxMessages) {

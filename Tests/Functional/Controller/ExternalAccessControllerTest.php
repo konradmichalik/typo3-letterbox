@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Controller;
 
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Controller\ExternalAccessController;
 use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard};
 use KonradMichalik\Typo3Letterbox\External\Tester\TesterLinkRepository;
@@ -23,7 +24,6 @@ use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\{Router, UriBuilder};
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Core\{Environment, SystemEnvironmentBuilder};
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -233,7 +233,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
 
         return new ExternalAccessController(
             $this->get(ModuleTemplateFactory::class),
-            new ExternalAccessGuard($environment, $this->get(ExtensionConfiguration::class)),
+            new ExternalAccessGuard($environment, $this->get(ExtensionSettings::class)),
             $this->repository(),
             $environment,
             $this->get(FormProtectionFactory::class),

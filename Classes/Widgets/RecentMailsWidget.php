@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Widgets;
 
 use DateTimeZone;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
@@ -23,8 +24,6 @@ use Throwable;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\View\BackendViewFactory;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Dashboard\Widgets\{RequestAwareWidgetInterface, WidgetConfigurationInterface, WidgetInterface};
 
 use function is_array;
@@ -50,7 +49,7 @@ class RecentMailsWidget implements WidgetInterface, RequestAwareWidgetInterface,
         private readonly WidgetConfigurationInterface $configuration,
         private readonly BackendViewFactory $backendViewFactory,
         private readonly MailRepository $mailRepository,
-        private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly ExtensionSettings $extensionSettings,
         private readonly UriBuilder $uriBuilder,
     ) {}
 
@@ -92,7 +91,7 @@ class RecentMailsWidget implements WidgetInterface, RequestAwareWidgetInterface,
     private function variables(): array
     {
         $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
-        $moduleEnabled = '0' !== $this->setting('enableBackendModule', '1');
+        $moduleEnabled = '0' !== $this->extensionSettings->get('enableBackendModule', '1');
         $variables = [
             'configuration' => $this->configuration,
             'active' => LetterboxTransport::isSelectedIn(is_array($mail) ? $mail : []),
@@ -115,14 +114,5 @@ class RecentMailsWidget implements WidgetInterface, RequestAwareWidgetInterface,
         }
 
         return $variables;
-    }
-
-    private function setting(string $name, string $default): string
-    {
-        try {
-            return $this->extensionConfiguration->get('typo3_letterbox', $name);
-        } catch (ExtensionConfigurationExtensionNotConfiguredException|ExtensionConfigurationPathDoesNotExistException) {
-            return $default;
-        }
     }
 }

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\External;
 
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard, ExternalAccessState};
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, MessageSpan};
@@ -229,12 +230,12 @@ final class ExternalAccessGuardTest extends TestCase
         return new ExternalAccessGuard(new EnvironmentVariables($env), $this->extensionConfiguration($exclusions));
     }
 
-    private function extensionConfiguration(string $exclusions): ExtensionConfiguration
+    private function extensionConfiguration(string $exclusions): ExtensionSettings
     {
         $configuration = self::createStub(ExtensionConfiguration::class);
         $configuration->method('get')->willReturnMap([['typo3_letterbox', 'externalExcludedRecipients', $exclusions]]);
 
-        return $configuration;
+        return new ExtensionSettings($configuration);
     }
 
     private function request(string $ip = '10.1.2.3', bool $https = true): ServerRequestInterface

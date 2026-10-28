@@ -15,11 +15,11 @@ namespace KonradMichalik\Typo3Letterbox\Report;
 
 use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Backend\RetentionText;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\ExternalAccessGuard;
 use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern, RetentionSettings};
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
@@ -47,7 +47,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
     public function __construct(
         private MailRepository $mailRepository,
         private ExternalAccessGuard $externalAccessGuard,
-        private ExtensionConfiguration $extensionConfiguration,
+        private ExtensionSettings $extensionSettings,
     ) {}
 
     public function getLabel(): string
@@ -134,7 +134,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
 
     private function retention(): Status
     {
-        $retention = RetentionSettings::fromExtensionConfiguration($this->extensionConfiguration);
+        $retention = RetentionSettings::fromExtensionSettings($this->extensionSettings);
         if (!$retention->isActive()) {
             return $this->status('retention', 'status.retention.none', 'status.retention.noneMessage');
         }

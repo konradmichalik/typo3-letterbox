@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Report;
 
 use DateTimeImmutable;
+use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard};
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
@@ -21,7 +22,6 @@ use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Report\LetterboxStatus;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Locking\LockFactory;
@@ -239,8 +239,8 @@ final class LetterboxStatusTest extends FunctionalTestCase
     {
         return new LetterboxStatus(
             $this->get(MailRepository::class),
-            new ExternalAccessGuard(new EnvironmentVariables($environment), $this->get(ExtensionConfiguration::class)),
-            $this->get(ExtensionConfiguration::class),
+            new ExternalAccessGuard(new EnvironmentVariables($environment), $this->get(ExtensionSettings::class)),
+            $this->get(ExtensionSettings::class),
         );
     }
 
