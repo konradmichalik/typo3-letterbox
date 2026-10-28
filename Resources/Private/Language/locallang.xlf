@@ -289,7 +289,7 @@
 				<source>No mails caught yet</source>
 			</trans-unit>
 			<trans-unit id="inbox.empty.howto" resname="inbox.empty.howto">
-				<source>Letterbox shows the mails in the file set as MAIL/transport_mbox_file. Mails arrive there when MAIL/transport is set to the Letterbox transport, for example in config/system/additional.php:</source>
+				<source>Letterbox shows the mails in the file set as MAIL/transport_mbox_file. Mails arrive there when MAIL/transport is set to the Letterbox transport and MAIL/dsn is empty, for example in config/system/additional.php. Keep the file outside the web root:</source>
 			</trans-unit>
 			<trans-unit id="inbox.empty.sentence" resname="inbox.empty.sentence">
 				<source>Letterbox keeps every mail TYPO3 sends on this system. Trigger one, for example a password reset or a form submission, and it shows up here.</source>

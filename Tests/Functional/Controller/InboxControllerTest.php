@@ -162,7 +162,9 @@ final class InboxControllerTest extends FunctionalTestCase
         $body = (string) $response->getBody();
         self::assertStringContainsString('Letterbox is not configured', $body);
         self::assertStringNotContainsString('0 mails', $body);
-        self::assertStringContainsString('transport_mbox_file', $body);
+        $readme = (string) file_get_contents(__DIR__.'/../../../README.md');
+        self::assertSame(1, preg_match('/```php\n(\$GLOBALS\[\'TYPO3_CONF_VARS\'\]\[\'MAIL\'\]\[\'dsn\'\].*?)\n```/s', $readme, $quickStart), 'README quick start');
+        self::assertStringContainsString($quickStart[1] ?? 'missing', $body, 'the hint matches the README quick start, MAIL/dsn included');
     }
 
     #[Test]

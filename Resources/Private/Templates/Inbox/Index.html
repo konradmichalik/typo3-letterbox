@@ -34,8 +34,9 @@
                                 <div class="callout-title"><f:translate key="inbox.empty.notConfigured" extensionName="Typo3Letterbox" /></div>
                                 <div class="callout-body">
                                     <p><f:translate key="inbox.empty.howto" extensionName="Typo3Letterbox" /></p>
-                                    <pre class="mb-0"><code>$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = \KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport::class;
-$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/html/var/log/mails.mbox';</code></pre>
+                                    <pre class="mb-0"><code>$GLOBALS['TYPO3_CONF_VARS']['MAIL']['dsn'] = '';
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = \KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport::class;
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mails.mbox';</code></pre>
                                 </div>
                             </div>
                         </div>
