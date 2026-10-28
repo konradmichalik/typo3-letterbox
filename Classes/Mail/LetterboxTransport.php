@@ -15,8 +15,6 @@ namespace KonradMichalik\Typo3Letterbox\Mail;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
-use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
-use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
@@ -24,8 +22,6 @@ use RuntimeException;
 use Stringable;
 use Symfony\Component\Mailer\{Envelope, SentMessage};
 use Symfony\Component\Mailer\Transport\AbstractTransport;
-use Throwable;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Log\LogManager;
@@ -96,8 +92,8 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
                 new DateTimeImmutable(),
                 'X-Letterbox-Envelope-To: '.implode(', ', $caught)."\r\n".$message->toString(),
             );
-            // After append() released the lock: the lock is not re-entrant, prune takes it again.
-            $this->prune();
+            // After append() released the lock: the lock is not re-entrant, pruning takes it again.
+            GeneralUtility::makeInstance(RetentionService::class)->afterAppend($this->settings->mboxFile);
         }
 
         if ([] !== $delivered) {
@@ -122,33 +118,6 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         }
 
         return false;
-    }
-
-    private function prune(): void
-    {
-        try {
-            $retention = RetentionSettings::fromExtensionSettings(new ExtensionSettings(GeneralUtility::makeInstance(ExtensionConfiguration::class)));
-            if (!$retention->isActive()) {
-                return;
-            }
-
-            $repository = GeneralUtility::makeInstance(MailRepositoryFactory::class)->forPath($this->settings->mboxFile);
-            $now = new DateTimeImmutable();
-            // The count may exceed the limit by a slack, so a full file sees one rewrite per slack mails, not one per mail.
-            $overCount = $retention->maxMessages > 0
-                && $repository->needsPruning($retention->maxMessages + self::countSlack($retention->maxMessages), 0, $now);
-            if ($overCount || $repository->needsPruning(0, $retention->maxAgeDays, $now)) {
-                $repository->prune($retention->maxMessages, $retention->maxAgeDays, $now);
-            }
-        } catch (Throwable $e) {
-            // The mail is already caught, so a failed cleanup must not fail the send.
-            $this->getLogger()->warning('Letterbox could not apply the retention limits: {exception} ({code})', ['exception' => $e::class, 'code' => $e->getCode()]);
-        }
-    }
-
-    private static function countSlack(int $maxMessages): int
-    {
-        return max(1, intdiv($maxMessages, 10));
     }
 
     private function writer(): MailboxWriter

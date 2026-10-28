@@ -36,6 +36,10 @@ services:
     arguments:
       $cache: '@cache.typo3_letterbox_index'
 
+  KonradMichalik\Typo3Letterbox\Mail\RetentionService:
+    # Public for LetterboxTransport, which TYPO3 instantiates without dependency injection.
+    public: true
+
   KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository:
     public: true
     factory: ['@KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory', 'create']
