@@ -19,8 +19,8 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail};
 
 use function array_slice;
 use function count;
-use function in_array;
 use function sprintf;
+use function strlen;
 
 /**
  * InlineImages.
@@ -34,11 +34,13 @@ final class InlineImages
     private const MAX_UNRESOLVED = 20;
     private const INLINE_IMAGE_PATTERN = '#^image/(png|jpe?g|gif|webp|svg\+xml)$#iD';
     private const CLASS_PREFIX = 'letterbox-cid-';
+    private const REPEATED_COPY_BYTES = 5242880;
 
     /**
-     * Points cid: references at their inline image parts. An image referenced more than once is encoded once into the
-     * returned stylesheet, as the background of a placeholder with the same intrinsic size, so a logo repeated a
-     * thousand times does not repeat its bytes. Images with their own background keep the data URI as source.
+     * Points cid: references at their inline image parts. A raster image referenced more than once is encoded once
+     * into the returned stylesheet, as the background of a placeholder with the same intrinsic size, so a logo repeated
+     * a thousand times does not repeat its bytes. Other repeated images get their data URI on every reference until
+     * those copies reach REPEATED_COPY_BYTES, later references stay unresolved.
      *
      * @param list<DOMNode> $nodes
      *
@@ -46,22 +48,14 @@ final class InlineImages
      */
     public function replaceCidSources(array $nodes, Mail $mail): string
     {
-        $byId = $this->byId($mail);
-        $references = [];
-        foreach ([] === $byId ? [] : $nodes as $element) {
-            $id = $element instanceof DOMElement ? $this->contentId($element->getAttribute('src')) : null;
-            if (null !== $id && isset($byId[$id])) {
-                $references[$id][] = $element;
+        [$sources, $css] = $this->plan($nodes, $mail);
+        foreach ($sources as [$element, $src, $class]) {
+            if (null === $src) {
+                continue;
             }
-        }
-
-        $css = '';
-        $shared = 0;
-        foreach ($references as $id => $elements) {
-            $rule = $this->replace($elements, $byId[$id], self::CLASS_PREFIX.$shared);
-            if ('' !== $rule) {
-                $css .= $rule;
-                ++$shared;
+            $element->setAttribute('src', $src);
+            if (null !== $class) {
+                $element->setAttribute('class', trim($element->getAttribute('class').' '.$class));
             }
         }
 
@@ -69,6 +63,7 @@ final class InlineImages
     }
 
     /**
+     * Content IDs without an inline image part, and those left out by the cap on repeated copies.
      * Capped so a hostile mail cannot flood the callout.
      *
      * @param list<DOMNode> $nodes
@@ -85,8 +80,83 @@ final class InlineImages
                 $unresolved[$id] = true;
             }
         }
+        foreach ($this->plan($nodes, $mail)[0] as [$element, $src]) {
+            if (null === $src) {
+                $unresolved[(string) $this->contentId($element->getAttribute('src'))] = true;
+            }
+        }
 
         return array_slice(array_map(strval(...), array_keys($unresolved)), 0, self::MAX_UNRESOLVED);
+    }
+
+    /**
+     * @param list<DOMNode> $nodes
+     *
+     * @return array{list<array{DOMElement, ?string, ?string}>, string} per reference its source (null: left unresolved) and class, and the stylesheet
+     */
+    private function plan(array $nodes, Mail $mail): array
+    {
+        $sources = [];
+        $css = '';
+        $budget = self::REPEATED_COPY_BYTES;
+        foreach ($this->references($nodes, $this->byId($mail)) as [$elements, $attachment]) {
+            $uri = 'data:'.$attachment->mimeType.';base64,'.base64_encode($attachment->content());
+            if (1 === count($elements)) {
+                $sources[] = [$elements[0], $uri, null];
+                continue;
+            }
+            // Every rule holds one opening brace, so this numbers the shared images.
+            $class = self::CLASS_PREFIX.substr_count($css, '{');
+            [$repeated, $copies] = $this->repeated($elements, $uri, self::placeholder($attachment->content()), $class, $budget);
+            $sources = [...$sources, ...$repeated];
+            $budget -= $copies;
+            $isShared = [] !== array_filter($repeated, static fn (array $source): bool => null !== $source[2]);
+            $css .= $isShared ? 'img.'.$class.'{background:url("'.$uri.'") no-repeat 0 0/100% 100% content-box!important}' : '';
+        }
+
+        return [$sources, $css];
+    }
+
+    /**
+     * @param list<DOMNode>             $nodes
+     * @param array<string, Attachment> $byId
+     *
+     * @return list<array{non-empty-list<DOMElement>, Attachment}> per referenced image its elements, in document order
+     */
+    private function references(array $nodes, array $byId): array
+    {
+        $references = [];
+        foreach ([] === $byId ? [] : $nodes as $element) {
+            $id = $element instanceof DOMElement ? $this->contentId($element->getAttribute('src')) : null;
+            if (null !== $id && isset($byId[$id])) {
+                $references[$id][0][] = $element;
+                $references[$id][1] = $byId[$id];
+            }
+        }
+
+        return array_values($references);
+    }
+
+    /**
+     * @param non-empty-list<DOMElement> $elements
+     *
+     * @return array{list<array{DOMElement, ?string, ?string}>, int} the sources and the bytes of data URI copies used
+     */
+    private function repeated(array $elements, string $uri, ?string $placeholder, string $class, int $budget): array
+    {
+        $sources = [];
+        $copies = 0;
+        foreach ($elements as $element) {
+            if (null !== $placeholder && self::canShare($element)) {
+                $sources[] = [$element, $placeholder, $class];
+                continue;
+            }
+            $fits = $copies + strlen($uri) <= $budget;
+            $copies += $fits ? strlen($uri) : 0;
+            $sources[] = [$element, $fits ? $uri : null, null];
+        }
+
+        return [$sources, $copies];
     }
 
     /**
@@ -106,65 +176,31 @@ final class InlineImages
     }
 
     /**
-     * @param non-empty-list<DOMElement> $elements
-     *
-     * @return string the rule for $class, empty when the image is not shared
+     * An own background would hide the shared one.
      */
-    private function replace(array $elements, Attachment $attachment, string $class): string
+    private static function canShare(DOMElement $element): bool
     {
-        $content = $attachment->content();
-        $uri = 'data:'.$attachment->mimeType.';base64,'.base64_encode($content);
-        $shared = array_filter($elements, static fn (DOMElement $element): bool => 'img' === strtolower($element->tagName) && !str_contains(strtolower($element->getAttribute('style')), 'background'));
-        if (count($elements) < 2 || [] === $shared) {
-            foreach ($elements as $element) {
-                $element->setAttribute('src', $uri);
-            }
-
-            return '';
-        }
-
-        $placeholder = self::placeholder($attachment->mimeType, $content);
-        foreach ($elements as $element) {
-            if (!in_array($element, $shared, true)) {
-                $element->setAttribute('src', $uri);
-                continue;
-            }
-            // An image no browser could decode stays broken, without its bytes.
-            $element->setAttribute('src', $placeholder ?? 'data:'.$attachment->mimeType.';base64,');
-            if (null !== $placeholder) {
-                $element->setAttribute('class', trim($element->getAttribute('class').' '.$class));
-            }
-        }
-
-        return null === $placeholder ? '' : 'img.'.$class.'{background:url("'.$uri.'") no-repeat 0 0/100% 100% content-box!important}';
+        return 'img' === strtolower($element->tagName) && !str_contains(strtolower($element->getAttribute('style')), 'background');
     }
 
     /**
-     * An empty SVG with the intrinsic size of the image, so width, height and aspect ratio lay out as with the image.
+     * An empty SVG with the pixel size of a raster image, so width, height and aspect ratio lay out as with the image.
+     * Null for SVG and anything PHP cannot read the size of.
      */
-    private static function placeholder(string $mimeType, string $content): ?string
+    private static function placeholder(string $content): ?string
     {
-        if (1 === preg_match('#^image/svg\+xml$#iD', $mimeType)) {
-            if (1 !== preg_match('/<svg\b([^>]*)>/i', $content, $root)) {
-                return null;
-            }
-            preg_match_all('/\s(width|height|viewBox)\s*=\s*(["\'])([\w.%\s,-]*)\2/i', $root[1], $matches, \PREG_SET_ORDER);
-            $attributes = implode('', array_map(static fn (array $match): string => ' '.$match[1].'="'.$match[3].'"', $matches));
-        } else {
-            // A broken or truncated image raises a notice, it then has no size.
-            set_error_handler(static fn (): bool => true);
-            try {
-                $info = '' === $content ? false : getimagesizefromstring($content);
-            } finally {
-                restore_error_handler();
-            }
-            if (false === $info || $info[0] < 1 || $info[1] < 1) {
-                return null;
-            }
-            $attributes = sprintf(' width="%d" height="%d"', $info[0], $info[1]);
+        // A broken or truncated image raises a notice, it then has no size.
+        set_error_handler(static fn (): bool => true);
+        try {
+            $info = '' === $content ? false : getimagesizefromstring($content);
+        } finally {
+            restore_error_handler();
+        }
+        if (false === $info || $info[0] < 1 || $info[1] < 1) {
+            return null;
         }
 
-        return 'data:image/svg+xml,'.rawurlencode('<svg xmlns="http://www.w3.org/2000/svg"'.$attributes.'/>');
+        return 'data:image/svg+xml,'.rawurlencode(sprintf('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>', $info[0], $info[1]));
     }
 
     private function contentId(string $src): ?string

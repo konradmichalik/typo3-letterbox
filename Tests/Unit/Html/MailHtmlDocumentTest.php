@@ -18,6 +18,8 @@ use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
 
+use function strlen;
+
 /**
  * MailHtmlDocumentTest.
  *
@@ -88,21 +90,41 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
-    public function repeatedSvgKeepsItsSizeAndARepeatedBrokenImageStaysBroken(): void
+    public function repeatedImagesOfUnknownSizeKeepTheirDataUriOnEveryReference(): void
     {
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20" width="40" onload="x()"><rect width="40" height="20"/></svg>';
-        $mail = $this->mailWithHtml('<img src="cid:svg"><img src="cid:svg"><img src="cid:broken"><img src="cid:broken" alt="Broken">', [
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20"><rect width="40" height="20"/></svg>';
+        $mail = $this->mailWithHtml('<img src="cid:svg"><img src="cid:svg" alt="Second"><img src="cid:odd"><img src="cid:odd">', [
             new Attachment(0, 'a.svg', 'svg', 'image/svg+xml', 3, $svg),
-            new Attachment(1, 'b.png', 'broken', 'image/png', 3, 'abc'),
+            new Attachment(1, 'b.png', 'odd', 'image/png', 3, 'abc'),
         ]);
+        $document = new MailHtmlDocument();
 
-        $doc = (new MailHtmlDocument())->build($mail);
+        $unresolved = $document->unresolvedContentIds($mail);
+        $doc = $document->build($mail);
 
-        self::assertSame(2, substr_count($doc, '<img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2020%22%20width%3D%2240%22%2F%3E" class="letterbox-cid-0">'));
-        self::assertSame(1, substr_count($doc, base64_encode($svg)));
-        self::assertStringContainsString('<img src="data:image/png;base64," alt="Broken">', $doc);
-        self::assertStringNotContainsString(base64_encode('abc'), $doc);
-        self::assertStringNotContainsString('letterbox-cid-1', $doc);
+        self::assertSame(2, substr_count($doc, '<img src="data:image/svg+xml;base64,'.base64_encode($svg).'"'));
+        self::assertSame(2, substr_count($doc, '<img src="data:image/png;base64,'.base64_encode('abc').'">'));
+        self::assertStringNotContainsString('letterbox-cid-', $doc);
+        self::assertSame([], $unresolved);
+    }
+
+    #[Test]
+    public function repeatedCopiesOfAnUnknownSizeImageAreCappedAndReported(): void
+    {
+        // 2 MB of SVG text: two copies fit into the 5 MB cap, the third does not.
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg">'.str_repeat('<!-- padding -->', 98000).'</svg>';
+        $mail = $this->mailWithHtml(str_repeat('<img src="cid:big">', 5).'<img src="cid:gone">', [
+            new Attachment(0, 'big.svg', 'big', 'image/svg+xml', 3, $svg),
+        ]);
+        $document = new MailHtmlDocument();
+
+        $unresolved = $document->unresolvedContentIds($mail);
+        $doc = $document->build($mail);
+
+        self::assertSame(2, substr_count($doc, base64_encode($svg)));
+        self::assertSame(3, substr_count($doc, '<img src="cid:big">'));
+        self::assertLessThan(6 * 1048576, strlen($doc));
+        self::assertSame(['gone', 'big'], $unresolved);
     }
 
     #[Test]
