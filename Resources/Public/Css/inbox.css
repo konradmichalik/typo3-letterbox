@@ -203,7 +203,15 @@
     grid-template-columns: 52px minmax(0, 1fr);
   }
 
+  /* The rail fills the column, so it is as tall as the detail next to it. */
+  .letterbox-listcol {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+
   .letterbox-rail {
+    flex: 1;
     flex-direction: column;
     padding-block: 0.75rem;
   }

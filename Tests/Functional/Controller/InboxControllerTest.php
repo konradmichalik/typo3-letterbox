@@ -183,9 +183,13 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringContainsString('class="letterbox-preview letterbox-preview--mobile"', $mobile);
         self::assertStringContainsString('class="letterbox-preview letterbox-preview--desktop"', $default);
         self::assertStringContainsString('class="letterbox-preview letterbox-preview--desktop"', $this->show($id, ['width' => 'nonsense']));
-        self::assertSame(1, preg_match('/<button[^>]*name="width"[^>]*value="mobile"[^>]*>/', $mobile, $pressed));
+        if (1 !== preg_match('/<button[^>]*name="width"[^>]*value="mobile"[^>]*>/', $mobile, $pressed)) {
+            self::fail('Pattern not found.');
+        }
         self::assertStringContainsString('aria-pressed="true"', $pressed[0]);
-        self::assertSame(1, preg_match('/<button[^>]*name="width"[^>]*value="tablet"[^>]*>/', $mobile, $other));
+        if (1 !== preg_match('/<button[^>]*name="width"[^>]*value="tablet"[^>]*>/', $mobile, $other)) {
+            self::fail('Pattern not found.');
+        }
         self::assertStringContainsString('aria-pressed="false"', $other[0]);
         foreach (['Desktop width', 'Tablet width', 'Mobile width'] as $label) {
             self::assertStringContainsString('aria-label="'.$label.'"', $mobile);
@@ -312,12 +316,16 @@ final class InboxControllerTest extends FunctionalTestCase
         $remote = $this->show($id, ['remote' => '1']);
         $plain = $this->show($id);
 
-        self::assertSame(1, preg_match('/<iframe[^>]*class="letterbox-preview[^"]*"[^>]*>/', $remote, $frame));
+        if (1 !== preg_match('/<iframe[^>]*class="letterbox-preview[^"]*"[^>]*>/', $remote, $frame)) {
+            self::fail('Pattern not found.');
+        }
         self::assertMatchesRegularExpression('#\ssrc="[^"]*letterbox/preview[^"]*id='.$id.'#', $frame[0]);
         self::assertStringNotContainsString('srcdoc', $frame[0]);
         self::assertStringContainsString('sandbox="allow-popups allow-popups-to-escape-sandbox"', $frame[0]);
         self::assertStringContainsString('letterbox-preview--desktop', $frame[0]);
-        self::assertSame(1, preg_match('/<iframe[^>]*class="letterbox-preview[^"]*"[^>]*>/', $plain, $plainFrame));
+        if (1 !== preg_match('/<iframe[^>]*class="letterbox-preview[^"]*"[^>]*>/', $plain, $plainFrame)) {
+            self::fail('Pattern not found.');
+        }
         self::assertStringContainsString('srcdoc="', $plainFrame[0]);
         self::assertDoesNotMatchRegularExpression('/\ssrc="/', $plainFrame[0]);
     }

@@ -12,7 +12,7 @@ import Persistent from '@typo3/backend/storage/persistent.js';
 const STORAGE_KEY = 'letterbox.listCollapsed';
 const BOUND = 'letterboxBound';
 
-const setCollapsed = (inbox, collapsed) => {
+const render = (inbox, collapsed) => {
   const list = inbox.querySelector('#letterbox-list');
   const rail = inbox.querySelector('.letterbox-rail');
   const hide = inbox.querySelector('[data-letterbox-list-toggle="hide"]');
@@ -24,7 +24,12 @@ const setCollapsed = (inbox, collapsed) => {
 
   // The focused button disappears with its container, so focus moves to the opposite one.
   (collapsed ? show : hide).focus();
-  Persistent.set(STORAGE_KEY, collapsed ? 1 : 0);
+};
+
+const setCollapsed = (inbox, collapsed) => {
+  render(inbox, collapsed);
+  // When saving fails, the screen goes back so it matches what is stored.
+  Persistent.set(STORAGE_KEY, collapsed ? 1 : 0).catch(() => render(inbox, !collapsed));
 };
 
 const bindInbox = (inbox) => {

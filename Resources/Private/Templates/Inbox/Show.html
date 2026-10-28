@@ -12,7 +12,7 @@
         <f:render partial="InboxMeta" arguments="{_all}" />
 
         <div class="letterbox-inbox{f:if(condition: listCollapsed, then: ' letterbox-inbox--collapsed')}">
-            <div>
+            <div class="letterbox-listcol">
                 <f:render partial="MailList" arguments="{_all}" />
             </div>
             <article class="letterbox-detail" aria-labelledby="letterbox-subject">

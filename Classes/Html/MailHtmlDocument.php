@@ -21,11 +21,10 @@ use DOMElement;
 use DOMNode;
 use DOMProcessingInstruction;
 use DOMXPath;
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail};
+use KonradMichalik\Typo3Letterbox\Domain\Model\Mail;
 use Masterminds\HTML5;
 use Throwable;
 
-use function array_slice;
 use function in_array;
 use function strlen;
 
@@ -34,7 +33,7 @@ use function strlen;
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-final class MailHtmlDocument
+final readonly class MailHtmlDocument
 {
     private const MAX_BYTES = 2097152;
     private const MAX_ELEMENTS = 50000;
@@ -44,11 +43,13 @@ final class MailHtmlDocument
     // Canvas in a light color scheme is white, so the frame never shows a transparent surface. The fade-in is
     // progressive enhancement: without the media query the content is visible at once.
     private const SHELL_STYLE = 'html{background-color:Canvas;color-scheme:light}@media (prefers-reduced-motion:no-preference){@keyframes letterbox-fade-in{from{opacity:0}}body{animation:letterbox-fade-in .2s ease-out}}';
-    private const MAX_UNRESOLVED = 20;
     private const SHELL_SUFFIX = '</body></html>';
-    private const INLINE_IMAGE_PATTERN = '#^image/(png|jpe?g|gif|webp|svg\+xml)$#iD';
     private const REMOVED_TAGS = ['script', 'xmp', 'plaintext', 'noembed', 'noframes', 'iframe', 'object', 'embed', 'link', 'base', 'meta'];
     private const WRAPPER_TAGS = ['html', 'head', 'body'];
+
+    public function __construct(
+        private InlineImages $inlineImages = new InlineImages(),
+    ) {}
 
     public function build(Mail $mail, bool $allowRemoteImages = false): string
     {
@@ -67,7 +68,7 @@ final class MailHtmlDocument
             foreach ($this->descendants($document) as $node) {
                 $this->sanitize($node);
             }
-            $this->inlineCidImages($document, $mail);
+            $this->inlineImages->replaceCidSources($this->descendants($document), $mail);
 
             return $this->shellPrefix($allowRemoteImages).$this->serializeContent($html5, $document).self::SHELL_SUFFIX;
         } catch (Throwable) {
@@ -92,16 +93,8 @@ final class MailHtmlDocument
             if ($document->getElementsByTagName('*')->length > self::MAX_ELEMENTS) {
                 return [];
             }
-            $resolvable = $this->inlineImagesById($mail);
-            $unresolved = [];
-            foreach ($this->descendants($document) as $element) {
-                $id = $element instanceof DOMElement ? $this->contentId($element->getAttribute('src')) : null;
-                if (null !== $id && !isset($resolvable[$id])) {
-                    $unresolved[$id] = true;
-                }
-            }
 
-            return array_slice(array_map('strval', array_keys($unresolved)), 0, self::MAX_UNRESOLVED);
+            return $this->inlineImages->unresolvedContentIds($this->descendants($document), $mail);
         } catch (Throwable) {
             return [];
         }
@@ -195,46 +188,6 @@ final class MailHtmlDocument
         }
 
         return [$styles, $content];
-    }
-
-    private function inlineCidImages(DOMDocument $document, Mail $mail): void
-    {
-        $byId = $this->inlineImagesById($mail);
-        if ([] === $byId) {
-            return;
-        }
-
-        foreach ($this->descendants($document) as $element) {
-            if (!$element instanceof DOMElement) {
-                continue;
-            }
-            $id = $this->contentId($element->getAttribute('src'));
-            $attachment = null === $id ? null : ($byId[$id] ?? null);
-            if (null !== $attachment) {
-                $element->setAttribute('src', 'data:'.$attachment->mimeType.';base64,'.base64_encode($attachment->content));
-            }
-        }
-    }
-
-    /**
-     * @return array<string, Attachment>
-     */
-    private function inlineImagesById(Mail $mail): array
-    {
-        $byId = [];
-        foreach ($mail->attachments as $attachment) {
-            $id = trim($attachment->contentId, '<>');
-            if ('' !== $id && 1 === preg_match(self::INLINE_IMAGE_PATTERN, $attachment->mimeType)) {
-                $byId[$id] = $attachment;
-            }
-        }
-
-        return $byId;
-    }
-
-    private function contentId(string $src): ?string
-    {
-        return str_starts_with(strtolower($src), 'cid:') ? trim(rawurldecode(substr($src, 4)), '<>') : null;
     }
 
     /**

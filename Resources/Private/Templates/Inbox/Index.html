@@ -14,7 +14,7 @@
         <f:if condition="{configured} && {total} > 0">
             <f:then>
                 <div class="letterbox-inbox{f:if(condition: listCollapsed, then: ' letterbox-inbox--collapsed')}">
-                    <div>
+                    <div class="letterbox-listcol">
                         <f:render partial="MailList" arguments="{_all}" />
                     </div>
                     <div class="card">

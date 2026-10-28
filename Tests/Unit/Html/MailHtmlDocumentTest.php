@@ -88,7 +88,9 @@ final class MailHtmlDocumentTest extends TestCase
         $doc = (new MailHtmlDocument())->build($this->mailWithHtml('<p>Hi</p>'));
 
         self::assertMatchesRegularExpression('/<head>.*<style>(?<css>.*)<\/style><\/head><body>/s', $doc);
-        preg_match('/<head>.*<style>(?<css>.*)<\/style><\/head><body>/s', $doc, $match);
+        if (1 !== preg_match('/<head>.*<style>(?<css>.*)<\/style><\/head><body>/s', $doc, $match)) {
+            self::fail('Shell style not found.');
+        }
         $css = $match['css'];
         self::assertStringContainsString('html{background-color:Canvas;color-scheme:light}', $css);
         self::assertSame(1, substr_count($css, 'animation'));
