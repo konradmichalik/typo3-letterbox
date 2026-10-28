@@ -105,7 +105,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
 
         self::assertSame(303, $response->getStatusCode());
         self::assertSame('/_letterbox/inbox', $response->getHeaderLine('Location'));
-        self::assertStringStartsWith('letterbox_inbox='.$this->sessionValue().';', $response->getHeaderLine('Set-Cookie'));
+        self::assertMatchesRegularExpression('/^letterbox_inbox=\d+\.[0-9a-f]{64};/', $response->getHeaderLine('Set-Cookie'));
         self::assertSame('no-store, private', $response->getHeaderLine('Cache-Control'));
         self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
     }
@@ -117,7 +117,10 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
 
         self::assertSame(303, $response->getStatusCode());
         $attributes = $this->cookieAttributes($response);
-        self::assertSame(hash_hmac('sha256', 'inbox', self::TOKEN), $attributes['letterbox_inbox']);
+        self::assertMatchesRegularExpression('/^\d+\.[0-9a-f]{64}$/D', $attributes['letterbox_inbox']);
+        [$issued, $signature] = explode('.', $attributes['letterbox_inbox'], 2);
+        self::assertEqualsWithDelta(time(), (int) $issued, 5, 'the cookie carries its issue time');
+        self::assertSame(hash_hmac('sha256', 'inbox|'.$issued, self::TOKEN), $signature);
         self::assertStringNotContainsString(self::TOKEN, $response->getHeaderLine('Set-Cookie'));
         self::assertStringNotContainsString($this->linkSecret(), $response->getHeaderLine('Set-Cookie'));
         self::assertEqualsWithDelta(time() + 7 * 86400, strtotime($attributes['expires']), 5);
@@ -136,6 +139,21 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertFalse($response->hasHeader('Set-Cookie'));
         self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t='.strtoupper($this->linkSecret()))->getStatusCode());
         self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t='.hash_hmac('sha256', 'tester-link', str_repeat('b', 40)))->getStatusCode());
+    }
+
+    #[Test]
+    public function expiredOrTamperedCookieIsRefused(): void
+    {
+        $this->append('In scope', 'anna@example.org');
+        $middleware = $this->middleware();
+        $old = time() - 7 * 86400 - 60;
+
+        self::assertSame(200, $this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => $this->sessionValue(time() - 6 * 86400)])->getStatusCode());
+        $this->assertClearedCookie($this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => $this->sessionValue($old)]));
+        $signature = hash_hmac('sha256', 'inbox|'.$old, self::TOKEN);
+        $this->assertClearedCookie($this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => time().'.'.$signature]), 'a fresh time with an old signature');
+        $this->assertClearedCookie($this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => hash_hmac('sha256', 'inbox', self::TOKEN)]), 'the old constant value');
+        $this->assertClearedCookie($this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => (time() + 3600).'.'.hash_hmac('sha256', 'inbox|'.(time() + 3600), self::TOKEN)]), 'issued in the future');
     }
 
     #[Test]
@@ -429,9 +447,9 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertStringNotContainsString('<form method="post"', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody());
     }
 
-    private function assertClearedCookie(ResponseInterface $response): void
+    private function assertClearedCookie(ResponseInterface $response, string $message = ''): void
     {
-        self::assertSame(404, $response->getStatusCode());
+        self::assertSame(404, $response->getStatusCode(), $message);
         self::assertStringNotContainsString('In scope', (string) $response->getBody());
         self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
         $attributes = $this->cookieAttributes($response);
@@ -444,9 +462,11 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame('lax', strtolower($attributes['samesite']));
     }
 
-    private function sessionValue(): string
+    private function sessionValue(?int $issued = null): string
     {
-        return hash_hmac('sha256', 'inbox', self::TOKEN);
+        $issued ??= time();
+
+        return $issued.'.'.hash_hmac('sha256', 'inbox|'.$issued, self::TOKEN);
     }
 
     private function linkSecret(): string

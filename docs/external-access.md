@@ -42,8 +42,9 @@ To build the link without the backend:
 php -r 'echo hash_hmac("sha256", "tester-link", getenv("LETTERBOX_ACCESS_TOKEN")), PHP_EOL;'
 ```
 
-* Opening the link checks the link secret and answers with a `303` to the clean URL `<site URL>_letterbox/inbox`, so the token leaves the address bar. The redirect sets an `HttpOnly`, `Secure`, `SameSite=Lax` cookie for that path, valid for 7 days. `Lax` keeps the cookie on the redirect when the link is clicked in webmail, chat or a ticket.
-* The cookie holds an HMAC derived from the token, never the token itself. Every request compares it again, so changing `LETTERBOX_ACCESS_TOKEN` ends every session and invalidates the tester link at once. That is the only way to revoke access, and it revokes it for everyone.
+* Opening the link checks the link secret and answers with a `303` to the clean URL `<site URL>_letterbox/inbox`, so the link secret leaves the address bar. The redirect sets an `HttpOnly`, `Secure`, `SameSite=Lax` cookie for that path, valid for 7 days. `Lax` keeps the cookie on the redirect when the link is clicked in webmail, chat or a ticket.
+* The cookie holds its issue time and an HMAC of that time keyed with the token, never the token itself. The server refuses a cookie older than 7 days or with a changed time, so a copied cookie stops working after a week, whatever its `Expires` says. Opening the tester link again starts a new week.
+* Every request checks the cookie again, so changing `LETTERBOX_ACCESS_TOKEN` ends every session and invalidates the tester link at once. That is the only way to revoke access, and it revokes it for everyone.
 * The inbox lists all caught mails with search and pagination. It shows subject, sender, recipients, date, an HTML view and a text view, the links in the mail, and a button for the first password reset link. It lists the attachments of a mail and lets the tester download them.
 * It never shows headers, the source or `.eml` files, loads no remote images and runs no JavaScript. The HTML view is a sandboxed `srcdoc` frame. The inbox only answers GET and changes nothing. A tester cannot delete mails.
 * It works without a configured site and in maintenance mode, and answers are never cached.
