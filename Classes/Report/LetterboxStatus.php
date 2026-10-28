@@ -76,7 +76,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
             return $statuses;
         }
 
-        $statuses['mode'] = $this->mode($settings, self::ROOT_PRODUCTION === $context);
+        $statuses['mode'] = $this->mode($settings, $context);
         if ($settings->deliveryLoops) {
             $statuses['delivery'] = $this->status('delivery', 'status.delivery.loops', 'status.delivery.loopsMessage', ContextualFeedbackSeverity::ERROR);
         }
@@ -87,15 +87,13 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         return $statuses;
     }
 
-    private function mode(LetterboxSettings $settings, bool $rootProduction): Status
+    private function mode(LetterboxSettings $settings, string $context): Status
     {
         $title = $this->translate('status.mode.title');
         $count = count($settings->catch);
 
         return match ($settings->mode) {
-            DeliveryMode::All => $rootProduction
-                ? new Status($title, $this->translate('status.mode.all'), $this->escape($this->translate('status.mode.allWarning')), ContextualFeedbackSeverity::WARNING)
-                : new Status($title, $this->translate('status.mode.all'), $this->escape($this->translate('status.mode.allMessage'))),
+            DeliveryMode::All => $this->modeAll($title, $context),
             DeliveryMode::Listed => new Status(
                 $title,
                 1 === $count ? $this->translate('status.mode.listed.one') : sprintf($this->translate('status.mode.listed'), $count),
@@ -105,6 +103,20 @@ final readonly class LetterboxStatus implements StatusProviderInterface
                 ContextualFeedbackSeverity::INFO,
             ),
             DeliveryMode::Off => $this->status('mode', 'status.mode.off', 'status.mode.offMessage'),
+        };
+    }
+
+    /**
+     * Any Production context warns, a live system may well run as Production/Live and would swallow every mail.
+     */
+    private function modeAll(string $title, string $context): Status
+    {
+        $value = $this->translate('status.mode.all');
+
+        return match (true) {
+            self::ROOT_PRODUCTION === $context => new Status($title, $value, $this->escape($this->translate('status.mode.allWarning')), ContextualFeedbackSeverity::WARNING),
+            Environment::getContext()->isProduction() => new Status($title, $value, sprintf($this->escape($this->translate('status.mode.allWarningSubContext')), $this->escape($context)), ContextualFeedbackSeverity::WARNING),
+            default => new Status($title, $value, $this->escape($this->translate('status.mode.allMessage'))),
         };
     }
 

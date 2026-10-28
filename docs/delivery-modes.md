@@ -12,7 +12,9 @@ Back to [documentation overview](README.md).
 
 ## Default per context
 
-Without `transport_letterbox_mode`, the mode is `listed` in the exact root context `Production` and `all` in every other context. `Production/Staging` is not `Production` and therefore gets `all`.
+Without `transport_letterbox_mode`, the mode is `listed` in the exact root context `Production` and `all` in every other context. `Production/Staging` is not `Production` and therefore gets `all`, and so does `Production/Live`.
+
+Because a live system may run in a sub context, Reports shows a warning for mode `all` in every Production context, root or sub. On a stage system the warning is expected. On a live system in a sub context, set `transport_letterbox_mode` to `listed` or `off` explicitly.
 
 ## Mode `listed`
 
