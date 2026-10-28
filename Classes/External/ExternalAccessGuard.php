@@ -91,8 +91,8 @@ final readonly class ExternalAccessGuard
             $reasons[] = ExternalAccessState::EXCLUSIONS_INVALID;
         }
 
-        // A wildcard reads as "every address" in cmpIP(), so any `*` refuses every request instead of opening the surface.
-        if (str_contains($this->environment->get(self::ENV_ALLOWED_IPS), '*')) {
+        // A catch-all entry would turn the allowlist into "every address", so it refuses every request instead.
+        if ([] !== array_filter($this->allowlist(), self::isCatchAll(...))) {
             $reasons[] = ExternalAccessState::IP_NOT_ALLOWED;
         }
 
@@ -122,18 +122,33 @@ final readonly class ExternalAccessGuard
     }
 
     /**
-     * An unset allowlist allows every address. A list with a `*` never gets here, status() refuses it.
+     * An unset allowlist allows every address. A list with a catch-all entry never gets here, status() refuses it.
      */
     private function ipAllowed(string $remoteAddress): bool
     {
-        $allowed = $this->environment->get(self::ENV_ALLOWED_IPS);
-        if ('' === $allowed) {
+        if ('' === $this->environment->get(self::ENV_ALLOWED_IPS)) {
             return true;
         }
-
-        $list = implode(',', array_filter(array_map(trim(...), explode(',', $allowed)), static fn (string $entry): bool => '' !== $entry));
+        $list = implode(',', $this->allowlist());
 
         return '' !== $remoteAddress && '' !== $list && GeneralUtility::cmpIP($remoteAddress, $list);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowlist(): array
+    {
+        return array_values(array_filter(array_map(trim(...), explode(',', $this->environment->get(self::ENV_ALLOWED_IPS))), static fn (string $entry): bool => '' !== $entry));
+    }
+
+    /**
+     * Entries made only of wildcards and separators (`*`, `*.*.*.*`) or with prefix length 0 (`0.0.0.0/0`, `::/0`) match every address.
+     * Per-octet wildcards such as `10.0.*.*` stay allowed.
+     */
+    private static function isCatchAll(string $entry): bool
+    {
+        return 1 === preg_match('/^[*.:]+$/', $entry) || str_ends_with($entry, '/0');
     }
 
     /**

@@ -19,6 +19,7 @@ use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, MessageSpan};
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
+use ReflectionClass;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Http\{NormalizedParams, ServerRequestFactory};
@@ -33,9 +34,14 @@ final class ExternalAccessGuardTest extends TestCase
     /** @var array<string, mixed> */
     private array $mailBackup = [];
 
+    /** @var array<string, mixed> */
+    private array $previousEnvironment = [];
+
     protected function setUp(): void
     {
         $this->mailBackup = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
+        // Reflection instead of the public getters: they cannot read, nor restore, the uninitialised state the unit suite starts in.
+        $this->previousEnvironment = (new ReflectionClass(Environment::class))->getStaticProperties();
         $this->useContext('Production/Staging');
         $this->useMail([]);
     }
@@ -43,6 +49,10 @@ final class ExternalAccessGuardTest extends TestCase
     protected function tearDown(): void
     {
         $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = $this->mailBackup;
+        $environment = new ReflectionClass(Environment::class);
+        foreach ($this->previousEnvironment as $name => $value) {
+            $environment->setStaticPropertyValue($name, $value);
+        }
     }
 
     #[Test]
@@ -107,7 +117,7 @@ final class ExternalAccessGuardTest extends TestCase
     }
 
     #[Test]
-    public function ipAllowlistIsEnforcedAndStarDisables(): void
+    public function ipAllowlistIsEnforced(): void
     {
         $env = ['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_EXTERNAL_ALLOWED_IPS' => '10.0.0.0/8, 2001:db8::/32'];
 
@@ -115,13 +125,28 @@ final class ExternalAccessGuardTest extends TestCase
         self::assertTrue($this->guard($env)->evaluate($this->request('2001:db8::1'))->active);
         self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $this->guard($env)->evaluate($this->request('192.0.2.1'))->reasons);
 
-        foreach (['10.0.0.0/8,*', '*', '10.*.*.*'] as $list) {
-            $guard = $this->guard(['LETTERBOX_EXTERNAL_ALLOWED_IPS' => $list] + $env);
-            self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->evaluate($this->request('10.1.2.3'))->reasons, $list);
-            self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->status()->reasons, $list);
-        }
-
         self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $this->guard(['LETTERBOX_EXTERNAL_ALLOWED_IPS' => ' , '] + $env)->evaluate($this->request('10.1.2.3'))->reasons);
+    }
+
+    #[Test]
+    public function octetWildcardIsAllowed(): void
+    {
+        $guard = $this->guard(['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_EXTERNAL_ALLOWED_IPS' => '10.0.*.*']);
+
+        self::assertTrue($guard->status()->active);
+        self::assertTrue($guard->evaluate($this->request('10.0.4.2'))->active);
+        self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->evaluate($this->request('10.1.4.2'))->reasons);
+    }
+
+    #[Test]
+    public function catchAllEntriesDisableTheSurface(): void
+    {
+        foreach (['*', '*.*.*.*', '0.0.0.0/0', '::/0', '10.0.0.0/8, *'] as $list) {
+            $guard = $this->guard(['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_EXTERNAL_ALLOWED_IPS' => $list]);
+            self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->status()->reasons, $list);
+            self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->evaluate($this->request('10.1.2.3'))->reasons, $list);
+            self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->evaluate($this->request('2001:db8::1'))->reasons, $list);
+        }
     }
 
     #[Test]
