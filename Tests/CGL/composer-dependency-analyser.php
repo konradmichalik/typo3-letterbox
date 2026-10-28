@@ -34,11 +34,12 @@ $configuration
     ->addPathsToExclude([
         $rootPath.'/Tests/CGL',
     ])
-    ->ignoreErrorsOnPackage('typo3/cms-core', [ErrorType::UNUSED_DEPENDENCY])
     // Provides the frontend middleware stack, which Configuration/RequestMiddlewares.php references by identifier only.
     ->ignoreErrorsOnPackage('typo3/cms-frontend', [ErrorType::UNUSED_DEPENDENCY])
     // Optional (composer suggest). The status provider is only registered when it is installed.
     ->ignoreErrorsOnPackage('typo3/cms-reports', [ErrorType::DEV_DEPENDENCY_IN_PROD])
+    // Optional (composer suggest). Configuration/Services.php registers the widgets only behind hasDefinition(WidgetRegistry::class).
+    ->ignoreErrorsOnPackage('typo3/cms-dashboard', [ErrorType::DEV_DEPENDENCY_IN_PROD])
 ;
 
 return $configuration;
