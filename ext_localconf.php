@@ -22,7 +22,9 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['typo3_lett
 ];
 
 // FileBackend honours lifetimes, so the scheduler garbage collection removes expired limiter states.
+// Group "system" like core's own rate limiter cache: `typo3 cache:flush` skips caches without an explicit group.
 $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['typo3_letterbox_ratelimit'] ??= [
     'frontend' => VariableFrontend::class,
     'backend' => FileBackend::class,
+    'groups' => ['system'],
 ];
