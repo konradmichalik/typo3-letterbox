@@ -140,6 +140,30 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
+    public function areasAndSvgLinksOpenInNewTabWithoutOpenerOrReferrer(): void
+    {
+        $doc = (new MailHtmlDocument())->build($this->mailWithHtml(
+            '<map name="m"><area shape="rect" coords="0,0,1,1" href="https://example.org/area" target="_top" rel="opener"><area shape="rect" coords="1,1,2,2" alt="no link"></map>'
+            .'<svg><a xlink:href="https://example.org/xlink" target="_parent"><text>x</text></a><a href="https://example.org/svg2" target="_top" rel="opener"><text>y</text></a><a><text>z</text></a></svg>',
+        ));
+
+        self::assertSame(1, preg_match('/<area\b[^>]*href="https:\/\/example\.org\/area"[^>]*>/', $doc, $area));
+        self::assertStringContainsString('target="_blank"', $area[0] ?? '');
+        self::assertStringContainsString('rel="noopener noreferrer"', $area[0] ?? '');
+        self::assertSame(1, preg_match('/<area\b(?![^>]*href)[^>]*>/', $doc, $plainArea));
+        self::assertStringNotContainsString('target', $plainArea[0] ?? 'target');
+        self::assertSame(3, preg_match_all('/<a\b[^>]*>/', $doc, $anchors));
+        self::assertStringContainsString('target="_blank"', $anchors[0][0], 'xlink:href');
+        self::assertStringContainsString('rel="noopener noreferrer"', $anchors[0][0], 'xlink:href');
+        self::assertStringContainsString('target="_blank"', $anchors[0][1], 'SVG href');
+        self::assertStringContainsString('rel="noopener noreferrer"', $anchors[0][1], 'SVG href');
+        self::assertStringNotContainsString('target', $anchors[0][2], 'an SVG a without link stays untouched');
+        self::assertStringNotContainsString('_top', $doc);
+        self::assertStringNotContainsString('_parent', $doc);
+        self::assertStringNotContainsString('opener"', str_replace('noopener', '', $doc));
+    }
+
+    #[Test]
     public function deeplyNestedInputIsSanitisedQuickly(): void
     {
         $html = str_repeat('<div>', 5000).'deep<script>alert(1)</script>'.str_repeat('</div>', 5000);

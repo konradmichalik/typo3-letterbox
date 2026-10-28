@@ -151,7 +151,8 @@ final readonly class MailHtmlDocument
 
             return;
         }
-        if ('a' === $tag && $node->hasAttribute('href')) {
+        // SVG links carry their target in href or the older xlink:href.
+        if (in_array($tag, ['a', 'area'], true) && ($node->hasAttribute('href') || $node->hasAttribute('xlink:href'))) {
             $node->setAttribute('target', '_blank');
             $node->setAttribute('rel', 'noopener noreferrer');
 
