@@ -244,12 +244,28 @@ const restoreSearch = (list, memory) => {
   return true;
 };
 
+/**
+ * The rows scroll inside the list, so the open mail is scrolled into its view without moving the page.
+ */
+const revealSelectedRow = (container) => {
+  const rows = container.querySelector('.letterbox-list > .list-group');
+  const row = rows?.querySelector('.list-group-item.active');
+  if (!rows || !row) {
+    return;
+  }
+  const top = row.offsetTop - rows.offsetTop;
+  if (top < rows.scrollTop || top + row.offsetHeight > rows.scrollTop + rows.clientHeight) {
+    rows.scrollTop = top - (rows.clientHeight - row.offsetHeight) / 2;
+  }
+};
+
 const swapList = (inbox, node) => {
   const old = region(inbox, 'list');
   const memory = focusMemory(old);
   const search = searchMemory(old);
   old.replaceWith(node);
   revealToggles(node);
+  revealSelectedRow(node);
   // The stored state may still be on its way to the server, the class holds what the user sees.
   applyCollapsed(inbox, inbox.classList.contains(COLLAPSED));
   if (search !== null && restoreSearch(node, search)) {
@@ -436,6 +452,7 @@ const bindInbox = (inbox) => {
   }
   inbox.dataset[BOUND] = '1';
   revealToggles(inbox);
+  revealSelectedRow(inbox);
 
   const navigate = createNavigator(inbox);
   let searchTimer = 0;
