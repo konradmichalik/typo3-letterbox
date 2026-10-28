@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Backend;
 
 use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
@@ -41,11 +42,10 @@ final class ReadStateTest extends FunctionalTestCase
     public function markReadPersistsForTheBackendUser(): void
     {
         $state = new ReadState();
-        self::assertFalse($state->isRead('a'));
+        self::assertSame([], $state->readIds());
 
         $state->markRead('a');
 
-        self::assertTrue($state->isRead('a'));
         self::assertSame(['a'], $state->readIds());
         $uc = unserialize((string) $this->storedUc(), ['allowed_classes' => false]);
         self::assertSame(['a'], $uc['letterbox']['read']);
@@ -61,7 +61,7 @@ final class ReadStateTest extends FunctionalTestCase
 
         $ids = $state->readIds();
         self::assertCount(2000, $ids);
-        self::assertFalse($state->isRead('id1'));
+        self::assertNotContains('id1', $ids);
         self::assertSame('id2', $ids[0]);
         self::assertSame('id2001', $ids[1999]);
     }
@@ -74,7 +74,23 @@ final class ReadStateTest extends FunctionalTestCase
         $state->markRead('b');
         $state->markRead('a');
 
-        self::assertSame(['b', 'a'], $state->readIds());
+        self::assertSame(['a', 'b'], $state->readIds());
+    }
+
+    #[Test]
+    public function markingAnAlreadyReadMailDoesNotWrite(): void
+    {
+        $state = new ReadState();
+        $state->markRead('a');
+        // Only held in memory: a write of uc would persist it.
+        $backendUser = $GLOBALS['BE_USER'];
+        self::assertInstanceOf(BackendUserAuthentication::class, $backendUser);
+        $backendUser->uc['letterbox']['unsaved'] = '1';
+
+        $state->markRead('a');
+
+        $uc = unserialize((string) $this->storedUc(), ['allowed_classes' => false]);
+        self::assertSame(['letterbox' => ['read' => ['a']]], array_intersect_key($uc, ['letterbox' => true]));
     }
 
     private function storedUc(): mixed

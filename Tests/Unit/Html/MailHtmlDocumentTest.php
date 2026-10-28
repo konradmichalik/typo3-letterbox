@@ -166,6 +166,19 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
+    public function canBuildAgreesWithBuild(): void
+    {
+        $builder = new MailHtmlDocument();
+
+        foreach (['', '   ', str_repeat('<i></i>', 50001), '<p>Hi</p>', 'Hello world'] as $html) {
+            $mail = $this->mailWithHtml($html);
+            self::assertSame('' !== $builder->build($mail), $builder->canBuild($mail), $html);
+        }
+        self::assertTrue($builder->canBuild($this->mailWithHtml('<p>Hi</p>')));
+        self::assertFalse($builder->canBuild($this->mailWithHtml('')));
+    }
+
+    #[Test]
     public function quoteInHtmlCannotBreakSrcdocAfterFluidEscaping(): void
     {
         $escaped = htmlspecialchars((new MailHtmlDocument())->build($this->mailWithHtml('"><script>alert(1)</script>')), \ENT_QUOTES);

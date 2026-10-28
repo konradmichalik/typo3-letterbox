@@ -279,7 +279,7 @@ final class InboxControllerTest extends FunctionalTestCase
 
         self::assertSame(200, $response->getStatusCode());
         self::assertSame('text/html; charset=utf-8', $response->getHeaderLine('Content-Type'));
-        self::assertSame("default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; sandbox allow-popups allow-popups-to-escape-sandbox", $response->getHeaderLine('Content-Security-Policy'));
+        self::assertSame("default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; sandbox allow-popups allow-popups-to-escape-sandbox", $response->getHeaderLine('Content-Security-Policy'));
         self::assertSame('no-referrer', $response->getHeaderLine('Referrer-Policy'));
         self::assertSame('nosniff', $response->getHeaderLine('X-Content-Type-Options'));
         self::assertSame('no-store', $response->getHeaderLine('Cache-Control'));
@@ -549,11 +549,31 @@ final class InboxControllerTest extends FunctionalTestCase
         $this->append('Known');
         $controller = $this->controller();
 
-        self::assertSame(404, $controller->showAction($this->request('system_letterbox.show', ['id' => str_repeat('0', 32)]))->getStatusCode());
-        self::assertSame(404, $controller->showAction($this->request('system_letterbox.show', ['id' => '../etc/passwd']))->getStatusCode());
         self::assertSame(404, $controller->sourceAction($this->request('system_letterbox.source', ['id' => str_repeat('a', 32)]))->getStatusCode());
         self::assertSame(404, $controller->attachmentAction($this->request('system_letterbox.attachment', ['id' => $this->firstId(), 'index' => '-1']))->getStatusCode());
         self::assertSame(404, $controller->attachmentAction($this->request('system_letterbox.attachment', ['id' => $this->firstId(), 'index' => '7']))->getStatusCode());
+    }
+
+    #[Test]
+    public function fullPageForUnknownMailRedirectsToTheListWithWarning(): void
+    {
+        $this->append('Known');
+
+        foreach ([str_repeat('0', 32), '../etc/passwd'] as $id) {
+            $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id, 'q' => 'Known', 'filter' => 'unread', 'page' => '2', 'tab' => 'text']));
+
+            self::assertSame(303, $response->getStatusCode());
+            $location = $response->getHeaderLine('Location');
+            self::assertStringContainsString('/module/system/letterbox?', $location);
+            self::assertStringContainsString('q=Known', $location);
+            self::assertStringContainsString('filter=unread', $location);
+            self::assertStringContainsString('page=2', $location);
+            self::assertStringNotContainsString('id=', $location);
+            self::assertStringNotContainsString('tab=', $location);
+        }
+        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages(ContextualFeedbackSeverity::WARNING);
+        self::assertCount(2, $messages);
+        self::assertSame('The mail no longer exists.', $messages[0]->getMessage());
     }
 
     #[Test]
@@ -647,12 +667,12 @@ final class InboxControllerTest extends FunctionalTestCase
     {
         $this->append('Open me');
         $id = $this->firstId();
-        self::assertFalse($this->get(ReadState::class)->isRead($id));
+        self::assertNotContains($id, $this->get(ReadState::class)->readIds());
 
         $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id]));
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertTrue($this->get(ReadState::class)->isRead($id));
+        self::assertContains($id, $this->get(ReadState::class)->readIds());
         self::assertStringNotContainsString('<span class="visually-hidden">Unread</span>', (string) $response->getBody());
     }
 
@@ -721,7 +741,7 @@ final class InboxControllerTest extends FunctionalTestCase
         $this->get(ReadState::class)->markRead(str_repeat('a', 32));
 
         self::assertSame('1', $this->backendUser->uc['letterbox']['listCollapsed']);
-        self::assertTrue($this->get(ReadState::class)->isRead(str_repeat('a', 32)));
+        self::assertContains(str_repeat('a', 32), $this->get(ReadState::class)->readIds());
     }
 
     #[Test]
@@ -895,7 +915,7 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringNotContainsString('id="letterbox-list"', $body);
         self::assertStringNotContainsString('Other', $body);
         self::assertStringNotContainsString('<h1', $body);
-        self::assertTrue($this->get(ReadState::class)->isRead($id));
+        self::assertContains($id, $this->get(ReadState::class)->readIds());
     }
 
     #[Test]
@@ -905,7 +925,7 @@ final class InboxControllerTest extends FunctionalTestCase
         $this->append('Second');
         $id = $this->firstId();
 
-        $index = $this->controller()->indexAction($this->request('system_letterbox', ['filter' => 'unread'])->withHeader('X-Letterbox-Fragment', 'list'));
+        $index = $this->controller()->indexAction($this->request('system_letterbox', ['filter' => 'unread', 'q' => 's'])->withHeader('X-Letterbox-Fragment', 'list'));
         $show = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id])->withHeader('X-Letterbox-Fragment', 'list'));
 
         self::assertSame(200, $index->getStatusCode());
@@ -920,6 +940,7 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringNotContainsString('module-docheader', $body);
         self::assertStringNotContainsString('letterbox-detail', $body);
         self::assertStringNotContainsString('<h1', $body);
+        self::assertStringNotContainsString('aria-live', $body);
 
         self::assertSame(200, $show->getStatusCode());
         $this->assertFragmentHeaders($show);
@@ -984,7 +1005,7 @@ final class InboxControllerTest extends FunctionalTestCase
         foreach ([$index, $show] as $body) {
             self::assertMatchesRegularExpression('/<div[^>]*data-letterbox-status[^>]*aria-live="polite"[^>]*><\/div>/', $body);
             self::assertMatchesRegularExpression('/<div[^>]*data-letterbox-spinner[^>]*hidden/', $body);
-            self::assertStringContainsString('data-letterbox-opened-label="Mail opened: %s"', $body);
+            self::assertStringNotContainsString('data-letterbox-opened-label', $body);
             self::assertMatchesRegularExpression('/data-letterbox-index="[^"]*\/module\/system\/letterbox[?"]/', $body);
             self::assertMatchesRegularExpression('/data-letterbox-show="[^"]*\/module\/system\/letterbox\/show[?"]/', $body);
             self::assertSame(1, substr_count($body, 'data-letterbox-reload'));

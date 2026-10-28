@@ -48,9 +48,6 @@
 			<trans-unit id="inbox.noSelection.sentence" resname="inbox.noSelection.sentence">
 				<source>Pick a mail from the list to read it here.</source>
 			</trans-unit>
-			<trans-unit id="inbox.opened" resname="inbox.opened">
-				<source>Mail opened: %s</source>
-			</trans-unit>
 			<trans-unit id="inbox.pagination" resname="inbox.pagination">
 				<source>Mail pages</source>
 			</trans-unit>
@@ -254,6 +251,9 @@
 			</trans-unit>
 			<trans-unit id="flash.cleared" resname="flash.cleared">
 				<source>All mails deleted.</source>
+			</trans-unit>
+			<trans-unit id="flash.notFound" resname="flash.notFound">
+				<source>The mail no longer exists.</source>
 			</trans-unit>
 		</body>
 	</file>

@@ -22,8 +22,6 @@ use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
  */
 final readonly class MailFilter
 {
-    private const MAX_QUERY_LENGTH = 200;
-
     /**
      * @param array<string, int> $readLookup read ids as keys, so the unread check is a hash lookup
      */
@@ -39,11 +37,12 @@ final readonly class MailFilter
     }
 
     /**
+     * @param string       $query   already trimmed and capped, as InboxQuery reads it from the request
      * @param list<string> $readIds
      */
     public static function create(string $query, QuickFilter $quick, array $readIds): self
     {
-        return new self(mb_substr(trim($query), 0, self::MAX_QUERY_LENGTH), $quick, array_flip($readIds));
+        return new self($query, $quick, array_flip($readIds));
     }
 
     public function matches(MessageIndexEntry $entry): bool

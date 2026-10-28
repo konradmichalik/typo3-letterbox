@@ -67,7 +67,7 @@
         <div class="tab-content">
             <f:if condition="{hasHtml}">
                 <div class="tab-pane{f:if(condition: '{defaultTab} == \'html\'', then: ' active')}" id="letterbox-pane-html" role="tabpanel" aria-labelledby="letterbox-tab-html" tabindex="0">
-                    <f:if condition="{htmlDocument}">
+                    <f:if condition="{hasPreview}">
                         <f:then>
                             <form class="letterbox-preview-width mt-3" method="get" action="{widthForm.action}">
                                 <f:for each="{widthForm.fields}" key="fieldName" as="fieldValue">

@@ -53,18 +53,13 @@ final readonly class MailHtmlDocument
 
     public function build(Mail $mail, bool $allowRemoteImages = false): string
     {
-        if ('' === trim($mail->html) || strlen($mail->html) > self::MAX_BYTES) {
+        $loaded = $this->load($mail);
+        if (null === $loaded) {
             return '';
         }
+        [$html5, $document] = $loaded;
 
         try {
-            $html5 = new HTML5();
-            $document = $html5->loadHTML(1 === preg_match('/<(?:html|body)\b/i', $mail->html) ? $mail->html : '<body>'.$mail->html);
-
-            if ($document->getElementsByTagName('*')->length > self::MAX_ELEMENTS) {
-                return '';
-            }
-
             foreach ($this->descendants($document) as $node) {
                 $this->sanitize($node);
             }
@@ -77,6 +72,14 @@ final readonly class MailHtmlDocument
     }
 
     /**
+     * Whether build() yields a document, without sanitizing and serializing it.
+     */
+    public function canBuild(Mail $mail): bool
+    {
+        return null !== $this->load($mail);
+    }
+
+    /**
      * Content IDs of cid: references in the HTML part that no inline image part answers. Matching is strict
      * (RFC 2392), so the preview shows nothing for them. Capped so a hostile mail cannot flood the callout.
      *
@@ -84,20 +87,37 @@ final readonly class MailHtmlDocument
      */
     public function unresolvedContentIds(Mail $mail): array
     {
-        if ('' === trim($mail->html) || strlen($mail->html) > self::MAX_BYTES) {
+        $loaded = $this->load($mail);
+        if (null === $loaded) {
             return [];
         }
 
         try {
-            $document = (new HTML5())->loadHTML(1 === preg_match('/<(?:html|body)\b/i', $mail->html) ? $mail->html : '<body>'.$mail->html);
-            if ($document->getElementsByTagName('*')->length > self::MAX_ELEMENTS) {
-                return [];
-            }
-
-            return $this->inlineImages->unresolvedContentIds($this->descendants($document), $mail);
+            return $this->inlineImages->unresolvedContentIds($this->descendants($loaded[1]), $mail);
         } catch (Throwable) {
             return [];
         }
+    }
+
+    /**
+     * Parses the HTML part, or returns null when it is empty, too large, has too many elements or does not parse.
+     *
+     * @return array{HTML5, DOMDocument}|null
+     */
+    private function load(Mail $mail): ?array
+    {
+        if ('' === trim($mail->html) || strlen($mail->html) > self::MAX_BYTES) {
+            return null;
+        }
+
+        try {
+            $html5 = new HTML5();
+            $document = $html5->loadHTML(1 === preg_match('/<(?:html|body)\b/i', $mail->html) ? $mail->html : '<body>'.$mail->html);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $document->getElementsByTagName('*')->length > self::MAX_ELEMENTS ? null : [$html5, $document];
     }
 
     private function shellPrefix(bool $allowRemoteImages): string

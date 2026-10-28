@@ -30,6 +30,7 @@ use function is_string;
 final readonly class InboxQuery
 {
     public const MAX_QUERY_LENGTH = 200;
+    private const MAIL_ID_PATTERN = '/^[0-9a-f]{32}$/D';
     private const TABS = ['html', 'text', 'headers', 'source', 'links', 'attachments'];
     private const WIDTHS = ['desktop', 'tablet', 'mobile'];
     private const DEFAULT_WIDTH = 'desktop';
@@ -53,11 +54,19 @@ final readonly class InboxQuery
             mb_substr(trim($value('q') ?? ''), 0, self::MAX_QUERY_LENGTH),
             QuickFilter::fromRequest($value('filter')),
             self::matching($value('page'), '/^[1-9]\d{0,8}$/D') ? (int) $value('page') : 1,
-            self::matching($value('id'), '/^[0-9a-f]{32}$/D') ? $value('id') : null,
+            self::isMailId($value('id')) ? $value('id') : null,
             in_array($value('tab'), self::TABS, true) ? $value('tab') : null,
             in_array($value('width'), self::WIDTHS, true) ? $value('width') : self::DEFAULT_WIDTH,
             '1' === $value('remote'),
         );
+    }
+
+    /**
+     * @phpstan-assert-if-true string $value
+     */
+    public static function isMailId(mixed $value): bool
+    {
+        return is_string($value) && 1 === preg_match(self::MAIL_ID_PATTERN, $value);
     }
 
     /**

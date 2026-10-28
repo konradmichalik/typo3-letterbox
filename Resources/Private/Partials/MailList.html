@@ -52,7 +52,7 @@
                 </ul>
             </nav>
             <f:if condition="{query}">
-                <p class="text-variant mb-0" aria-live="polite">
+                <p class="text-variant mb-0">
                     <f:if condition="{resultTotal} == 1">
                         <f:then><f:translate key="inbox.search.result.one" extensionName="Typo3Letterbox" arguments="{0: query}" /></f:then>
                         <f:else><f:translate key="inbox.search.result" extensionName="Typo3Letterbox" arguments="{0: resultTotal, 1: query}" /></f:else>
@@ -90,7 +90,7 @@
         </ul>
         <f:if condition="{paginator.numberOfPages} > 1">
             <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <span aria-live="polite">
+                <span>
                     <f:translate key="inbox.pagination.range" extensionName="Typo3Letterbox" arguments="{0: pagination.startRecordNumber, 1: pagination.endRecordNumber, 2: resultTotal}" />
                 </span>
                 <nav aria-label="{f:translate(key: 'inbox.pagination', extensionName: 'Typo3Letterbox')}">

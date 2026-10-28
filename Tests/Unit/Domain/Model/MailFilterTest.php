@@ -18,8 +18,6 @@ use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, MessageSpan};
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function strlen;
-
 /**
  * MailFilterTest.
  *
@@ -42,8 +40,7 @@ final class MailFilterTest extends TestCase
     #[Test]
     public function emptyQueryMatchesEverything(): void
     {
-        self::assertTrue(MailFilter::create('   ', QuickFilter::All, [])->matches($this->entry()));
-        self::assertSame('', MailFilter::create('   ', QuickFilter::All, [])->query());
+        self::assertTrue(MailFilter::create('', QuickFilter::All, [])->matches($this->entry()));
         self::assertTrue(MailFilter::all()->matches($this->entry()));
     }
 
@@ -72,16 +69,6 @@ final class MailFilterTest extends TestCase
         self::assertSame(QuickFilter::All, QuickFilter::fromRequest(null));
         self::assertSame(QuickFilter::Unread, QuickFilter::fromRequest('unread'));
         self::assertSame(QuickFilter::Attachments, QuickFilter::fromRequest('attachments'));
-    }
-
-    #[Test]
-    public function queryIsCappedAt200Characters(): void
-    {
-        $filter = MailFilter::create(str_repeat('ä', 250), QuickFilter::All, []);
-
-        self::assertSame(200, mb_strlen($filter->query()));
-        self::assertTrue($filter->matches($this->entry(str_repeat('ä', 200))));
-        self::assertGreaterThan(200, strlen(str_repeat('ä', 250)));
     }
 
     #[Test]

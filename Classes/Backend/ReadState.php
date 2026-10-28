@@ -39,14 +39,15 @@ final class ReadState
         return is_array($stored) ? array_values(array_filter($stored, is_string(...))) : [];
     }
 
-    public function isRead(string $id): bool
-    {
-        return in_array($id, $this->readIds(), true);
-    }
-
+    /**
+     * Opening an already read mail leaves uc untouched, so reading does not write on every open.
+     */
     public function markRead(string $id): void
     {
-        $ids = array_values(array_filter($this->readIds(), static fn (string $known): bool => $known !== $id));
+        $ids = $this->readIds();
+        if (in_array($id, $ids, true)) {
+            return;
+        }
         $ids[] = $id;
 
         $backendUser = $this->backendUser();

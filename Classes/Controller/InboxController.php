@@ -64,7 +64,7 @@ final readonly class InboxController
     private const PAGE_LINKS = 5;
     // inbox.js asks for one region of the page with this header and swaps it in place.
     private const FRAGMENT_HEADER = 'X-Letterbox-Fragment';
-    private const PREVIEW_POLICY = "default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; sandbox allow-popups allow-popups-to-escape-sandbox";
+    private const PREVIEW_POLICY = "default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; sandbox allow-popups allow-popups-to-escape-sandbox";
 
     public function __construct(
         private ModuleTemplateFactory $moduleTemplateFactory,
@@ -107,7 +107,7 @@ final readonly class InboxController
         // The selected mail opens even when it does not match the current search or quick filter.
         $mail = null === $query->id ? null : $this->repository->findById($query->id, MailFilter::all());
         if (null === $mail) {
-            return $this->error(404, 'Mail not found.');
+            return $this->mailNotFound($query, $fragment);
         }
 
         $this->readState->markRead($mail->id);
@@ -260,7 +260,9 @@ final readonly class InboxController
      */
     private function detailVariables(ServerRequestInterface $request, InboxQuery $query, Mail $mail): array
     {
-        $htmlDocument = $this->htmlDocument->build($mail, $query->remote);
+        // Remote mode frames the preview route, which builds the document itself.
+        $htmlDocument = $query->remote ? '' : $this->htmlDocument->build($mail);
+        $hasPreview = $query->remote ? $this->htmlDocument->canBuild($mail) : '' !== $htmlDocument;
         $hasHtml = '' !== trim($mail->html);
 
         return $this->mailListView->previewControls($query) + [
@@ -268,12 +270,13 @@ final readonly class InboxController
             'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
             'hasHtml' => $hasHtml,
             'htmlDocument' => $htmlDocument,
-            'unresolvedContentIds' => '' === $htmlDocument ? [] : $this->htmlDocument->unresolvedContentIds($mail),
+            'hasPreview' => $hasPreview,
+            'unresolvedContentIds' => $this->htmlDocument->unresolvedContentIds($mail),
             'previewWidth' => $query->width,
             'remote' => $query->remote,
             'textSegments' => TextSegments::split($mail->text),
             'headersUrl' => $this->mailListView->url($query, ['id' => $mail->id, 'tab' => 'headers']),
-            'defaultTab' => $this->defaultTab($query->tab, $hasHtml, '' !== $htmlDocument),
+            'defaultTab' => $this->defaultTab($query->tab, $hasHtml, $hasPreview),
             'deleteUrl' => $this->mailListView->deleteUrl($query),
             'token' => $this->token($request),
         ];
@@ -381,9 +384,22 @@ final readonly class InboxController
         return null === $id ? null : $this->repository->findById($id, MailFilter::all());
     }
 
+    /**
+     * A fragment request answers 404 so inbox.js falls back to a full page load. That one, e.g. going back to a
+     * deleted mail, returns to the list.
+     */
+    private function mailNotFound(InboxQuery $query, ?string $fragment): ResponseInterface
+    {
+        if (null !== $fragment) {
+            return $this->error(404, 'Mail not found.');
+        }
+
+        return $this->redirectWithFlash('flash.notFound', ContextualFeedbackSeverity::WARNING, $this->mailListView->url($query, ['id' => null, 'tab' => null]));
+    }
+
     private function validId(mixed $id): ?string
     {
-        return is_string($id) && 1 === preg_match('/^[0-9a-f]{32}$/D', $id) ? $id : null;
+        return InboxQuery::isMailId($id) ? $id : null;
     }
 
     /**

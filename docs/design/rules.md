@@ -69,7 +69,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 - No categories or badges. A mbox file has no reliable source for them.
 - The selected row uses the core active list style and `aria-current="true"`; other rows carry no `aria-current`.
 - Quick filters: All, Unread, Attachments. Counts as a small number inside the segment, not in brackets.
-- Pagination is core pagination below the list, with the range text in a polite live region.
+- Pagination is core pagination below the list, with the range text. List changes are announced through the module's single polite status region, an opened mail through the focus on its subject.
 
 ## Mail detail
 
