@@ -80,11 +80,25 @@ final class RecentMailsWidgetTest extends FunctionalTestCase
         self::assertStringContainsString('Seven', $html);
         self::assertStringContainsString('Two', $html);
         self::assertStringNotContainsString('One', $html);
-        self::assertStringContainsString('Sender', $html);
+        self::assertStringContainsString('Recipient', $html);
+        self::assertStringNotContainsString('Sender', $html);
         self::assertStringContainsString('2026-10-27 10:00', $html);
         self::assertSame(1, preg_match('/<a [^>]*href="[^"]*letterbox\/show[^"]*id='.$newest->id.'[^"]*"[^>]*>\s*(?:<[^>]+>\s*)*Seven/', $html));
         self::assertStringContainsString('Open Letterbox', $html);
         self::assertStringNotContainsString('not the active mail transport', $html);
+    }
+
+    #[Test]
+    public function showsTheFirstRecipientAndHowManyMore(): void
+    {
+        $this->append('Team mail', 'Anna Example <anna@example.org>, bob@example.org, carl@example.org');
+        $this->append('Plain address', 'dora@example.org');
+
+        $html = $this->widget()->renderWidgetContent();
+
+        self::assertStringContainsString('Anna Example +2', $html);
+        self::assertStringNotContainsString('bob@example.org', $html);
+        self::assertStringContainsString('dora@example.org', $html);
     }
 
     #[Test]
@@ -198,9 +212,9 @@ final class RecentMailsWidgetTest extends FunctionalTestCase
         return $request;
     }
 
-    private function append(string $subject): void
+    private function append(string $subject, string $to = 'Recipient <r@example.org>'): void
     {
-        $raw = "From: Sender <s@example.org>\nTo: Recipient <r@example.org>\nSubject: {$subject}\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\nContent-Type: text/plain\n\nbody\n";
+        $raw = "From: Sender <s@example.org>\nTo: {$to}\nSubject: {$subject}\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\nContent-Type: text/plain\n\nbody\n";
         (new MailboxWriter($this->path, new MboxFormat(), new MailboxLock($this->get(LockFactory::class))))->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), $raw);
     }
 }

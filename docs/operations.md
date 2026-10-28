@@ -128,6 +128,6 @@ With EXT:reports installed (`composer require typo3/cms-reports`, listed under `
 
 With EXT:dashboard installed (`composer require typo3/cms-dashboard`, listed under `suggest`), the dashboard offers the widget "Recent mails" in the group "System Information".
 
-* It lists the latest 6 mails: subject, sender (name, or address when the mail has none) and arrival time, each subject linking to the mail, plus an "Open Letterbox" button.
+* It lists the latest 6 mails: subject, recipient (the first one by name, or its address when it has none, plus `+N` for more) and arrival time, each subject linking to the mail, plus an "Open Letterbox" button.
 * It is for administrators. On TYPO3 14 it is not offered to other users, on TYPO3 13 it renders empty for them.
 * Without a configured mbox file it says so, and when Letterbox is not the active transport it adds a note.

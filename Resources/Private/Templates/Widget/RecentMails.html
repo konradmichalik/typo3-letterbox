@@ -18,9 +18,9 @@
                                 </f:if>
                                 <br>
                                 <small class="text-variant">
-                                    <f:if condition="{mail.from}">{mail.from}</f:if>
+                                    <f:if condition="{mail.to}">{mail.to}</f:if>
                                     <f:if condition="{mail.received}">
-                                        <f:if condition="{mail.from}"> · </f:if>
+                                        <f:if condition="{mail.to}"> · </f:if>
                                         <time datetime="{mail.received -> f:format.date(format: 'c')}"><f:format.date format="Y-m-d H:i">{mail.received}</f:format.date></time>
                                     </f:if>
                                 </small>

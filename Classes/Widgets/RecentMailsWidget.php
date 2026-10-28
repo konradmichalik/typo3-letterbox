@@ -18,6 +18,7 @@ use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
+use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Throwable;
@@ -26,6 +27,7 @@ use TYPO3\CMS\Backend\View\BackendViewFactory;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Dashboard\Widgets\{RequestAwareWidgetInterface, WidgetConfigurationInterface, WidgetInterface};
 
+use function count;
 use function is_array;
 
 /**
@@ -107,12 +109,19 @@ class RecentMailsWidget implements WidgetInterface, RequestAwareWidgetInterface,
         foreach ($this->mailRepository->findEntries(MailFilter::all(), 0, self::LATEST_MAILS) as $entry) {
             $variables['mails'][] = [
                 'subject' => $entry->subject,
-                'from' => '' !== $entry->fromName ? $entry->fromName : $entry->sender,
+                'to' => self::recipient($entry),
                 'received' => $entry->received?->setTimezone($timezone),
                 'url' => $moduleEnabled ? (string) $this->uriBuilder->buildUriFromRoute('system_letterbox.show', ['id' => $entry->id]) : '',
             ];
         }
 
         return $variables;
+    }
+
+    private static function recipient(MessageIndexEntry $entry): string
+    {
+        $others = count($entry->recipientLabels) - 1;
+
+        return ($entry->recipientLabels[0] ?? '').($others > 0 ? ' +'.$others : '');
     }
 }
