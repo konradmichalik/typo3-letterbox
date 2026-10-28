@@ -16,9 +16,11 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Command;
 use KonradMichalik\Typo3Letterbox\Command\PruneCommand;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory;
+use KonradMichalik\Typo3Letterbox\Mbox\MailboxLock;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use Symfony\Component\Console\Tester\CommandTester;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Locking\LockFactory;
 
 /**
  * PruneCommandTest.
@@ -133,9 +135,9 @@ final class PruneCommandTest extends MailboxCommandTestCase
             $this->addMail($subject);
         }
         // A repository of its own builds the cached index, so the command's repository has not read it yet.
-        $this->get(MailRepositoryFactory::class)->forPath($this->path)->count(MailFilter::all());
-        // Index entries whose IDs no longer match the file look like a rewrite by another process on every attempt.
         $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
+        (new MailRepositoryFactory(new MailboxLock($this->get(LockFactory::class)), $cache))->forPath($this->path)->count(MailFilter::all());
+        // Index entries whose IDs no longer match the file look like a rewrite by another process on every attempt.
         $key = 'v8_'.hash('sha256', $this->path);
         $cached = $cache->get($key);
         self::assertIsArray($cached);

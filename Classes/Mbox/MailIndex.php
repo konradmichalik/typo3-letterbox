@@ -57,6 +57,14 @@ final class MailIndex
             return $this->memo['entries'];
         }
 
+        if (null !== $this->memo && $this->hasGrown($this->memo['fingerprint'], $fingerprint, array_reverse($this->memo['entries']))) {
+            // Mails appended during this request. The cache catches up with the next request that reads it.
+            $entries = [...array_reverse($this->memo['entries']), ...$this->scan(self::sizeOf($this->memo['fingerprint']), self::sizeOf($fingerprint))];
+            $this->memo = ['fingerprint' => $fingerprint, 'entries' => array_reverse($entries)];
+
+            return $this->memo['entries'];
+        }
+
         $key = $this->cacheKey();
         $cached = $this->cache->get($key);
         $entries = $this->usable($cached, $fingerprint);
@@ -126,12 +134,20 @@ final class MailIndex
             return $entries;
         }
 
-        [$size, , $inode, $firstLine] = [...explode('|', $cached['fingerprint']), '', '', '', ''];
+        return $this->hasGrown($cached['fingerprint'], $fingerprint, $entries) ? $entries : null;
+    }
+
+    /**
+     * Whether the file only grew since $entries described it as $before.
+     *
+     * @param list<MessageIndexEntry> $entries oldest first
+     */
+    private function hasGrown(string $before, string $fingerprint, array $entries): bool
+    {
+        [$size, , $inode, $firstLine] = [...explode('|', $before), '', '', '', ''];
         [$newSize, , $newInode, $newFirstLine] = explode('|', $fingerprint);
 
-        $grown = $inode === $newInode && $firstLine === $newFirstLine && (int) $newSize > (int) $size;
-
-        return $grown && $this->endsWithKnownMessage($entries, (int) $size) ? $entries : null;
+        return $inode === $newInode && $firstLine === $newFirstLine && (int) $newSize > (int) $size && $this->endsWithKnownMessage($entries, (int) $size);
     }
 
     /**

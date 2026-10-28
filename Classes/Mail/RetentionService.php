@@ -46,9 +46,8 @@ final readonly class RetentionService
             $repository = $this->repositories->forPath($mboxFile);
             $now = new DateTimeImmutable();
             // The count may exceed the limit by a slack, so a full file sees one rewrite per slack mails, not one per mail.
-            $overCount = $retention->maxMessages > 0
-                && $repository->needsPruning($retention->maxMessages + self::countSlack($retention->maxMessages), 0, $now);
-            if ($overCount || $repository->needsPruning(0, $retention->maxAgeDays, $now)) {
+            $countLimit = $retention->maxMessages > 0 ? $retention->maxMessages + self::countSlack($retention->maxMessages) : 0;
+            if ($repository->needsPruning($countLimit, $retention->maxAgeDays, $now)) {
                 $repository->prune($retention->maxMessages, $retention->maxAgeDays, $now);
             }
         } catch (Throwable $e) {

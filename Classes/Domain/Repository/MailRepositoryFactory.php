@@ -21,13 +21,18 @@ use function is_string;
 /**
  * MailRepositoryFactory.
  *
+ * One repository per path, so the index read once stays in memory for every later call of the request.
+ *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
-final readonly class MailRepositoryFactory
+final class MailRepositoryFactory
 {
+    /** @var array<string, MailRepository> */
+    private array $repositories = [];
+
     public function __construct(
-        private MailboxLock $lock,
-        private FrontendInterface $cache,
+        private readonly MailboxLock $lock,
+        private readonly FrontendInterface $cache,
     ) {}
 
     public function create(): MailRepository
@@ -38,6 +43,11 @@ final readonly class MailRepositoryFactory
     }
 
     public function forPath(string $path): MailRepository
+    {
+        return $this->repositories[$path] ??= $this->build($path);
+    }
+
+    private function build(string $path): MailRepository
     {
         $format = new MboxFormat();
         $mailbox = new Mailbox($path, $format);

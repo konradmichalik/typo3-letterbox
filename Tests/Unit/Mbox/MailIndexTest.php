@@ -77,18 +77,19 @@ final class MailIndexTest extends TestCase
     }
 
     #[Test]
-    public function entriesAreReadFromTheCacheOncePerFileState(): void
+    public function entriesAreReadFromTheCacheOnceAndFollowAppendsInMemory(): void
     {
         file_put_contents($this->path, ExtMboxFixture::contents());
         $cache = $this->createMock(FrontendInterface::class);
-        $cache->expects(self::exactly(2))->method('get')->willReturn(false);
+        $cache->expects(self::once())->method('get')->willReturn(false);
+        $cache->expects(self::once())->method('set');
         $index = $this->index($cache);
 
         $first = $index->entries();
         self::assertSame($first, $index->entries());
         file_put_contents($this->path, "From a@example.org Wed Oct  7 10:42:00 2026\nSubject: More\n\nbody\n\n", \FILE_APPEND);
 
-        self::assertCount(4, $index->entries());
+        self::assertSame(['More', 'Third', 'Second', 'First'], array_map(static fn (MessageIndexEntry $entry): string => $entry->subject, $index->entries()));
     }
 
     private function index(?FrontendInterface $cache = null): MailIndex
