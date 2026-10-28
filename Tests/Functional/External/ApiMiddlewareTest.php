@@ -327,11 +327,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         $this->append('Caught', 'qa@catch.example.org');
         $this->append('Live', 'anna@example.org');
         $liveId = $this->mails()[0]->id;
-        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_mode'] = 'listed';
-        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_catch'] = '*@catch.example.org';
-        $this->previousContext = Environment::getContext();
-        $this->useContext(new ApplicationContext('Production'));
-        $api = $this->middleware(['LETTERBOX_EXTERNAL_ACCESS' => 'Production', 'LETTERBOX_API_TOKEN' => self::TOKEN]);
+        $api = $this->rootProductionMiddleware();
 
         $list = $this->json($this->send($api, '/_letterbox/api/v1/messages'));
 
@@ -340,6 +336,53 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$liveId)->getStatusCode());
         self::assertSame(204, $this->send($api, '/_letterbox/api/v1/messages', 'DELETE')->getStatusCode());
         self::assertSame(['Live'], array_map(static fn (Mail $mail): string => $mail->subject, $this->mails()));
+    }
+
+    #[Test]
+    public function productionApiMasksCoRecipients(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: \"QA\" <qa@catch.example.org>, \"Anna Live\" <anna@example.org>\nCc: carl@example.org, qa2@catch.example.org\nSubject: Caught\n\nbody\n");
+        $id = $this->mails()[0]->id;
+        $api = $this->rootProductionMiddleware();
+
+        $item = $this->json($this->send($api, '/_letterbox/api/v1/messages'))['items'][0];
+        $latest = $this->json($this->send($api, '/_letterbox/api/v1/messages/latest'));
+        $detail = $this->json($this->send($api, '/_letterbox/api/v1/messages/'.$id));
+
+        foreach ([$item, $latest, $detail] as $mail) {
+            self::assertSame([['address' => 'qa@catch.example.org', 'name' => 'QA']], $mail['to']);
+            self::assertSame([['address' => 'qa2@catch.example.org', 'name' => '']], $mail['cc']);
+        }
+        self::assertStringNotContainsString('anna@example.org', json_encode($detail, \JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('carl@example.org', json_encode($detail, \JSON_THROW_ON_ERROR));
+    }
+
+    #[Test]
+    public function productionApiHasNoHeadersOrSource(): void
+    {
+        $this->append('Caught', 'qa@catch.example.org, anna@example.org');
+        $id = $this->mails()[0]->id;
+        $api = $this->rootProductionMiddleware();
+
+        $detail = $this->json($this->send($api, '/_letterbox/api/v1/messages/'.$id));
+
+        self::assertArrayNotHasKey('headers', $detail);
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$id.'/source')->getStatusCode());
+        self::assertSame(200, $this->send($api, '/_letterbox/api/v1/messages/'.$id.'/attachments/0')->getStatusCode(), 'attachments stay available');
+    }
+
+    #[Test]
+    public function unscopedApiKeepsAllRecipientsHeadersAndSource(): void
+    {
+        $this->append('Stage', 'qa@catch.example.org, anna@example.org');
+        $id = $this->mails()[0]->id;
+        $api = $this->middleware();
+
+        $detail = $this->json($this->send($api, '/_letterbox/api/v1/messages/'.$id));
+
+        self::assertSame(['qa@catch.example.org', 'anna@example.org'], array_column($detail['to'], 'address'));
+        self::assertArrayHasKey('headers', $detail);
+        self::assertSame(200, $this->send($api, '/_letterbox/api/v1/messages/'.$id.'/source')->getStatusCode());
     }
 
     #[Test]
@@ -399,6 +442,16 @@ final class ApiMiddlewareTest extends FunctionalTestCase
             self::assertTrue($response->hasHeader('X-Passed-Through'), $path);
             self::assertFalse($response->hasHeader('Content-Security-Policy'), $path);
         }
+    }
+
+    private function rootProductionMiddleware(): ApiMiddleware
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_mode'] = 'listed';
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_catch'] = '*@catch.example.org';
+        $this->previousContext = Environment::getContext();
+        $this->useContext(new ApplicationContext('Production'));
+
+        return $this->middleware(['LETTERBOX_EXTERNAL_ACCESS' => 'Production', 'LETTERBOX_API_TOKEN' => self::TOKEN]);
     }
 
     /**

@@ -201,6 +201,16 @@ final class MailFilterTest extends TestCase
     }
 
     #[Test]
+    public function onlyAScopeOrAdditionalScopeMakesTheFilterScoped(): void
+    {
+        $pattern = RecipientPattern::fromString('*@example.org');
+
+        self::assertFalse(MailFilter::all()->withExclusions([$pattern])->withRecipient('anna@example.org')->isScoped());
+        self::assertTrue(MailFilter::all()->withScope([$pattern])->isScoped());
+        self::assertTrue(MailFilter::all()->withAdditionalScope([$pattern])->isScoped());
+    }
+
+    #[Test]
     public function onlyThePlainAllFilterIsUnrestricted(): void
     {
         $pattern = RecipientPattern::fromString('*@customer.example');

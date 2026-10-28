@@ -81,6 +81,14 @@ final readonly class MailFilter
         return '' === $this->query && QuickFilter::All === $this->quick && [] === $this->scope && [] === $this->additionalScopes && [] === $this->exclusions && '' === $this->recipient && '' === $this->subject;
     }
 
+    /**
+     * True when a scope restricts the recipients, so co-recipients outside it must stay hidden.
+     */
+    public function isScoped(): bool
+    {
+        return [] !== $this->scopeGroups();
+    }
+
     public function query(): string
     {
         return $this->query;

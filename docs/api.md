@@ -26,7 +26,7 @@ Apache with PHP-FPM or CGI drops the `Authorization` header unless you add `CGIP
 | `GET messages` | `{"total": 1, "items": [summary]}`, newest first |
 | `GET messages/latest?to=` | Summary of the newest matching mail, `404` when there is none |
 | `GET messages/{id}` | Detail |
-| `GET messages/{id}/source` | The raw message as `application/octet-stream` |
+| `GET messages/{id}/source` | The raw message as `application/octet-stream`, `404` in root `Production` |
 | `GET messages/{id}/attachments/{index}` | The attachment as `application/octet-stream` |
 | `DELETE messages/{id}` | `204`, or `404` when the mail does not exist or is not visible |
 | `DELETE messages` | `204`, see below |
@@ -66,6 +66,8 @@ A summary:
 ```
 
 The detail adds `text`, `html`, `headers` (an object of header name to list of values) and `attachments` (`index`, `filename`, `mimeType`, `size`, `contentId`). `date` and `from` can be `null`. `to` and `cc` list every recipient, Bcc is not part of the shape. Invalid UTF-8 in a mail is substituted, so the JSON is always valid.
+
+In root `Production`, where only the [catch list](external-access.md#production) is visible, live co-recipients stay hidden: `to` and `cc` list only the caught addresses, the detail has no `headers` and `source` answers `404`. In every other context the shape is complete.
 
 ## Example with Playwright
 

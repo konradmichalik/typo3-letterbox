@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\External\Api;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\{AuthenticationThrottle, EnvironmentVariables, ExternalAccessGuard, ExternalResponses};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
@@ -186,7 +186,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
 
         return $this->responses->json([
             'total' => $this->repository->count($filter),
-            'items' => array_map($this->mailJson->summary(...), $this->repository->find($filter, $offset, $limit)),
+            'items' => array_map(fn (Mail $mail): array => $this->mailJson->summary($mail, $filter), $this->repository->find($filter, $offset, $limit)),
         ]);
     }
 
@@ -195,19 +195,22 @@ final readonly class ApiMiddleware implements MiddlewareInterface
         $to = $this->stringParameter($request, 'to');
         $mail = null === $to ? null : $this->repository->latest($filter->withRecipient($to));
 
-        return null === $mail ? null : $this->responses->json($this->mailJson->summary($mail));
+        return null === $mail ? null : $this->responses->json($this->mailJson->summary($mail, $filter));
     }
 
     private function detail(string $id, MailFilter $filter): ?ResponseInterface
     {
         $mail = $this->repository->findById($id, $filter);
 
-        return null === $mail ? null : $this->responses->json($this->mailJson->detail($mail));
+        return null === $mail ? null : $this->responses->json($this->mailJson->detail($mail, $filter));
     }
 
+    /**
+     * The raw source carries every recipient, so a scoped view (root Production) never serves it.
+     */
     private function source(string $id, MailFilter $filter): ?ResponseInterface
     {
-        $mail = $this->repository->findById($id, $filter);
+        $mail = $filter->isScoped() ? null : $this->repository->findById($id, $filter);
 
         return null === $mail ? null : $this->downloads->source($mail);
     }

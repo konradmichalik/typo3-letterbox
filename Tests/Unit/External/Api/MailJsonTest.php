@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\External\Api;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailLink};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailFilter, MailLink};
 use KonradMichalik\Typo3Letterbox\External\Api\MailJson;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +29,7 @@ final class MailJsonTest extends TestCase
     #[Test]
     public function summaryCarriesAddressesLinksAndIsoDate(): void
     {
-        $summary = (new MailJson())->summary($this->mail());
+        $summary = (new MailJson())->summary($this->mail(), MailFilter::all());
 
         self::assertSame([
             'id' => '0123456789abcdef0123456789abcdef',
@@ -50,7 +50,7 @@ final class MailJsonTest extends TestCase
     #[Test]
     public function summaryWithoutDateAndSenderUsesNull(): void
     {
-        $summary = (new MailJson())->summary(new Mail('id', '', '', null, null, [], [], [], [], '', '', [], [], 0, '', []));
+        $summary = (new MailJson())->summary(new Mail('id', '', '', null, null, [], [], [], [], '', '', [], [], 0, '', []), MailFilter::all());
 
         self::assertNull($summary['date']);
         self::assertNull($summary['from']);
@@ -60,7 +60,7 @@ final class MailJsonTest extends TestCase
     #[Test]
     public function detailAddsBodiesHeadersAndAttachmentMetadataWithoutContent(): void
     {
-        $detail = (new MailJson())->detail($this->mail());
+        $detail = (new MailJson())->detail($this->mail(), MailFilter::all());
 
         self::assertSame('Hello Anna', $detail['text']);
         self::assertSame('<p>Hello Anna</p>', $detail['html']);
@@ -73,7 +73,7 @@ final class MailJsonTest extends TestCase
     #[Test]
     public function emptyHeadersEncodeAsObject(): void
     {
-        $detail = (new MailJson())->detail(new Mail('id', '', '', null, null, [], [], [], [], '', '', [], [], 0, '', []));
+        $detail = (new MailJson())->detail(new Mail('id', '', '', null, null, [], [], [], [], '', '', [], [], 0, '', []), MailFilter::all());
 
         self::assertStringContainsString('"headers":{}', json_encode($detail, \JSON_THROW_ON_ERROR));
     }
