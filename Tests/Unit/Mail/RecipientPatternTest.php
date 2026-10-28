@@ -32,6 +32,14 @@ final class RecipientPatternTest extends TestCase
     }
 
     #[Test]
+    public function valueIsTheNormalizedFormThatParsesBack(): void
+    {
+        self::assertSame('anna@customer.example', RecipientPattern::fromString(' Anna@Customer.example ')->value());
+        self::assertSame('*@customer.example', RecipientPattern::fromString('*@Customer.example')->value());
+        self::assertTrue(RecipientPattern::fromString(RecipientPattern::fromString('*@Customer.example')->value())->matches('x@customer.example'));
+    }
+
+    #[Test]
     public function exactAddressDoesNotMatchOtherAddress(): void
     {
         self::assertFalse(RecipientPattern::fromString('qa@example.org')->matches('dev@example.org'));

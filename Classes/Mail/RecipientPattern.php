@@ -53,6 +53,14 @@ final readonly class RecipientPattern
         return new self($normalized, false);
     }
 
+    /**
+     * The normalized form that fromString() parses back to an equal pattern.
+     */
+    public function value(): string
+    {
+        return $this->domainWide ? '*@'.$this->value : $this->value;
+    }
+
     public function matches(string $address): bool
     {
         $normalized = strtolower(trim($address));

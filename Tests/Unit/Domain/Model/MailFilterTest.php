@@ -111,6 +111,47 @@ final class MailFilterTest extends TestCase
     }
 
     #[Test]
+    public function additionalScopeRequiresAMatchInEveryScopeGroup(): void
+    {
+        $base = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+        $filter = $base->withAdditionalScope([RecipientPattern::fromString('anna@customer.example')]);
+
+        self::assertTrue($filter->matches($this->scoped('Hello', ['anna@customer.example'], ['anna@customer.example'])));
+        self::assertFalse($filter->matches($this->scoped('Hello', ['bob@customer.example'], ['bob@customer.example'])));
+        self::assertFalse($filter->matches($this->scoped('Hello', ['anna@other.example'], ['anna@other.example'])));
+        self::assertFalse($filter->isUnrestricted());
+    }
+
+    #[Test]
+    public function additionalScopeNarrowsAnUnrestrictedFilterAndMasksRecipients(): void
+    {
+        $filter = MailFilter::all()->withAdditionalScope([RecipientPattern::fromString('*@customer.example')]);
+        $mail = new Mail(
+            'id', 'mid', 'Hello', null, null,
+            [new Address('anna@customer.example'), new Address('x@example.org')],
+            [], [], [], '', '', [], [], 0, '', [],
+        );
+
+        self::assertFalse($filter->matches($this->scoped('Hello', ['x@example.org'], ['x@example.org'])));
+        self::assertSame(['anna@customer.example'], array_map(static fn (Address $a): string => $a->address, $filter->visibleRecipients($mail)));
+    }
+
+    #[Test]
+    public function additionalScopeAlsoRestrictsVisibleRecipientsOfTheBaseScope(): void
+    {
+        $filter = MailFilter::all()
+            ->withScope([RecipientPattern::fromString('*@customer.example')])
+            ->withAdditionalScope([RecipientPattern::fromString('anna@customer.example')]);
+        $mail = new Mail(
+            'id', 'mid', 'Hello', null, null,
+            [new Address('anna@customer.example'), new Address('bob@customer.example')],
+            [], [], [], '', '', [], [], 0, '', [],
+        );
+
+        self::assertSame(['anna@customer.example'], array_map(static fn (Address $a): string => $a->address, $filter->visibleRecipients($mail)));
+    }
+
+    #[Test]
     public function scopeIgnoresDisplayNamesAndBccHeader(): void
     {
         $filter = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);

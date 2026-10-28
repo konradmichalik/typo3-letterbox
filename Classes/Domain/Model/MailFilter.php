@@ -27,9 +27,10 @@ use function strtolower;
 final readonly class MailFilter
 {
     /**
-     * @param array<string, int>     $readLookup read ids as keys, so the unread check is a hash lookup
-     * @param list<RecipientPattern> $scope      at least one To, Cc or envelope recipient must match, empty means unrestricted
-     * @param list<RecipientPattern> $exclusions no recipient, Bcc included, may match
+     * @param array<string, int>           $readLookup       read ids as keys, so the unread check is a hash lookup
+     * @param list<RecipientPattern>       $scope            at least one To, Cc or envelope recipient must match, empty means unrestricted
+     * @param list<RecipientPattern>       $exclusions       no recipient, Bcc included, may match
+     * @param list<list<RecipientPattern>> $additionalScopes every group must match on top of the scope, so they only ever narrow it
      */
     private function __construct(
         private string $query,
@@ -39,6 +40,7 @@ final readonly class MailFilter
         private array $exclusions = [],
         private string $recipient = '',
         private string $subject = '',
+        private array $additionalScopes = [],
     ) {}
 
     public static function all(): self
@@ -75,7 +77,7 @@ final readonly class MailFilter
      */
     public function isUnrestricted(): bool
     {
-        return '' === $this->query && QuickFilter::All === $this->quick && [] === $this->scope && [] === $this->exclusions && '' === $this->recipient && '' === $this->subject;
+        return '' === $this->query && QuickFilter::All === $this->quick && [] === $this->scope && [] === $this->additionalScopes && [] === $this->exclusions && '' === $this->recipient && '' === $this->subject;
     }
 
     public function query(): string
@@ -90,7 +92,7 @@ final readonly class MailFilter
 
     public function withQuick(QuickFilter $quick): self
     {
-        return new self($this->query, $quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject);
+        return new self($this->query, $quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject, $this->additionalScopes);
     }
 
     /**
@@ -98,7 +100,17 @@ final readonly class MailFilter
      */
     public function withScope(array $scope): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $scope, $this->exclusions, $this->recipient, $this->subject);
+        return new self($this->query, $this->quick, $this->readLookup, $scope, $this->exclusions, $this->recipient, $this->subject, $this->additionalScopes);
+    }
+
+    /**
+     * Narrows the filter: the mail must match this scope in addition to the existing one, never instead of it.
+     *
+     * @param list<RecipientPattern> $scope
+     */
+    public function withAdditionalScope(array $scope): self
+    {
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject, [...$this->additionalScopes, $scope]);
     }
 
     /**
@@ -106,17 +118,17 @@ final readonly class MailFilter
      */
     public function withExclusions(array $exclusions): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $exclusions, $this->recipient, $this->subject);
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $exclusions, $this->recipient, $this->subject, $this->additionalScopes);
     }
 
     public function withRecipient(string $address): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, strtolower(trim($address)), $this->subject);
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, strtolower(trim($address)), $this->subject, $this->additionalScopes);
     }
 
     public function withSubject(string $needle): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $needle);
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $needle, $this->additionalScopes);
     }
 
     /**
@@ -127,16 +139,40 @@ final readonly class MailFilter
     public function visibleRecipients(Mail $mail): array
     {
         $addresses = [...$mail->to, ...$mail->cc];
-        if ([] === $this->scope) {
+        $groups = $this->scopeGroups();
+        if ([] === $groups) {
             return $addresses;
         }
 
-        return array_values(array_filter($addresses, fn (Address $address): bool => $this->anyMatches($this->scope, [$address->address])));
+        return array_values(array_filter($addresses, fn (Address $address): bool => $this->matchesEveryGroup($groups, [$address->address])));
     }
 
     private function inScope(MessageIndexEntry $entry): bool
     {
-        return [] === $this->scope || $this->anyMatches($this->scope, $entry->scopeRecipients);
+        return $this->matchesEveryGroup($this->scopeGroups(), $entry->scopeRecipients);
+    }
+
+    /**
+     * @return list<list<RecipientPattern>>
+     */
+    private function scopeGroups(): array
+    {
+        return [] === $this->scope ? $this->additionalScopes : [$this->scope, ...$this->additionalScopes];
+    }
+
+    /**
+     * @param list<list<RecipientPattern>> $groups
+     * @param list<string>                 $addresses
+     */
+    private function matchesEveryGroup(array $groups, array $addresses): bool
+    {
+        foreach ($groups as $group) {
+            if (!$this->anyMatches($group, $addresses)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function isExcluded(MessageIndexEntry $entry): bool
