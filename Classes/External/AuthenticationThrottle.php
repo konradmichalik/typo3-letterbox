@@ -21,6 +21,7 @@ use TYPO3\CMS\Core\Http\NormalizedParams;
  * AuthenticationThrottle.
  *
  * Failed authentications of both external surfaces share one bucket per client IP. Only failures consume.
+ * The limiter id is an HMAC of the IP, so no raw address is ever stored.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
@@ -41,7 +42,7 @@ final readonly class AuthenticationThrottle
     }
 
     /**
-     * A request without a known client address is always blocked.
+     * A request without a known client address, or an installation without encryption key, is always blocked.
      */
     public function isBlocked(ServerRequestInterface $request): bool
     {
@@ -59,7 +60,8 @@ final readonly class AuthenticationThrottle
     {
         $params = $request->getAttribute('normalizedParams');
         $address = $params instanceof NormalizedParams ? $params->getRemoteAddress() : '';
+        $key = (string) ($GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] ?? '');
 
-        return '' === $address ? null : $this->factory->create($address);
+        return '' === $address || '' === $key ? null : $this->factory->create(hash_hmac('sha256', $address, $key));
     }
 }

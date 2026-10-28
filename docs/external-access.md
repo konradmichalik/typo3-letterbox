@@ -60,6 +60,8 @@ Ten failed attempts from one IP within 15 minutes block that IP. After that ever
 
 A request without a cookie does not count.
 
+The counters live in the cache `typo3_letterbox_ratelimit`, keyed by an HMAC of the IP with the TYPO3 encryption key, so no IP address is stored. Expired entries are removed by TYPO3's cache garbage collection (scheduler task "Caching framework garbage collection"). Flushing all caches resets every block. Without an encryption key every request is blocked.
+
 ## Host header
 
 TYPO3 checks the `Host` header before Letterbox runs. With a wrong host and `SYS/trustedHostsPattern` set, core throws an error, not a `404`. Set `trustedHostsPattern` on every system with external access.

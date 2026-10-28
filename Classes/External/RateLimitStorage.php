@@ -29,13 +29,16 @@ use function is_string;
  */
 final readonly class RateLimitStorage implements StorageInterface
 {
+    /** Seconds on top of the state's own expiry. A lifetime of 0 would mean "never expires" to the cache. */
+    private const LIFETIME_MARGIN = 60;
+
     public function __construct(
         private FrontendInterface $cache,
     ) {}
 
     public function save(LimiterStateInterface $limiterState): void
     {
-        $this->cache->set(self::key($limiterState->getId()), serialize($limiterState), [], $limiterState->getExpirationTime());
+        $this->cache->set(self::key($limiterState->getId()), serialize($limiterState), [], max(0, $limiterState->getExpirationTime()) + self::LIFETIME_MARGIN);
     }
 
     public function fetch(string $limiterStateId): ?LimiterStateInterface

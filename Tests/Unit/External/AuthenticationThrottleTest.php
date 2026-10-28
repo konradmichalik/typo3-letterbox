@@ -31,6 +31,56 @@ final class AuthenticationThrottleTest extends TestCase
     /** @var array<string, mixed> */
     private array $cacheEntries = [];
 
+    /** @var array<string, int|null> */
+    private array $cacheLifetimes = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] = 'unit-test-encryption-key';
+    }
+
+    protected function tearDown(): void
+    {
+        unset($GLOBALS['TYPO3_CONF_VARS']);
+        parent::tearDown();
+    }
+
+    #[Test]
+    public function storedStateContainsNoClientAddress(): void
+    {
+        $throttle = $this->throttle();
+        $throttle->recordFailure($this->request('192.0.2.10'));
+        $throttle->recordFailure($this->request('2001:db8::10'));
+
+        self::assertCount(2, $this->cacheEntries);
+        foreach ($this->cacheEntries as $key => $value) {
+            foreach (['192.0.2.10', '2001:db8::10'] as $ip) {
+                self::assertStringNotContainsString($ip, $key);
+                self::assertStringNotContainsString($ip, (string) $value);
+            }
+        }
+    }
+
+    #[Test]
+    public function missingEncryptionKeyBlocks(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] = '';
+
+        self::assertTrue($this->throttle()->isBlocked($this->request('192.0.2.10')));
+    }
+
+    #[Test]
+    public function savedStateExpiresAfterTheWindow(): void
+    {
+        (new RateLimitStorage($this->cache()))->save(new SlidingWindow('letterbox-external-x', 900));
+
+        $lifetime = $this->cacheLifetimes[hash('sha256', 'letterbox-external-x')] ?? null;
+        self::assertIsInt($lifetime);
+        self::assertGreaterThan(900, $lifetime, 'outlives the window, the previous window still counts');
+        self::assertLessThanOrEqual(2 * 900 + 60, $lifetime);
+    }
+
     #[Test]
     public function tenFailuresBlockTheIp(): void
     {
@@ -106,8 +156,9 @@ final class AuthenticationThrottleTest extends TestCase
     {
         $cache = self::createStub(FrontendInterface::class);
         $cache->method('get')->willReturnCallback(fn (string $id): mixed => $this->cacheEntries[$id] ?? false);
-        $cache->method('set')->willReturnCallback(function (string $id, mixed $data): void {
+        $cache->method('set')->willReturnCallback(function (string $id, mixed $data, array $tags = [], ?int $lifetime = null): void {
             $this->cacheEntries[$id] = $data;
+            $this->cacheLifetimes[$id] = $lifetime;
         });
         $cache->method('remove')->willReturnCallback(function (string $id): bool {
             unset($this->cacheEntries[$id]);
