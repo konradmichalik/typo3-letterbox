@@ -16,7 +16,6 @@ namespace KonradMichalik\Typo3Letterbox\Mail;
 use InvalidArgumentException;
 use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 
-use function is_array;
 use function sprintf;
 
 /**
@@ -51,7 +50,7 @@ final readonly class LetterboxSettings
             throw new InvalidArgumentException('transport_letterbox_delivery must not be the Letterbox transport itself.', 1761561611);
         }
 
-        return new self($mboxFile, self::resolveMode($mail['transport_letterbox_mode'] ?? null, $context), self::parseCatch($mail['transport_letterbox_catch'] ?? []), $delivery);
+        return new self($mboxFile, self::resolveMode($mail['transport_letterbox_mode'] ?? null, $context), RecipientPattern::listFrom($mail['transport_letterbox_catch'] ?? []), $delivery);
     }
 
     private static function resolveMode(mixed $value, string $context): DeliveryMode
@@ -66,22 +65,5 @@ final readonly class LetterboxSettings
         }
 
         return $mode;
-    }
-
-    /**
-     * @return list<RecipientPattern>
-     */
-    private static function parseCatch(mixed $value): array
-    {
-        $entries = is_array($value) ? $value : explode(',', (string) $value);
-        $patterns = [];
-        foreach ($entries as $entry) {
-            $entry = trim((string) $entry);
-            if ('' !== $entry) {
-                $patterns[] = RecipientPattern::fromString($entry);
-            }
-        }
-
-        return $patterns;
     }
 }

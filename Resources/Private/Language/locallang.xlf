@@ -279,6 +279,60 @@
 			<trans-unit id="flash.deleted" resname="flash.deleted">
 				<source>Mail deleted.</source>
 			</trans-unit>
+			<trans-unit id="inbox.release" resname="inbox.release">
+				<source>Release this mail: %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.tooltip" resname="inbox.release.tooltip">
+				<source>Release to a real address</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.notice" resname="inbox.release.dialog.notice">
+				<source>This mail leaves the system. It is delivered through the real mail server to the address below. The copy in Letterbox stays.</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.subject" resname="inbox.release.dialog.subject">
+				<source>Subject</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.sentTo" resname="inbox.release.dialog.sentTo">
+				<source>Sent to</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.refusal.release_off" resname="inbox.release.refusal.release_off">
+				<source>Release is off: MAIL/transport_letterbox_release lists no addresses.</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.title" resname="inbox.release.dialog.title">
+				<source>Release mail</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.label" resname="inbox.release.dialog.label">
+				<source>Release to</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.help" resname="inbox.release.dialog.help">
+				<source>Only addresses matching the release list are accepted: %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.invalid" resname="inbox.release.dialog.invalid">
+				<source>Enter one address that matches the release list.</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.dialog.ok" resname="inbox.release.dialog.ok">
+				<source>Release mail</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.refusal.release_invalid" resname="inbox.release.refusal.release_invalid">
+				<source>Release is off: MAIL/transport_letterbox_release contains an invalid entry.</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.refusal.delivery_missing" resname="inbox.release.refusal.delivery_missing">
+				<source>Release needs a delivery transport in MAIL/transport_letterbox_delivery.</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.refusal.delivery_loops" resname="inbox.release.refusal.delivery_loops">
+				<source>Release is off: the delivery transport would hand the mail back to Letterbox, a loop.</source>
+			</trans-unit>
+			<trans-unit id="inbox.release.refusal.sender_missing" resname="inbox.release.refusal.sender_missing">
+				<source>This mail cannot be released: it has no sender address and MAIL/defaultMailFromAddress is empty.</source>
+			</trans-unit>
+			<trans-unit id="flash.released" resname="flash.released">
+				<source>Mail released to %s.</source>
+			</trans-unit>
+			<trans-unit id="flash.releaseNotAllowed" resname="flash.releaseNotAllowed">
+				<source>The mail was not released: the address is not allowed. Enter exactly one address that matches MAIL/transport_letterbox_release.</source>
+			</trans-unit>
+			<trans-unit id="flash.releaseFailed" resname="flash.releaseFailed">
+				<source>The mail could not be released. The delivery transport reported an error, see the TYPO3 log.</source>
+			</trans-unit>
 			<trans-unit id="flash.markedAllRead" resname="flash.markedAllRead">
 				<source>All mails marked as read.</source>
 			</trans-unit>

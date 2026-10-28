@@ -34,6 +34,7 @@ final readonly class MailListView
     private const ROUTE_PREVIEW = 'system_letterbox.preview';
     private const ROUTE_DELETE = 'system_letterbox.delete';
     private const ROUTE_MARK_ALL_READ = 'system_letterbox.markAllRead';
+    private const ROUTE_RELEASE = 'system_letterbox.release';
 
     public function __construct(
         private UriBuilder $uriBuilder,
@@ -79,6 +80,14 @@ final readonly class MailListView
     public function deleteUrl(InboxQuery $query): string
     {
         return (string) $this->uriBuilder->buildUriFromRoute(self::ROUTE_DELETE, $query->toParameters(['id' => null, 'tab' => null]));
+    }
+
+    /**
+     * Keeps the whole query except the mail id, which the form posts, so the redirect returns to the same mail and tab.
+     */
+    public function releaseUrl(InboxQuery $query): string
+    {
+        return (string) $this->uriBuilder->buildUriFromRoute(self::ROUTE_RELEASE, $query->toParameters(['id' => null]));
     }
 
     /**

@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Mail;
 
 use InvalidArgumentException;
 
+use function is_array;
 use function sprintf;
 
 /**
@@ -51,6 +52,25 @@ final readonly class RecipientPattern
         }
 
         return new self($normalized, false);
+    }
+
+    /**
+     * Parses a configured list, given as array or comma separated string. Blank entries are skipped.
+     *
+     * @return list<self>
+     */
+    public static function listFrom(mixed $value): array
+    {
+        $entries = is_array($value) ? $value : explode(',', (string) $value);
+        $patterns = [];
+        foreach ($entries as $entry) {
+            $entry = trim((string) $entry);
+            if ('' !== $entry) {
+                $patterns[] = self::fromString($entry);
+            }
+        }
+
+        return $patterns;
     }
 
     /**
