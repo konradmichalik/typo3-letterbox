@@ -33,4 +33,4 @@ Mails are delivered as without Letterbox. `transport_mbox_file` is still require
 
 ## Personal data
 
-Caught mails can contain personal data of testers and test users. The mbox file keeps their full content, including recipients, and is not deleted automatically. Keep the file outside the web root, restrict access to it and clear it regularly in the module.
+Caught mails can contain personal data of testers and test users. The mbox file keeps their full content, including recipients. [Retention](operations.md#retention) removes old mails (by default beyond 500 mails or after 30 days), the file itself stays. Keep the file outside the web root, restrict access to it and clear it regularly in the module.

@@ -57,10 +57,6 @@ TYPO3 checks the `Host` header before Letterbox runs. With a wrong host and `SYS
 
 Everyone with the link can read the reset link of a backend user. Set `BE/passwordResetForAdmins` to `false` so administrators cannot request a reset mail, or `BE/passwordReset` to `false` to turn the reset off.
 
-## Upgrading
-
-Earlier versions issued tester links per recipient, kept them in the table `tx_typo3letterbox_tester_link` and read the API token from `LETTERBOX_API_TOKEN`. Rename the variable to `LETTERBOX_ACCESS_TOKEN`. Old tester links and cookies stop working, share the new inbox link instead. The database analyzer in Admin Tools, or `typo3 database:updateschema destructive`, offers to drop the old table. Flush the caches afterwards.
-
 ## DDEV
 
 `.ddev/config.yaml` sets `LETTERBOX_EXTERNAL_ACCESS=Development`. Put the token only in the git-ignored `.ddev/config.local.yaml` and run `ddev restart`:

@@ -17,14 +17,14 @@ Two limits keep the file from growing without end. Both are [extension settings]
 * Files written by EXT:mbox have local time in that line, but Letterbox reads it as UTC. For such mails the age can be off by the UTC offset of the server that wrote them.
 * A mail without a readable arrival time counts towards `maxMessages` but is never removed for its age.
 * Pruning runs right after the transport has written a caught mail, and only when a limit is crossed. Mails that are not caught do not trigger it, and neither does opening the module. If pruning fails, the mail stays caught, the failure is logged as a warning and the send does not fail.
-* After a caught mail the count may exceed `maxMessages` by a slack of 10 percent, at least 1 mail (551 for the default of 500). Only the next mail beyond that cuts the file back to exactly `maxMessages`, so a full mailbox is rewritten once per 50 mails instead of for every mail. The age limit has no slack, it removes all expired mails at once.
+* After a caught mail the count may exceed `maxMessages` by a slack of 10 percent, at least 1 mail: with the default of 500 the file grows up to 550 mails, and the 551st cuts it back to exactly `maxMessages`. A full mailbox is therefore rewritten once per 51 mails instead of for every mail. The age limit has no slack, it removes all expired mails at once.
 * [`letterbox:prune`](#letterboxprune) applies the limits exactly, without the slack, on demand and can run in the Scheduler, for example to apply a lowered limit or to age out a file that receives no new mails.
 
 The meta line of the [backend module](backend-module.md) shows the active limits, for example "keeps 500 mails or 30 days". It shows nothing when both are `0`.
 
 ### Upgrading
 
-Installs from before retention, and installs that switch from EXT:mbox, get the defaults of 500 mails and 30 days. The first mail caught after the upgrade applies them to the existing file, including one written by EXT:mbox: mails older than 30 days are removed right away, and a file with more than 550 mails is cut to the newest 500. To keep every mail, set both limits to `0` before that first mail, in Admin Tools > Settings > Extension Configuration > `typo3_letterbox` or in `config/system/additional.php`:
+Installs that switch from EXT:mbox get the defaults of 500 mails and 30 days. The first mail caught after the upgrade applies them to the existing file, including one written by EXT:mbox: mails older than 30 days are removed right away, and a file with more than 550 mails is cut to the newest 500. To keep every mail, set both limits to `0` before that first mail, in Admin Tools > Settings > Extension Configuration > `typo3_letterbox` or in `config/system/additional.php`:
 
 ```php
 $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxMessages'] = '0';

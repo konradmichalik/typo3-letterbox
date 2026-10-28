@@ -122,9 +122,6 @@ final class ExternalAccessGuardTest extends TestCase
             self::assertSame('', $guard->token(), $token);
             self::assertSame('', $guard->testerLinkSecret(), $token);
         }
-
-        $legacy = $this->guard(['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_API_TOKEN' => self::TOKEN]);
-        self::assertSame([ExternalAccessState::TOKEN_MISSING], $legacy->status()->reasons, 'the old variable name is not read');
     }
 
     #[Test]
