@@ -25,8 +25,4 @@ return [
         'provider' => SvgIconProvider::class,
         'source' => 'EXT:typo3_letterbox/Resources/Public/Icons/'.$moduleIcon,
     ],
-    'letterbox-toolbar' => [
-        'provider' => SvgIconProvider::class,
-        'source' => 'EXT:typo3_letterbox/Resources/Public/Icons/letterbox-toolbar.svg',
-    ],
 ];

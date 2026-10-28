@@ -97,6 +97,17 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function dropdownShowsTotalAndUnreadWithTheCoreEnvelopeIcon(): void
+    {
+        $this->append('First');
+        $this->append('Second');
+        $this->markRead('Second');
+
+        self::assertStringContainsString('2 mails, 1 unread', $this->item()->getDropDown());
+        self::assertStringContainsString('actions-envelope', $this->item()->getItem());
+    }
+
+    #[Test]
     public function noBadgeWithoutUnread(): void
     {
         $this->append('Only');

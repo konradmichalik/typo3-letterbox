@@ -132,6 +132,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
             'listed' => DeliveryMode::Listed === $settings?->mode,
             'catchCount' => null === $settings ? 0 : count($settings->catch),
             'count' => 0,
+            'total' => 0,
             'mails' => [],
             'moduleEnabled' => '0' !== (string) $this->setting('enableBackendModule', '1'),
             'openUrl' => '',
@@ -143,6 +144,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
         try {
             $readIds = $this->readState->readIds();
             $variables['count'] = $this->mailRepository->count(MailFilter::create('', QuickFilter::Unread, $readIds));
+            $variables['total'] = $this->mailRepository->count(MailFilter::all());
             $variables['mails'] = $this->latestMails($variables['moduleEnabled'], array_flip($readIds));
             $variables['openUrl'] = $variables['moduleEnabled'] ? (string) $this->uriBuilder->buildUriFromRoute('system_letterbox') : '';
             $variables['configured'] = true;

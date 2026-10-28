@@ -492,6 +492,12 @@
 			<trans-unit id="toolbar.unread.other" resname="toolbar.unread.other">
 				<source>%s, %d unread mails</source>
 			</trans-unit>
+			<trans-unit id="toolbar.summary.one" resname="toolbar.summary.one">
+				<source>1 mail, %d unread</source>
+			</trans-unit>
+			<trans-unit id="toolbar.summary.other" resname="toolbar.summary.other">
+				<source>%d mails, %d unread</source>
+			</trans-unit>
 			<trans-unit id="toolbar.heading" resname="toolbar.heading">
 				<source>Letterbox</source>
 			</trans-unit>
