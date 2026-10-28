@@ -83,7 +83,9 @@ final readonly class MessageParser
 
     public function summarize(string $raw, MessageSpan $span, ?DateTimeImmutable $received = null): MessageIndexEntry
     {
-        $message = $this->message($raw);
+        // The index needs only headers, so the parser gets the header block and never copies a large body.
+        $headerEnd = strpos($raw, "\n\n");
+        $message = $this->message(false === $headerEnd ? $raw : substr($raw, 0, $headerEnd + 2));
 
         // Lowercase address => display name, the first non-empty name wins.
         $names = [];
@@ -118,7 +120,7 @@ final readonly class MessageParser
             array_map(static fn (string $address, string $name): string => '' !== $name ? $name : $address, $recipients, array_values($names)),
             array_map(strval(...), array_keys($scope)),
             $message->getSubject() ?? '',
-            $message->getAttachmentCount(),
+            AttachmentCounter::count($raw) ?? $this->message($raw)->getAttachmentCount(),
             $received,
             $message->getHeaderValue('Message-ID') ?? '',
             $listed['To'],
