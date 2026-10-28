@@ -14,7 +14,7 @@ It cycles through five mails from `sender@example.org` to `recipient@example.com
 
 ## `--count`
 
-Number of mails to send, default `5`. Values below 1 send one mail.
+Number of mails to send, default `5`, a whole number from 1 to 100. Anything else exits with code `2`.
 
 ```bash
 vendor/bin/typo3 letterbox:testmails:send --count 10

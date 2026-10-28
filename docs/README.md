@@ -5,6 +5,7 @@
 | [Configuration](configuration.md) | Transport settings and extension settings |
 | [Delivery modes](delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
 | [Backend module](backend-module.md) | Search, filters, tabs, preview, navigation, delete and clear |
+| [Operations](operations.md) | Retention, console commands, toolbar item, Reports status and dashboard widget |
 | [External access](external-access.md) | Activation, guard reasons, IP allowlist, throttle, tester links and the tester inbox |
 | [JSON API](api.md) | Endpoints, authentication, response shape, Playwright example |
 | [Test mails](test-mails.md) | Console command `letterbox:testmails:send` |
