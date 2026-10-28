@@ -15,8 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Command;
 
 use KonradMichalik\Typo3Letterbox\Command\PruneCommand;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
-use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
+use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use Symfony\Component\Console\Tester\CommandTester;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -133,28 +132,15 @@ final class PruneCommandTest extends MailboxCommandTestCase
         foreach (['One', 'Two', 'Three'] as $subject) {
             $this->addMail($subject);
         }
-        $this->get(MailRepository::class)->count(MailFilter::all());
+        // A repository of its own builds the cached index, so the command's repository has not read it yet.
+        $this->get(MailRepositoryFactory::class)->forPath($this->path)->count(MailFilter::all());
         // Index entries whose IDs no longer match the file look like a rewrite by another process on every attempt.
         $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
-        $key = 'v7_'.hash('sha256', $this->path);
+        $key = 'v8_'.hash('sha256', $this->path);
         $cached = $cache->get($key);
         self::assertIsArray($cached);
-        $cached['entries'] = array_map(
-            static fn (MessageIndexEntry $entry): MessageIndexEntry => new MessageIndexEntry(
-                $entry->span,
-                str_repeat('0', 32),
-                $entry->date,
-                $entry->sender,
-                $entry->fromName,
-                $entry->recipients,
-                $entry->recipientLabels,
-                $entry->recipientAddresses,
-                $entry->subject,
-                $entry->attachmentCount,
-                $entry->received,
-            ),
-            $cached['entries'],
-        );
+        // Index 2 of a cached row is the mail id.
+        $cached['entries'] = array_map(static fn (array $row): array => array_replace($row, [2 => str_repeat('0', 32)]), $cached['entries']);
         $cache->set($key, $cached);
 
         $tester = $this->tester();

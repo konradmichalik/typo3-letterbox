@@ -17,7 +17,8 @@ use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MboxFormat, MessageI
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
+use TYPO3\CMS\Core\Cache\Frontend\{FrontendInterface, VariableFrontend};
 
 /**
  * MailIndexTest.
@@ -58,8 +59,44 @@ final class MailIndexTest extends TestCase
         self::assertSame([null, '2026-10-07 10:42:00 UTC', '2026-11-03 10:00:00 UTC', '2026-11-02 10:00:00 UTC', '2026-11-01 10:00:00 UTC'], $received);
     }
 
-    private function index(): MailIndex
+    #[Test]
+    public function theCacheHoldsPlainArraysThatRestoreTheSameEntries(): void
     {
+        file_put_contents($this->path, ExtMboxFixture::contents()."From a@example.org Wed Oct  7 10:42:00 2026\nDate: Fri, 1 Jan 2016 00:00:00 +0000\nFrom: \"Shop\" <shop@example.org>\nTo: Anna <anna@example.org>\nCc: b@example.org\nSubject: Last\n\nbody\n\n");
+        $cache = new VariableFrontend('letterbox_test', new TransientMemoryBackend());
+
+        $built = $this->index($cache)->entries();
+        $stored = $cache->get('v8_'.hash('sha256', $this->path));
+        $restored = $this->index($cache)->entries();
+
+        self::assertIsArray($stored);
+        self::assertStringNotContainsString('O:', serialize($stored['entries']));
+        self::assertEquals($built, $restored);
+        self::assertSame('2016-01-01T00:00:00+00:00', $restored[0]->date?->format(\DATE_ATOM));
+        self::assertSame('2026-10-07 10:42:00 UTC', $restored[0]->received?->format('Y-m-d H:i:s e'));
+    }
+
+    #[Test]
+    public function entriesAreReadFromTheCacheOncePerFileState(): void
+    {
+        file_put_contents($this->path, ExtMboxFixture::contents());
+        $cache = $this->createMock(FrontendInterface::class);
+        $cache->expects(self::exactly(2))->method('get')->willReturn(false);
+        $index = $this->index($cache);
+
+        $first = $index->entries();
+        self::assertSame($first, $index->entries());
+        file_put_contents($this->path, "From a@example.org Wed Oct  7 10:42:00 2026\nSubject: More\n\nbody\n\n", \FILE_APPEND);
+
+        self::assertCount(4, $index->entries());
+    }
+
+    private function index(?FrontendInterface $cache = null): MailIndex
+    {
+        if (null !== $cache) {
+            return new MailIndex(new Mailbox($this->path, new MboxFormat()), new MessageParser(), $cache);
+        }
+
         $cache = $this->createMock(FrontendInterface::class);
         $cache->method('get')->willReturn(false);
 
