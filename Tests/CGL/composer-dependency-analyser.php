@@ -35,6 +35,8 @@ $configuration
         $rootPath.'/Tests/CGL',
     ])
     ->ignoreErrorsOnPackage('typo3/cms-core', [ErrorType::UNUSED_DEPENDENCY])
+    // Required for the external access middlewares and the tester inbox cookie, which follow in later phase 3 tasks.
+    ->ignoreErrorsOnPackages(['symfony/http-foundation', 'typo3/cms-frontend'], [ErrorType::UNUSED_DEPENDENCY])
 ;
 
 return $configuration;

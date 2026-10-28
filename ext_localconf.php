@@ -20,3 +20,9 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['typo3_lett
     'frontend' => VariableFrontend::class,
     'backend' => SimpleFileBackend::class,
 ];
+
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['typo3_letterbox_ratelimit'] ??= [
+    'frontend' => VariableFrontend::class,
+    'backend' => SimpleFileBackend::class,
+    'groups' => ['system'],
+];

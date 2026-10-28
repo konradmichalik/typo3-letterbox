@@ -20,8 +20,11 @@
 	"require": {
 		"php": "~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
 		"masterminds/html5": "^2.10.0",
+		"symfony/http-foundation": "^7.4.19",
+		"symfony/rate-limiter": "^7.4.8",
 		"typo3/cms-backend": "^13.4 || ^14.0",
 		"typo3/cms-core": "^13.4 || ^14.0",
+		"typo3/cms-frontend": "^13.4 || ^14.0",
 		"zbateson/mail-mime-parser": "^4.0.7"
 	},
 	"require-dev": {
