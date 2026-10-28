@@ -281,3 +281,16 @@
 .letterbox-spinner[hidden] {
   display: none;
 }
+
+/* Forced colors drop backgrounds: the unread dot keeps a system colour and the selected row gets an outline. */
+@media (forced-colors: active) {
+  .letterbox-unread {
+    background-color: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .letterbox-list .list-group-item.active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
