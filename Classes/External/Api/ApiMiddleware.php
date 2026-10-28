@@ -19,6 +19,8 @@ use KonradMichalik\Typo3Letterbox\External\{ExternalAccessGuard, ExternalRespons
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 
 use function array_slice;
@@ -50,6 +52,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
         private MailJson $mailJson,
         private DownloadResponseFactory $downloads,
         private ResponseFactoryInterface $responseFactory,
+        private LoggerInterface $logger,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -154,7 +157,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
     {
         return match (true) {
             [] === $action && 'GET' === $method => $this->detail($id, $filter),
-            [] === $action && 'DELETE' === $method => $this->repository->delete($id, $filter) ? $this->noContent() : null,
+            [] === $action && 'DELETE' === $method => $this->delete($id, $filter),
             ['source'] === $action && 'GET' === $method => $this->source($id, $filter),
             2 === count($action) && 'attachments' === $action[0] && 'GET' === $method => $this->attachment($id, $action[1], $filter),
             default => null,
@@ -210,11 +213,34 @@ final readonly class ApiMiddleware implements MiddlewareInterface
         return null === $attachment ? null : $this->downloads->attachment($attachment);
     }
 
+    private function delete(string $id, MailFilter $filter): ?ResponseInterface
+    {
+        try {
+            return $this->repository->delete($id, $filter) ? $this->noContent() : null;
+        } catch (RuntimeException $e) {
+            return $this->writeFailed($e);
+        }
+    }
+
     private function deleteAll(): ResponseInterface
     {
-        $this->repository->clear();
+        try {
+            $this->repository->clear();
+        } catch (RuntimeException $e) {
+            return $this->writeFailed($e);
+        }
 
         return $this->noContent();
+    }
+
+    /**
+     * The message names the absolute mailbox path, so neither the client nor the log gets it.
+     */
+    private function writeFailed(RuntimeException $e): ResponseInterface
+    {
+        $this->logger->error('The API could not change the mailbox: {exception}', ['exception' => $e::class]);
+
+        return $this->responses->json(['error' => 'write_failed'], 500);
     }
 
     private function noContent(): ResponseInterface

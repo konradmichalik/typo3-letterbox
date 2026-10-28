@@ -31,6 +31,8 @@ Apache with PHP-FPM or CGI drops the `Authorization` header unless you add `CGIP
 | `DELETE messages/{id}` | `204`, or `404` when the mail does not exist |
 | `DELETE messages` | `204`, the mbox file is cleared |
 
+When the mbox file cannot be changed, for example because it is not writable, both `DELETE` requests answer `500 {"error":"write_failed"}`. TYPO3 logs the exception class at error level, never the message, because it names the file path.
+
 Query parameters of `GET messages`:
 
 | Parameter | Meaning |

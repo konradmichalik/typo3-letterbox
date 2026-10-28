@@ -24,6 +24,8 @@ use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\{AbstractLogger, LoggerInterface, NullLogger};
+use Stringable;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
@@ -310,6 +312,42 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function writeErrorsAreAGeneric500WithoutThePath(): void
+    {
+        $this->append('One', 'anna@example.org');
+        $id = $this->mails()[0]->id;
+        $logger = new class extends AbstractLogger {
+            /** @var list<string> */
+            public array $lines = [];
+
+            public function log($level, string|Stringable $message, array $context = []): void
+            {
+                $this->lines[] = $level.' '.strtr((string) $message, ['{exception}' => (string) ($context['exception'] ?? '')]);
+            }
+        };
+        $api = $this->middleware(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN], $logger);
+        chmod($this->path, 0444);
+
+        try {
+            foreach (['/_letterbox/api/v1/messages/'.$id, '/_letterbox/api/v1/messages'] as $path) {
+                $response = $this->send($api, $path, 'DELETE');
+
+                self::assertSame(500, $response->getStatusCode(), $path);
+                self::assertSame('{"error":"write_failed"}', (string) $response->getBody(), $path);
+                self::assertSame('application/json; charset=utf-8', $response->getHeaderLine('Content-Type'));
+                self::assertSame(self::API_CSP, $response->getHeaderLine('Content-Security-Policy'));
+                self::assertSame('no-store, private', $response->getHeaderLine('Cache-Control'));
+                self::assertSame('nosniff', $response->getHeaderLine('X-Content-Type-Options'));
+            }
+        } finally {
+            chmod($this->path, 0644);
+        }
+
+        self::assertSame(array_fill(0, 2, 'error The API could not change the mailbox: RuntimeException'), $logger->lines);
+        self::assertCount(1, $this->mails());
+    }
+
+    #[Test]
     public function rootProductionApiIs404(): void
     {
         $this->append('Live', 'anna@example.org');
@@ -365,7 +403,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     /**
      * @param array<string, string> $environment
      */
-    private function middleware(array $environment = ['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN]): ApiMiddleware
+    private function middleware(array $environment = ['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN], LoggerInterface $logger = new NullLogger()): ApiMiddleware
     {
         $responseFactory = new ResponseFactory();
         $streamFactory = new StreamFactory();
@@ -377,6 +415,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
             new MailJson(),
             new DownloadResponseFactory($responseFactory, $streamFactory, new MboxFormat()),
             $responseFactory,
+            $logger,
         );
     }
 
