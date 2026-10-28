@@ -80,6 +80,14 @@ final readonly class MailHtmlDocument
     }
 
     /**
+     * The parsed HTML part for read-only inspection, null under the same limits as build().
+     */
+    public function parse(Mail $mail): ?DOMDocument
+    {
+        return $this->load($mail)[1] ?? null;
+    }
+
+    /**
      * Content IDs of cid: references in the HTML part that no inline image part answers. Matching is strict
      * (RFC 2392), so the preview shows nothing for them. Capped so a hostile mail cannot flood the callout.
      *

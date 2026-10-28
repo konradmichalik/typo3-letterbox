@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Controller;
 
 use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Backend\{InboxQuery, MailListView, ReadState, RetentionText};
+use KonradMichalik\Typo3Letterbox\Check\{Finding, MailChecker, Severity, SiteHosts};
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
@@ -42,6 +43,7 @@ use TYPO3\CMS\Core\Pagination\SlidingWindowPagination;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function count;
 use function in_array;
 use function is_array;
 use function is_string;
@@ -84,6 +86,8 @@ final readonly class InboxController
         private MailListView $mailListView,
         private BackendViewFactory $backendViewFactory,
         private MailRelease $mailRelease,
+        private MailChecker $mailChecker,
+        private SiteHosts $siteHosts,
     ) {}
 
     public function indexAction(ServerRequestInterface $request): ResponseInterface
@@ -292,9 +296,12 @@ final readonly class InboxController
         $htmlDocument = $skipDocument ? '' : $this->htmlDocument->build($mail);
         $hasPreview = $skipDocument ? $this->htmlDocument->canBuild($mail) : '' !== $htmlDocument;
         $hasHtml = '' !== trim($mail->html);
+        $findings = $this->mailChecker->check($mail, $this->siteHosts->all());
 
         return $this->mailListView->previewControls($query) + [
             'mail' => $mail,
+            'findings' => $findings,
+            'findingCount' => count(array_filter($findings, static fn (Finding $finding): bool => Severity::Info !== $finding->severity)),
             'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
             'hasHtml' => $hasHtml,
             'htmlDocument' => $htmlDocument,
@@ -361,7 +368,7 @@ final readonly class InboxController
 
     private function defaultTab(?string $requested, bool $hasHtml, bool $hasPreview): string
     {
-        $available = $hasHtml ? ['html', 'text', 'headers', 'source', 'links', 'attachments'] : ['text', 'headers', 'source', 'links', 'attachments'];
+        $available = $hasHtml ? ['html', 'text', 'headers', 'source', 'links', 'checks', 'attachments'] : ['text', 'headers', 'source', 'links', 'checks', 'attachments'];
         if (null !== $requested && in_array($requested, $available, true)) {
             return $requested;
         }

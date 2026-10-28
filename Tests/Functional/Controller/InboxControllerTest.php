@@ -1011,6 +1011,51 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function checksTabListsFindingsBySeverity(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Checks\nMIME-Version: 1.0\nContent-Type: text/html; charset=utf-8\n\n<html><body><img src=\"a.png\"><form action=\"/x\"></form><a href=\"http://example.org/x\">x</a></body></html>\n");
+
+        $body = $this->show($this->firstId(), ['tab' => 'checks']);
+
+        self::assertMatchesRegularExpression('/id="letterbox-tab-checks"[^>]*aria-selected="true"/', $body);
+        self::assertMatchesRegularExpression('/id="letterbox-pane-checks" role="tabpanel"/', $body);
+        $text = (string) preg_replace('/\s+/', ' ', strip_tags($body));
+        self::assertStringContainsString('Rule based checks of this mail. Nothing is fetched from the network.', $text);
+        self::assertSame(1, preg_match_all('/<li class="card">\s*<div class="card-body[^"]*">\s*<span class="badge badge-danger">/', $body));
+        self::assertLessThan(strpos($text, 'Warning'), strpos($text, 'Error'));
+        self::assertLessThan(strpos($text, 'Info'), strpos($text, 'Warning'));
+        foreach (['The HTML part contains a form.', '1 image has no alt text.', 'The mail has no plain-text part.', '1 link uses http instead of https.', 'The html element has no lang attribute.'] as $message) {
+            self::assertStringContainsString($message, $text, $message);
+        }
+        self::assertStringContainsString('<code>&lt;img src=&quot;a.png&quot;&gt;</code>', $body);
+        self::assertStringContainsString('Warning', $text);
+    }
+
+    #[Test]
+    public function checksTabCountsErrorsAndWarnings(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Counts\nMIME-Version: 1.0\nContent-Type: text/html; charset=utf-8\n\n<html><body><img src=\"a.png\"><form></form></body></html>\n");
+
+        $body = $this->show($this->firstId());
+
+        preg_match_all('/<button[^>]*role="tab"[^>]*>(.*?)<\/button>/s', $body, $labels);
+        $labels = array_map(static fn (string $label): string => trim((string) preg_replace('/\s+/', ' ', $label)), $labels[1]);
+        self::assertContains('Checks (3)', $labels);
+        self::assertSame('Links (0)', $labels[(int) array_search('Checks (3)', $labels, true) - 1]);
+    }
+
+    #[Test]
+    public function checksTabShowsEmptyStateAndNoCount(): void
+    {
+        $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Clean\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\n\nPlain body\n");
+
+        $body = $this->show($this->firstId(), ['tab' => 'checks']);
+
+        self::assertStringContainsString('No findings.', (string) preg_replace('/\s+/', ' ', strip_tags($body)));
+        self::assertMatchesRegularExpression('/id="letterbox-tab-checks"[^>]*>\s*Checks\s*<\/button>/', $body);
+    }
+
+    #[Test]
     public function allHeadersLinkOpensHeadersTab(): void
     {
         $this->append('Linked');
@@ -1034,7 +1079,7 @@ final class InboxControllerTest extends FunctionalTestCase
         $body = $this->show($this->firstId());
 
         preg_match_all('/<button[^>]*role="tab"[^>]*>(.*?)<\/button>/s', $body, $labels);
-        self::assertSame(['HTML', 'Text', 'Headers', 'Source', 'Links (0)', 'Attachments (1)'], array_map(static fn (string $label): string => trim((string) preg_replace('/\s+/', ' ', $label)), $labels[1]));
+        self::assertSame(['HTML', 'Text', 'Headers', 'Source', 'Links (0)', 'Checks (1)', 'Attachments (1)'], array_map(static fn (string $label): string => trim((string) preg_replace('/\s+/', ' ', $label)), $labels[1]));
     }
 
     #[Test]

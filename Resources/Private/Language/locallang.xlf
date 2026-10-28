@@ -132,6 +132,78 @@
 			<trans-unit id="inbox.tab.links" resname="inbox.tab.links">
 				<source>Links</source>
 			</trans-unit>
+			<trans-unit id="inbox.tab.checks" resname="inbox.tab.checks">
+				<source>Checks</source>
+			</trans-unit>
+			<trans-unit id="inbox.checks.intro" resname="inbox.checks.intro">
+				<source>Rule based checks of this mail. Nothing is fetched from the network.</source>
+			</trans-unit>
+			<trans-unit id="inbox.checks.empty" resname="inbox.checks.empty">
+				<source>No findings.</source>
+			</trans-unit>
+			<trans-unit id="inbox.checks.severity.error" resname="inbox.checks.severity.error">
+				<source>Error</source>
+			</trans-unit>
+			<trans-unit id="inbox.checks.severity.warning" resname="inbox.checks.severity.warning">
+				<source>Warning</source>
+			</trans-unit>
+			<trans-unit id="inbox.checks.severity.info" resname="inbox.checks.severity.info">
+				<source>Info</source>
+			</trans-unit>
+			<trans-unit id="check.html_size" resname="check.html_size">
+				<source>The HTML part is larger than 102 KB, Gmail clips it.</source>
+			</trans-unit>
+			<trans-unit id="check.missing_text" resname="check.missing_text">
+				<source>The mail has no plain-text part.</source>
+			</trans-unit>
+			<trans-unit id="check.img_alt.one" resname="check.img_alt.one">
+				<source>1 image has no alt text.</source>
+			</trans-unit>
+			<trans-unit id="check.img_alt.other" resname="check.img_alt.other">
+				<source>%d images have no alt text.</source>
+			</trans-unit>
+			<trans-unit id="check.missing_lang" resname="check.missing_lang">
+				<source>The html element has no lang attribute.</source>
+			</trans-unit>
+			<trans-unit id="check.http_link.one" resname="check.http_link.one">
+				<source>1 link uses http instead of https.</source>
+			</trans-unit>
+			<trans-unit id="check.http_link.other" resname="check.http_link.other">
+				<source>%d links use http instead of https.</source>
+			</trans-unit>
+			<trans-unit id="check.remote_image.one" resname="check.remote_image.one">
+				<source>1 image loads from a remote host.</source>
+			</trans-unit>
+			<trans-unit id="check.remote_image.other" resname="check.remote_image.other">
+				<source>%d images load from remote hosts.</source>
+			</trans-unit>
+			<trans-unit id="check.remote_image.one.tracking" resname="check.remote_image.one.tracking">
+				<source>1 image loads from a remote host and looks like a tracking pixel.</source>
+			</trans-unit>
+			<trans-unit id="check.remote_image.other.tracking_one" resname="check.remote_image.other.tracking_one">
+				<source>%d images load from remote hosts, 1 looks like a tracking pixel.</source>
+			</trans-unit>
+			<trans-unit id="check.remote_image.other.tracking_other" resname="check.remote_image.other.tracking_other">
+				<source>%d images load from remote hosts, %d look like tracking pixels.</source>
+			</trans-unit>
+			<trans-unit id="check.script_or_form.script" resname="check.script_or_form.script">
+				<source>The HTML part contains a script.</source>
+			</trans-unit>
+			<trans-unit id="check.script_or_form.form" resname="check.script_or_form.form">
+				<source>The HTML part contains a form.</source>
+			</trans-unit>
+			<trans-unit id="check.script_or_form.iframe" resname="check.script_or_form.iframe">
+				<source>The HTML part contains an iframe.</source>
+			</trans-unit>
+			<trans-unit id="check.script_or_form.object" resname="check.script_or_form.object">
+				<source>The HTML part contains an object.</source>
+			</trans-unit>
+			<trans-unit id="check.script_or_form.embed" resname="check.script_or_form.embed">
+				<source>The HTML part contains an embed.</source>
+			</trans-unit>
+			<trans-unit id="check.from_not_site_domain" resname="check.from_not_site_domain">
+				<source>The From domain %s is not a domain of this TYPO3 installation.</source>
+			</trans-unit>
 			<trans-unit id="inbox.tab.attachments" resname="inbox.tab.attachments">
 				<source>Attachments</source>
 			</trans-unit>

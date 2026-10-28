@@ -17,6 +17,7 @@ The module is under System › Letterbox and is available to administrators only
   * Headers: the main headers, with an "All headers" link
   * Source: the raw message, which can be downloaded
   * Links: every link in the mail with copy and open buttons. Password reset links are flagged.
+  * Checks: rule based findings, sorted error, warning, info, each with a short excerpt. The tab counts errors and warnings. Rules: HTML part over 102 KB (Gmail clips it), no plain-text part, images without `alt`, no `lang` on the `html` element, `http:` links, remote images (with possible tracking pixels), `script`, `form`, `iframe`, `object` or `embed` in the HTML part, and a From domain that is not a domain of any TYPO3 site (skipped when no site exists; subdomains of a site host match). Nothing is fetched from the network. A HTML part over the parser limits only gets the size and text based rules.
   * Attachments: each attachment can be downloaded
 * The meta line above the list shows the mbox file, the number and size of the mails and the [retention limits](operations.md#retention).
 * The preview width can be switched between desktop (full width), tablet (520px) and mobile (360px).

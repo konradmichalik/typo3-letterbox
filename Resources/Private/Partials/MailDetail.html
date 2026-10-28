@@ -71,6 +71,7 @@
             <f:render section="Tab" arguments="{name: 'headers', defaultTab: defaultTab}" />
             <f:render section="Tab" arguments="{name: 'source', defaultTab: defaultTab}" />
             <f:render section="Tab" arguments="{name: 'links', defaultTab: defaultTab, showCount: 1, count: '{mail.links -> f:count()}'}" />
+            <f:render section="Tab" arguments="{name: 'checks', defaultTab: defaultTab, showCount: findingCount, count: findingCount}" />
             <f:render section="Tab" arguments="{name: 'attachments', defaultTab: defaultTab, showCount: 1, count: '{mail.attachments -> f:count()}'}" />
         </ul>
         <div class="tab-content">
@@ -221,6 +222,31 @@
                     <f:else><p class="text-variant mt-3"><f:translate key="inbox.noLinks" extensionName="Typo3Letterbox" /></p></f:else>
                 </f:if>
             </div>
+            <div class="tab-pane{f:if(condition: '{defaultTab} == \'checks\'', then: ' active')}" id="letterbox-pane-checks" role="tabpanel" aria-labelledby="letterbox-tab-checks" tabindex="0">
+                <p class="text-variant mt-3"><f:translate key="inbox.checks.intro" extensionName="Typo3Letterbox" /></p>
+                <f:if condition="{findings}">
+                    <f:then>
+                        <ul class="list-unstyled d-grid gap-2">
+                            <f:for each="{findings}" as="finding">
+                                <li class="card">
+                                    <div class="card-body d-flex align-items-start gap-3">
+                                        <f:switch expression="{finding.severity.value}">
+                                            <f:case value="error"><f:render section="FindingBadge" arguments="{severity: 'error', badge: 'danger', icon: 'actions-exclamation-circle'}" /></f:case>
+                                            <f:case value="warning"><f:render section="FindingBadge" arguments="{severity: 'warning', badge: 'warning', icon: 'actions-exclamation-triangle'}" /></f:case>
+                                            <f:defaultCase><f:render section="FindingBadge" arguments="{severity: 'info', badge: 'info', icon: 'actions-info-circle'}" /></f:defaultCase>
+                                        </f:switch>
+                                        <div class="flex-grow-1 text-break">
+                                            <div class="fw-semibold"><f:translate key="{finding.message}" extensionName="Typo3Letterbox" arguments="{finding.arguments}" /></div>
+                                            <f:if condition="{finding.excerpt}"><code>{finding.excerpt}</code></f:if>
+                                        </div>
+                                    </div>
+                                </li>
+                            </f:for>
+                        </ul>
+                    </f:then>
+                    <f:else><p class="text-variant"><f:translate key="inbox.checks.empty" extensionName="Typo3Letterbox" /></p></f:else>
+                </f:if>
+            </div>
             <div class="tab-pane{f:if(condition: '{defaultTab} == \'attachments\'', then: ' active')}" id="letterbox-pane-attachments" role="tabpanel" aria-labelledby="letterbox-tab-attachments" tabindex="0">
                 <f:if condition="{mail.attachments}">
                     <f:then>
@@ -321,6 +347,13 @@
         </f:else>
     </f:if>
 </f:section>
+<f:section name="FindingBadge">
+    <span class="badge badge-{badge} d-inline-flex align-items-center gap-1">
+        <span aria-hidden="true"><core:icon identifier="{icon}" /></span>
+        <f:translate key="inbox.checks.severity.{severity}" extensionName="Typo3Letterbox" />
+    </span>
+</f:section>
+
 <f:section name="Tab">
     <li class="nav-item" role="presentation">
         <button

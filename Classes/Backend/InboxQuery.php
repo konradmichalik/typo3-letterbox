@@ -31,7 +31,7 @@ final readonly class InboxQuery
 {
     public const MAX_QUERY_LENGTH = 200;
     private const MAIL_ID_PATTERN = '/^[0-9a-f]{32}$/D';
-    private const TABS = ['html', 'text', 'headers', 'source', 'links', 'attachments'];
+    private const TABS = ['html', 'text', 'headers', 'source', 'links', 'checks', 'attachments'];
     private const WIDTHS = ['desktop', 'tablet', 'mobile'];
     private const DEFAULT_WIDTH = 'desktop';
     private const VIEWS = ['preview', 'code'];
