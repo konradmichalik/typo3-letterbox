@@ -11,16 +11,28 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-use KonradMichalik\Typo3Letterbox\Command\SendTestMailsCommand;
+use KonradMichalik\Typo3Letterbox\Command\{ClearCommand, ListCommand, SendTestMailsCommand, ShowCommand};
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 return static function (ContainerConfigurator $container, ContainerBuilder $containerBuilder): void {
+    $services = $container->services();
+
+    // TYPO3 13 has no #[AsNonSchedulableCommand], so these commands are tagged by hand instead of autoconfigured.
+    $commands = [
+        ListCommand::class => ['letterbox:list', 'List the caught mails, newest first'],
+        ShowCommand::class => ['letterbox:show', 'Print one part of a caught mail'],
+        ClearCommand::class => ['letterbox:clear', 'Delete every caught mail'],
+    ];
+    foreach ($commands as $class => [$name, $description]) {
+        $services->set($class)->autowire()->tag('console.command', ['command' => $name, 'description' => $description, 'schedulable' => false]);
+    }
+
     if ('1' !== (string) ($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['debugMode'] ?? '0')) {
         return;
     }
 
-    $container->services()->set(SendTestMailsCommand::class)
+    $services->set(SendTestMailsCommand::class)
         ->autowire()
         ->tag('console.command', ['command' => 'letterbox:testmails:send', 'schedulable' => false]);
 };

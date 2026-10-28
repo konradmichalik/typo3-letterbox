@@ -6,7 +6,11 @@ services:
 
   KonradMichalik\Typo3Letterbox\:
     resource: '../Classes/*'
-    exclude: '../Classes/Command/*'
+    exclude:
+      - '../Classes/Command/SendTestMailsCommand.php'
+      - '../Classes/Command/ListCommand.php'
+      - '../Classes/Command/ShowCommand.php'
+      - '../Classes/Command/ClearCommand.php'
 
   cache.typo3_letterbox_index:
     class: TYPO3\CMS\Core\Cache\Frontend\FrontendInterface
