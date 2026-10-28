@@ -254,6 +254,22 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function codeIsShownWhenNoPreviewCanBeBuilt(): void
+    {
+        $this->append('Huge', '<p><b>x</b></p>'.str_repeat('<!-- padding -->', 140000));
+
+        $body = $this->show($this->firstId());
+
+        self::assertStringNotContainsString('<iframe', $body);
+        self::assertStringNotContainsString('name="view"', $body);
+        self::assertStringContainsString('<pre class="letterbox-text letterbox-code"><code>&lt;p&gt;&lt;b&gt;x&lt;/b&gt;&lt;/p&gt;', $body);
+        self::assertGreaterThan(
+            (int) strpos($body, 'id="letterbox-pane-html"'),
+            (int) strpos($body, 'letterbox-code'),
+        );
+    }
+
+    #[Test]
     public function codeViewIsNotCarriedToOtherMails(): void
     {
         $this->append('One', '<p>One</p>');
