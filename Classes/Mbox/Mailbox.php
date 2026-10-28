@@ -68,6 +68,16 @@ final readonly class Mailbox
 
     public function read(MessageSpan $span): string
     {
+        return $this->readWithReceived($span)[0];
+    }
+
+    /**
+     * Reads the message and its arrival time from the separator line in one pass.
+     *
+     * @return array{0: string, 1: ?DateTimeImmutable}
+     */
+    public function readWithReceived(MessageSpan $span): array
+    {
         $handle = $this->isReadable() ? fopen($this->path, 'r') : false;
         if (false === $handle) {
             throw new RuntimeException(sprintf('Cannot open mailbox "%s" for reading.', $this->path), 2941090058);
@@ -82,25 +92,14 @@ final readonly class Mailbox
 
         $bytes = false === $bytes ? '' : $bytes;
         $separatorEnd = strpos($bytes, "\n");
-
-        return $this->format->decode(false === $separatorEnd ? '' : substr($bytes, $separatorEnd + 1));
-    }
-
-    public function received(MessageSpan $span): ?DateTimeImmutable
-    {
-        $handle = $this->isReadable() ? fopen($this->path, 'r') : false;
-        if (false === $handle) {
-            return null;
+        if (false === $separatorEnd) {
+            return [$this->format->decode(''), null];
         }
 
-        try {
-            fseek($handle, $span->offset);
-            $separator = fgets($handle);
-        } finally {
-            fclose($handle);
-        }
-
-        return false === $separator ? null : $this->format->received($separator);
+        return [
+            $this->format->decode(substr($bytes, $separatorEnd + 1)),
+            $this->format->received(substr($bytes, 0, $separatorEnd + 1)),
+        ];
     }
 
     public function fingerprint(): string

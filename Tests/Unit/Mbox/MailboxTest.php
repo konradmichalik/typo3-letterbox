@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Mbox\{Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageSpan};
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
@@ -150,6 +151,20 @@ final class MailboxTest extends TestCase
         $box = new Mailbox($path, new MboxFormat());
 
         self::assertSame($raw, $box->read(iterator_to_array($box->spans(), false)[0]));
+    }
+
+    #[Test]
+    public function readWithReceivedReturnsTheMessageAndTheSeparatorTime(): void
+    {
+        $path = $this->tempPath();
+        $raw = "Subject: x\n\nbody\n";
+        $this->writer($path)->append('a@example.org', new DateTimeImmutable('2026-10-27 10:00:05', new DateTimeZone('UTC')), $raw);
+        $box = new Mailbox($path, new MboxFormat());
+
+        [$message, $received] = $box->readWithReceived(iterator_to_array($box->spans(), false)[0]);
+
+        self::assertSame($raw, $message);
+        self::assertSame('2026-10-27 10:00:05', $received?->format('Y-m-d H:i:s'));
     }
 
     #[Test]

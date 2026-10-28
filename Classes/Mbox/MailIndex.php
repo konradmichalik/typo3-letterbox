@@ -113,7 +113,8 @@ final readonly class MailIndex
             if ($span->offset >= $untilOffset) {
                 break;
             }
-            $entries[] = $this->parser->summarize($this->mailbox->read($span), $span, $this->mailbox->received($span));
+            [$message, $received] = $this->mailbox->readWithReceived($span);
+            $entries[] = $this->parser->summarize($message, $span, $received);
         }
 
         return $entries;
