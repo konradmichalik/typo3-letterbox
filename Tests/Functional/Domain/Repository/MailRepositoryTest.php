@@ -16,6 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Domain\Repository;
 use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
+use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry, MessageParser};
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\Test;
@@ -159,10 +160,10 @@ final class MailRepositoryTest extends FunctionalTestCase
         }
         $two = $this->repository->find(MailFilter::all(), 1, 1)[0];
 
-        self::assertTrue($this->repository->delete($two->id));
+        self::assertTrue($this->repository->delete($two->id, MailFilter::all()));
 
         self::assertSame(['three', 'one'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
-        self::assertFalse($this->repository->delete($two->id));
+        self::assertFalse($this->repository->delete($two->id, MailFilter::all()));
     }
 
     #[Test]
@@ -172,7 +173,7 @@ final class MailRepositoryTest extends FunctionalTestCase
         self::assertSame(['Third', 'Second', 'First'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
         $second = $this->repository->find(MailFilter::all(), 1, 1)[0];
 
-        self::assertTrue($this->repository->delete($second->id));
+        self::assertTrue($this->repository->delete($second->id, MailFilter::all()));
 
         self::assertSame(['Third', 'First'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
     }
@@ -253,6 +254,53 @@ final class MailRepositoryTest extends FunctionalTestCase
         $counts = $this->repository->quickFilterCounts(MailFilter::create('reset', QuickFilter::Unread, [$readId]));
 
         self::assertSame(['all' => 3, 'unread' => 2, 'attachments' => 2], $counts);
+    }
+
+    #[Test]
+    public function deleteRespectsFilter(): void
+    {
+        $this->appendTo('inside', 'anna@customer.example');
+        $this->appendTo('outside', 'bob@other.example');
+        $scope = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+        $outside = $this->repository->find(MailFilter::all(), 0, 1)[0];
+        $before = file_get_contents($this->path);
+
+        self::assertFalse($this->repository->delete($outside->id, $scope));
+        self::assertSame($before, file_get_contents($this->path));
+        self::assertTrue($this->repository->delete($this->repository->find($scope, 0, 1)[0]->id, $scope));
+        self::assertSame(['outside'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
+    }
+
+    #[Test]
+    public function deleteMatchingRemovesOnlyMatching(): void
+    {
+        $this->appendTo('one', 'anna@customer.example');
+        $this->appendTo('two', 'bob@other.example');
+        $this->appendTo('three', 'carl@customer.example');
+        $scope = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+
+        self::assertSame(2, $this->repository->deleteMatching($scope));
+
+        self::assertSame(['two'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
+        self::assertSame(0, $this->repository->deleteMatching($scope));
+    }
+
+    #[Test]
+    public function latestReturnsNewestMatching(): void
+    {
+        $this->appendTo('old', 'anna@customer.example');
+        $this->appendTo('newest other', 'bob@other.example');
+        $scope = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+
+        self::assertSame('old', $this->repository->latest($scope)?->subject);
+        self::assertSame('newest other', $this->repository->latest(MailFilter::all())?->subject);
+        self::assertNull($this->repository->latest(MailFilter::all()->withRecipient('nobody@example.org')));
+    }
+
+    private function appendTo(string $subject, string $to): void
+    {
+        $raw = "From: s@example.org\nTo: {$to}\nSubject: {$subject}\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\n\nbody\n";
+        $this->writer->append('s@example.org', new DateTimeImmutable('2026-10-27 10:00:00'), $raw);
     }
 
     private function append(string $subject): void

@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Domain\Model;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Mail, MailFilter, QuickFilter};
+use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, MessageSpan};
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -99,6 +100,75 @@ final class MailFilterTest extends TestCase
         self::assertFalse($filter->matches($this->entry('abc', 'a@example.com', '', ['b@example.com'], 'r')));
     }
 
+    #[Test]
+    public function scopeMatchesAnyScopeRecipient(): void
+    {
+        $filter = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+
+        self::assertTrue($filter->matches($this->scoped('Hello', ['x@example.org', 'Anna@Customer.example'], ['x@example.org', 'anna@customer.example'])));
+        self::assertFalse($filter->matches($this->scoped('Hello', ['x@example.org'], ['x@example.org'])));
+        self::assertTrue(MailFilter::all()->withScope([])->matches($this->entry()));
+    }
+
+    #[Test]
+    public function scopeIgnoresDisplayNamesAndBccHeader(): void
+    {
+        $filter = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+        $entry = $this->scoped('Hello', ['evil@example.org', 'anna@customer.example'], ['evil@example.org'], ['anna@customer.example', 'anna@customer.example']);
+
+        self::assertFalse($filter->matches($entry));
+    }
+
+    #[Test]
+    public function exclusionHidesMailWhenAnyRecipientIncludingBccMatches(): void
+    {
+        $filter = MailFilter::all()->withExclusions([RecipientPattern::fromString('vip@example.org')]);
+
+        self::assertFalse($filter->matches($this->scoped('Hello', ['b@example.com', 'vip@example.org'], ['b@example.com'])));
+        self::assertTrue($filter->matches($this->scoped('Hello', ['b@example.com'], ['b@example.com'])));
+    }
+
+    #[Test]
+    public function recipientAndSubjectFiltersCombineWithScope(): void
+    {
+        $filter = MailFilter::all()
+            ->withScope([RecipientPattern::fromString('*@customer.example')])
+            ->withRecipient('Anna@customer.example')
+            ->withSubject('RESET');
+        $match = $this->scoped('Password reset', ['anna@customer.example'], ['anna@customer.example']);
+
+        self::assertTrue($filter->matches($match));
+        self::assertFalse($filter->matches($this->scoped('Welcome', ['anna@customer.example'], ['anna@customer.example'])));
+        self::assertFalse($filter->matches($this->scoped('Password reset', ['bob@customer.example'], ['bob@customer.example'])));
+        self::assertFalse($filter->matches($this->scoped('Password reset', ['anna@other.example'], ['anna@other.example'])));
+    }
+
+    #[Test]
+    public function visibleRecipientsMasksOthers(): void
+    {
+        $mail = new Mail(
+            'id', 'mid', 'Hello', null, null,
+            [new Address('anna@customer.example', 'Anna'), new Address('evil@example.org', 'anna@customer.example')],
+            [new Address('Bob@Customer.example')],
+            [], [], '', '', [], [], 0, '', [],
+        );
+
+        $visible = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')])->visibleRecipients($mail);
+
+        self::assertSame(['anna@customer.example', 'Bob@Customer.example'], array_map(static fn (Address $a): string => $a->address, $visible));
+        self::assertCount(3, MailFilter::all()->visibleRecipients($mail));
+    }
+
+    /**
+     * @param list<string>      $recipients
+     * @param list<string>      $scopeRecipients
+     * @param list<string>|null $labels          defaults to the recipients
+     */
+    private function scoped(string $subject, array $recipients, array $scopeRecipients, ?array $labels = null): MessageIndexEntry
+    {
+        return new MessageIndexEntry(new MessageSpan(0, 10), 'id', null, 'a@example.com', '', $recipients, $labels ?? $recipients, $scopeRecipients, $subject, 0);
+    }
+
     /**
      * @param list<string> $recipients
      * @param list<string> $recipientLabels
@@ -112,6 +182,6 @@ final class MailFilterTest extends TestCase
         int $attachmentCount = 0,
         array $recipientLabels = ['b@example.com'],
     ): MessageIndexEntry {
-        return new MessageIndexEntry(new MessageSpan(0, 10), $id, null, $sender, $fromName, $recipients, $recipientLabels, $subject, $attachmentCount);
+        return new MessageIndexEntry(new MessageSpan(0, 10), $id, null, $sender, $fromName, $recipients, $recipientLabels, $recipients, $subject, $attachmentCount);
     }
 }

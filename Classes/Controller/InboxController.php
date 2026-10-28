@@ -176,7 +176,7 @@ final readonly class InboxController
 
         $listUrl = $this->mailListView->url(InboxQuery::fromRequest($request), ['id' => null, 'tab' => null]);
         try {
-            $deleted = $this->repository->delete($id);
+            $deleted = $this->repository->delete($id, MailFilter::all());
         } catch (RuntimeException) {
             return $this->redirectWithFlash('flash.deleteFailed', ContextualFeedbackSeverity::ERROR, $listUrl);
         }

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Domain\Repository;
 
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail, MailFilter, QuickFilter};
-use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxWriter, MessageIndexEntry, MessageParser};
+use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxWriter, MessageIndexEntry, MessageParser, MessageSpan};
 use RuntimeException;
 
 use function array_slice;
@@ -119,15 +119,42 @@ final readonly class MailRepository
         return null;
     }
 
-    public function delete(string $id): bool
+    public function delete(string $id, MailFilter $filter): bool
     {
-        foreach ($this->index->entries() as $entry) {
+        foreach ($this->matching($filter) as $entry) {
             if ($entry->id === $id) {
                 return $this->writer->remove([$entry->span], fn (): bool => $this->isCurrent($entry));
             }
         }
 
         return false;
+    }
+
+    /**
+     * @return int the number of removed mails
+     */
+    public function deleteMatching(MailFilter $filter): int
+    {
+        $entries = $this->matching($filter);
+        $removed = $this->writer->remove(
+            array_map(static fn (MessageIndexEntry $entry): MessageSpan => $entry->span, $entries),
+            function () use ($entries): bool {
+                foreach ($entries as $entry) {
+                    if (!$this->isCurrent($entry)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+        );
+
+        return $removed ? count($entries) : 0;
+    }
+
+    public function latest(MailFilter $filter): ?Mail
+    {
+        return $this->find($filter, 0, 1)[0] ?? null;
     }
 
     public function clear(): void

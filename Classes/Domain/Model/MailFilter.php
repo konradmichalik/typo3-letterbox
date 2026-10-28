@@ -13,7 +13,11 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Domain\Model;
 
+use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
+
+use function in_array;
+use function strtolower;
 
 /**
  * MailFilter.
@@ -23,12 +27,18 @@ use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
 final readonly class MailFilter
 {
     /**
-     * @param array<string, int> $readLookup read ids as keys, so the unread check is a hash lookup
+     * @param array<string, int>     $readLookup read ids as keys, so the unread check is a hash lookup
+     * @param list<RecipientPattern> $scope      at least one To, Cc or envelope recipient must match, empty means unrestricted
+     * @param list<RecipientPattern> $exclusions no recipient, Bcc included, may match
      */
     private function __construct(
         private string $query,
         private QuickFilter $quick,
         private array $readLookup,
+        private array $scope = [],
+        private array $exclusions = [],
+        private string $recipient = '',
+        private string $subject = '',
     ) {}
 
     public static function all(): self
@@ -47,6 +57,9 @@ final readonly class MailFilter
 
     public function matches(MessageIndexEntry $entry): bool
     {
+        if (!$this->inScope($entry) || $this->isExcluded($entry) || !$this->recipientAndSubjectMatch($entry)) {
+            return false;
+        }
         if (QuickFilter::Unread === $this->quick && isset($this->readLookup[$entry->id])) {
             return false;
         }
@@ -69,7 +82,84 @@ final readonly class MailFilter
 
     public function withQuick(QuickFilter $quick): self
     {
-        return new self($this->query, $quick, $this->readLookup);
+        return new self($this->query, $quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject);
+    }
+
+    /**
+     * @param list<RecipientPattern> $scope
+     */
+    public function withScope(array $scope): self
+    {
+        return new self($this->query, $this->quick, $this->readLookup, $scope, $this->exclusions, $this->recipient, $this->subject);
+    }
+
+    /**
+     * @param list<RecipientPattern> $exclusions
+     */
+    public function withExclusions(array $exclusions): self
+    {
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $exclusions, $this->recipient, $this->subject);
+    }
+
+    public function withRecipient(string $address): self
+    {
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, strtolower(trim($address)), $this->subject);
+    }
+
+    public function withSubject(string $needle): self
+    {
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $needle);
+    }
+
+    /**
+     * The To and Cc addresses of a mail that fall into the scope, all of them when the scope is unrestricted.
+     *
+     * @return list<Address>
+     */
+    public function visibleRecipients(Mail $mail): array
+    {
+        $addresses = [...$mail->to, ...$mail->cc];
+        if ([] === $this->scope) {
+            return $addresses;
+        }
+
+        return array_values(array_filter($addresses, fn (Address $address): bool => $this->anyMatches($this->scope, [$address->address])));
+    }
+
+    private function inScope(MessageIndexEntry $entry): bool
+    {
+        return [] === $this->scope || $this->anyMatches($this->scope, $entry->scopeRecipients);
+    }
+
+    private function isExcluded(MessageIndexEntry $entry): bool
+    {
+        return [] !== $this->exclusions && $this->anyMatches($this->exclusions, $entry->recipients);
+    }
+
+    private function recipientAndSubjectMatch(MessageIndexEntry $entry): bool
+    {
+        if ('' !== $this->recipient && !in_array($this->recipient, $entry->scopeRecipients, true)) {
+            return false;
+        }
+
+        return '' === $this->subject || false !== mb_stripos($entry->subject, $this->subject);
+    }
+
+    /**
+     * @param list<RecipientPattern> $patterns
+     * @param list<string>           $addresses
+     */
+    private function anyMatches(array $patterns, array $addresses): bool
+    {
+        foreach ($addresses as $address) {
+            foreach ($patterns as $pattern) {
+                if ($pattern->matches($address)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function queryMatches(MessageIndexEntry $entry): bool

@@ -165,6 +165,15 @@ final class MessageParserTest extends TestCase
         self::assertCount(count($entry->recipients), $entry->recipientLabels);
     }
 
+    #[Test]
+    public function summarizeKeepsBccOutOfScopeRecipients(): void
+    {
+        $entry = (new MessageParser())->summarize($this->fixture('html-with-attachment.eml'), new MessageSpan(0, 10));
+
+        self::assertSame(['one@example.org', 'two@example.org', 'cc@example.org', 'envelope@example.org'], $entry->scopeRecipients);
+        self::assertContains('hidden@example.org', $entry->recipients);
+    }
+
     /**
      * @return list<MailLink>
      */

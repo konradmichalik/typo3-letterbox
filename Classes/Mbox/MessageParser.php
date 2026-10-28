@@ -70,16 +70,22 @@ final readonly class MessageParser
 
         // Lowercase address => display name, the first non-empty name wins.
         $names = [];
+        $scope = [];
         foreach (['To', 'Cc', 'Bcc'] as $header) {
             foreach ($this->addresses($message, $header) as $address) {
                 $key = strtolower($address->address);
                 $names[$key] = ($names[$key] ?? '') ?: trim($address->name);
+                if ('Bcc' !== $header) {
+                    $scope[$key] = true;
+                }
             }
         }
         foreach (explode(',', $message->getHeaderValue(self::ENVELOPE_HEADER) ?? '') as $address) {
-            $names[strtolower(trim($address))] ??= '';
+            $key = strtolower(trim($address));
+            $names[$key] ??= '';
+            $scope[$key] = true;
         }
-        unset($names['']);
+        unset($names[''], $scope['']);
         $recipients = array_map(strval(...), array_keys($names));
 
         $from = $this->addresses($message, 'From')[0] ?? new Address('');
@@ -92,6 +98,7 @@ final readonly class MessageParser
             $from->name,
             $recipients,
             array_map(static fn (string $address, string $name): string => '' !== $name ? $name : $address, $recipients, array_values($names)),
+            array_map(strval(...), array_keys($scope)),
             $message->getSubject() ?? '',
             $message->getAttachmentCount(),
         );
