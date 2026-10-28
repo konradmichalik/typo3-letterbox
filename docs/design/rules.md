@@ -111,7 +111,6 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 - Landmarks: `header`, `main`, `h1` for the page, `h2` for the list and for the subject.
 - A detected reset link is offered at the top of the mail ("Open reset link").
 - Touch targets at least 44px. Works down to 320px wide without horizontal scrolling.
-- It states whose mails the visitor sees and until when the link is valid.
 
 ## Illustration
 
@@ -138,7 +137,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 - English in the code and the XLIFF source; translations through XLIFF.
 - Sentence case for labels and buttons.
-- Names: Letterbox, Mail inbox, External access, Tester link, Catch list, Delivery mode.
+- Names: Letterbox, Mail inbox, External access, Tester inbox, Access token, Catch list, Delivery mode.
 - Separate facts with ` · `.
 
 ## Pull request checklist

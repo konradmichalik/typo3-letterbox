@@ -32,11 +32,9 @@ See [external access](external-access.md) for what the page controls.
 The "External access" button in the doc header opens `system_letterbox.access`, also admin only. It shows:
 
 * Whether external access is on. When it is off, each reason says what to change, for example which value `LETTERBOX_EXTERNAL_ACCESS` needs.
-* The tester links with scope, expiry, creator and state. "Revoke" asks for confirmation and takes effect immediately.
-* A form to create a tester link: a label and recipient patterns (one per line, at least one). Every link is read-only and valid for 7 days.
-* Whether the API token is configured (at least 32 characters), with a `curl` example. The token itself is never shown.
-
-The URL of a new link (`<site URL>_letterbox/inbox?t=<token>`) appears once, in the response to the create form, and is not stored or put in a flash message. Letterbox keeps only a hash of the token, so a lost link cannot be shown again and has to be revoked and replaced.
+* Whether `LETTERBOX_ACCESS_TOKEN` is configured (at least 32 characters). The token itself is never shown.
+* The tester inbox URL without the token, the API base URL and a `curl` example with a placeholder token.
+* A reminder that testers get `<inbox URL>?t=<token>` and that changing the token revokes access for everyone.
 
 ## Navigation without reload
 

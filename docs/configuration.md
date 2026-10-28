@@ -41,7 +41,6 @@ Set in Admin Tools > Settings > Extension Configuration.
 | `maxMessages` | integer | `500` | Keep at most this many mails, the oldest are removed after a new mail is caught. `0` for no limit. See [retention](operations.md#retention). |
 | `maxAgeDays` | integer | `30` | Remove mails older than this many days after a new mail is caught. `0` for no limit. |
 | `showToolbarItem` | boolean | `1` | Shows the [toolbar item](operations.md#toolbar-item) to administrators while Letterbox catches mails. |
-| `externalExcludedRecipients` | string | empty | Comma separated addresses or `*@domain` patterns. A mail with a matching recipient, Bcc included, is hidden from the API and the tester inbox. An invalid entry switches [external access](external-access.md#excluded-recipients) off. |
 
 Flush the caches after changing `debugMode` or `enableBackendModule`.
 

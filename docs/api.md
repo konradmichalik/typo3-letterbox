@@ -2,20 +2,20 @@
 
 Back to [documentation overview](README.md).
 
-A token-protected, read-mostly API for end-to-end tests, for example to fetch the password reset link of a mail. It needs [external access](external-access.md) to be on and `LETTERBOX_API_TOKEN` to be set (at least 32 characters).
+A token-protected, read-mostly API for end-to-end tests, for example to fetch the password reset link of a mail. It needs [external access](external-access.md) to be on, which includes `LETTERBOX_ACCESS_TOKEN` (at least 32 characters). The tester inbox uses the same token. Every client with the token sees and can delete every caught mail of the system.
 
-Every endpoint sits below `<site URL>_letterbox/api/v1/`. On an install in a sub-directory the prefix follows the TYPO3 path, for example `https://example.org/sub/_letterbox/api/v1/`. The API sets no CORS headers and answers every refusal with `404 {"error":"not_found"}`, whether the cause is a wrong token, a blocked IP or an inactive guard.
+Every endpoint sits below `<site URL>_letterbox/api/v1/`. On an install in a sub-directory the prefix follows the TYPO3 path, for example `https://example.org/sub/_letterbox/api/v1/`. The API sets no CORS headers and answers every refusal with `404 {"error":"not_found"}`, whether the cause is a wrong token or an inactive guard.
 
 ## Authentication
 
 Send the token in a header, either one:
 
 ```bash
-curl -H "Authorization: Bearer $LETTERBOX_API_TOKEN" "https://example.org/_letterbox/api/v1/messages/latest?to=anna@example.org"
-curl -H "X-Letterbox-Token: $LETTERBOX_API_TOKEN" "https://example.org/_letterbox/api/v1/messages?limit=5"
+curl -H "Authorization: Bearer $LETTERBOX_ACCESS_TOKEN" "https://example.org/_letterbox/api/v1/messages/latest?to=anna@example.org"
+curl -H "X-Letterbox-Token: $LETTERBOX_ACCESS_TOKEN" "https://example.org/_letterbox/api/v1/messages?limit=5"
 ```
 
-A token in the query string is never accepted and counts as a failed attempt, as do a missing or wrong token. Ten failures within 15 minutes block the IP, see [failed attempts](external-access.md#failed-attempts).
+A token in the query string is never accepted, even a correct one, because query strings end up in logs. Letterbox does not limit failed attempts, so use a long random token.
 
 Apache with PHP-FPM or CGI drops the `Authorization` header unless you add `CGIPassAuth On` to the vhost or `.htaccess`. `X-Letterbox-Token` avoids that, and is also the choice behind basic auth, which uses `Authorization` itself.
 
@@ -26,10 +26,10 @@ Apache with PHP-FPM or CGI drops the `Authorization` header unless you add `CGIP
 | `GET messages` | `{"total": 1, "items": [summary]}`, newest first |
 | `GET messages/latest?to=` | Summary of the newest matching mail, `404` when there is none |
 | `GET messages/{id}` | Detail |
-| `GET messages/{id}/source` | The raw message as `application/octet-stream`, `404` in root `Production` |
+| `GET messages/{id}/source` | The raw message as `application/octet-stream` |
 | `GET messages/{id}/attachments/{index}` | The attachment as `application/octet-stream` |
-| `DELETE messages/{id}` | `204`, or `404` when the mail does not exist or is not visible |
-| `DELETE messages` | `204`, or `409 {"error":"conflict"}`, see below |
+| `DELETE messages/{id}` | `204`, or `404` when the mail does not exist |
+| `DELETE messages` | `204`, the mbox file is cleared |
 
 Query parameters of `GET messages`:
 
@@ -41,8 +41,6 @@ Query parameters of `GET messages`:
 | `offset` | 0 to 1000000, default 0 |
 
 `messages/latest` takes `to` only. An invalid value (a non-number, a value out of range, an array) answers `404`. Ids are 32 lowercase hex characters, paths take no trailing slash.
-
-`DELETE messages` clears the mbox file when nothing restricts the view. When [excluded recipients](external-access.md#excluded-recipients) or the Production catch list apply, it deletes only the mails the API can see. If the file changed while deleting so that none of them could be removed, the answer is `409 {"error":"conflict"}` and nothing is deleted. Send the request again.
 
 ## Response shape
 
@@ -67,15 +65,13 @@ A summary:
 
 The detail adds `text`, `html`, `headers` (an object of header name to list of values) and `attachments` (`index`, `filename`, `mimeType`, `size`, `contentId`). `date` and `from` can be `null`. `to` and `cc` list every recipient, Bcc is not part of the shape. Invalid UTF-8 in a mail is substituted, so the JSON is always valid.
 
-In root `Production`, where only the [catch list](external-access.md#production) is visible, live co-recipients stay hidden: `to` and `cc` list only the caught addresses, the detail has no `headers` and `source` answers `404`. In every other context the shape is complete.
-
 ## Example with Playwright
 
 The goal: one suite that runs against DDEV Mailpit locally and against Letterbox on stage. The helper hides which one is behind it, the test does not know. Because every refusal is a `404`, a wrong token looks like a mail that never arrives: the helper then ends in its timeout.
 
 ### Helper: `e2e/mailbox.ts`
 
-Set `LETTERBOX_URL` and `LETTERBOX_API_TOKEN` on stage, `MAILPIT_URL` in DDEV (for example `https://example.ddev.site:8026`). The Mailpit calls follow its API: `GET /api/v1/search?query=to:...` and `GET /api/v1/message/{ID}`, see the [endpoint reference](https://github.com/axllent/mailpit/blob/develop/_autodocs/endpoints.md).
+Set `LETTERBOX_URL` and `LETTERBOX_ACCESS_TOKEN` on stage, `MAILPIT_URL` in DDEV (for example `https://example.ddev.site:8026`). The Mailpit calls follow its API: `GET /api/v1/search?query=to:...` and `GET /api/v1/message/{ID}`, see the [endpoint reference](https://github.com/axllent/mailpit/blob/develop/_autodocs/endpoints.md).
 
 ```ts
 export type Link = { url: string; isPasswordReset: boolean };
@@ -149,7 +145,7 @@ function mailpit(baseUrl: string) {
 
 export const mails = process.env.MAILPIT_URL
   ? mailpit(process.env.MAILPIT_URL)
-  : letterbox(process.env.LETTERBOX_URL!, process.env.LETTERBOX_API_TOKEN!);
+  : letterbox(process.env.LETTERBOX_URL!, process.env.LETTERBOX_ACCESS_TOKEN!);
 ```
 
 ### Test: `e2e/password-reset.spec.ts`

@@ -19,11 +19,11 @@ The rules behind these screens are in [rules.md](rules.md). The previews are exp
 | Empty inbox (light) | Inbox without mails | Illustration, heading, sentence, Reload and the debug hint in place of both columns | <a href="screens/08-empty-inbox.png"><img src="screens/08-empty-inbox.png" width="200" alt="Empty inbox, light"></a> |
 | Empty inbox (dark) | Same in dark mode | The illustration follows the theme | <a href="screens/09-empty-inbox-dark.png"><img src="screens/09-empty-inbox-dark.png" width="200" alt="Empty inbox, dark"></a> |
 | No mail selected | Inbox, nothing opened | The 150px illustration, `h2` "No mail selected" and one sentence in the detail column | <a href="screens/11-no-mail-selected.png"><img src="screens/11-no-mail-selected.png" width="200" alt="No mail selected"></a> |
-| External access | Sub page of the module | Status card, tester links table, create link form, API card with example | <a href="screens/05-external-access.png"><img src="screens/05-external-access.png" width="200" alt="External access"></a> |
+| External access | Sub page of the module | Status card with token state, card with inbox URL, API URL and example. The screenshot still shows the earlier tester links table and form | <a href="screens/05-external-access.png"><img src="screens/05-external-access.png" width="200" alt="External access"></a> |
 
 ## Outside the backend and system surfaces
 
 | Board | Screen | What it settles | Preview |
 | --- | --- | --- | --- |
-| Tester inbox | Page for testers without a backend account | Header, scope note, list, reset link callout, view switch, 44px targets | <a href="screens/06-tester-inbox.png"><img src="screens/06-tester-inbox.png" width="200" alt="Tester inbox"></a> |
+| Tester inbox | Page for testers without a backend account | Header, list, reset link callout, view switch, 44px targets. The scope note in the screenshot is gone | <a href="screens/06-tester-inbox.png"><img src="screens/06-tester-inbox.png" width="200" alt="Tester inbox"></a> |
 | Toolbar item, dashboard widget, status | Toolbar dropdown, "Recent mails" widget, reports entry | Wording, admin-only content, warning severity | <a href="screens/07-toolbar-widget-status.png"><img src="screens/07-toolbar-widget-status.png" width="200" alt="Toolbar item, dashboard widget and status"></a> |

@@ -28,7 +28,7 @@ Catches TYPO3 mails in an mbox file and shows them in the backend, for local, st
 * [Backend module](docs/backend-module.md) under System › Letterbox with search, quick filters, per-user unread state, detail tabs (HTML, text, headers, source, links, attachments) and delete
 * Sandboxed HTML preview with a width switch (desktop, tablet, mobile) that blocks remote images until you load them per mail
 * Collapsible mail list and navigation without page reload, with a full-page fallback when JavaScript is off
-* [External access](docs/external-access.md), off by default: a token-protected [JSON API](docs/api.md) for end-to-end tests and a read-only tester inbox opened through revocable links
+* [External access](docs/external-access.md) for test systems, off by default and always off in root `Production`: a token-protected [JSON API](docs/api.md) for end-to-end tests and a read-only tester inbox. Everyone with the link sees all caught mails of the system
 * [Retention](docs/operations.md#retention) that keeps the file small (500 mails or 30 days by default), and [console commands](docs/operations.md#console-commands) to list, show, clear and prune mails
 * [Admin signals](docs/operations.md#toolbar-item): a toolbar item with the unread count, a Reports status and a dashboard widget (the last two need `typo3/cms-reports` and `typo3/cms-dashboard`)
 * [Test mail command](docs/test-mails.md) for development (`letterbox:testmails:send`, needs `debugMode`)
@@ -80,7 +80,7 @@ Then open System › Letterbox as an administrator. Outside the exact root conte
 | [Delivery modes](docs/delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
 | [Backend module](docs/backend-module.md) | Search, filters, tabs, preview, navigation, delete and clear |
 | [Operations](docs/operations.md) | Retention, console commands, toolbar item, Reports status and dashboard widget |
-| [External access](docs/external-access.md) | Activation, guard reasons, IP allowlist, throttle, tester links and the tester inbox |
+| [External access](docs/external-access.md) | Activation, the shared token, guard reasons and the tester inbox |
 | [JSON API](docs/api.md) | Endpoints, authentication, response shape, Playwright example |
 | [Test mails](docs/test-mails.md) | Console command `letterbox:testmails:send` |
 | [Migration from EXT:mbox](docs/migration-from-mbox.md) | Switching from `t3/mbox` to Letterbox |

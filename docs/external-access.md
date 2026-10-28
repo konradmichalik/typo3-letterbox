@@ -4,63 +4,43 @@ Back to [documentation overview](README.md).
 
 Letterbox can answer outside the backend: a [JSON API](api.md) for automated tests and a read-only inbox for testers without a backend account. Both are off until you switch them on, and every refusal is an empty-looking `404`, so a scanner cannot tell the surface exists.
 
+> [!WARNING]
+> Everyone with the inbox link or the token sees every caught mail of that system, including password reset links. External access is meant for test systems without real data. It is always off in the root context `Production`.
+
 ## Activation
 
 Set these in the process environment of the web server or PHP, not in `additional.php`.
 
-| Variable | Required | Meaning |
-|----------|----------|---------|
-| `LETTERBOX_EXTERNAL_ACCESS` | Yes | Must equal the exact application context, for example `Production/Staging`. Any other value, including a context that only starts the same, keeps access off. |
-| `LETTERBOX_EXTERNAL_ALLOWED_IPS` | No | Comma separated client IPs, CIDR ranges and octet wildcards such as `10.0.*.*`. Unset allows every address. |
-| `LETTERBOX_API_TOKEN` | For the API | At least 32 characters. Without it the API stays off, the tester inbox is unaffected. |
+| Variable | Meaning |
+|----------|---------|
+| `LETTERBOX_EXTERNAL_ACCESS` | Must equal the exact application context, for example `Production/Staging`. Any other value, including a context that only starts the same, keeps access off. |
+| `LETTERBOX_ACCESS_TOKEN` | The shared secret of the API and the tester inbox, at least 32 characters. Without it, or when it is shorter, both stay off. |
 
 ```bash
 LETTERBOX_EXTERNAL_ACCESS=Production/Staging
-LETTERBOX_EXTERNAL_ALLOWED_IPS=203.0.113.0/24,198.51.100.7
+LETTERBOX_ACCESS_TOKEN=$(openssl rand -hex 32)
 ```
 
-Access also needs the Letterbox transport in `MAIL/transport`, HTTPS, and valid settings. If anything is missing, the page "External access" in the backend names each reason and what to change. The keys below are the reasons it shows.
+Access also needs the Letterbox transport in `MAIL/transport` and HTTPS. If anything is missing, the page "External access" in the backend names each reason and what to change. The keys below are the reasons it shows.
 
 | Reason | Cause | What to do |
 |--------|-------|------------|
 | `env_missing` | `LETTERBOX_EXTERNAL_ACCESS` is unset or empty | Set it to the current context |
 | `env_context_mismatch` | The value differs from the context | Set it to exactly the context shown |
+| `production` | The context is the root context `Production` | Nothing, external access is never on there. Use a test system with its own context such as `Production/Staging` |
 | `transport_not_letterbox` | `MAIL/transport` is not the Letterbox transport | See [configuration](configuration.md#transport) |
-| `mail_settings_invalid` | The delivery mode or catch list is invalid | Fix the `transport_letterbox_*` keys |
-| `production_requires_listed` | Root `Production` without delivery mode `listed` | Set `transport_letterbox_delivery` as described in [Production](#production) |
-| `catch_list_empty` | Root `Production`, mode `listed`, empty catch list | Add the addresses to catch |
-| `exclusions_invalid` | `externalExcludedRecipients` holds an invalid entry | Fix the [setting](#excluded-recipients) |
-| `ip_not_allowed` | The allowlist holds a catch-all entry, is empty after trimming, or does not contain the client address | List the real ranges, see [IP allowlist](#ip-allowlist) |
+| `token_missing` | `LETTERBOX_ACCESS_TOKEN` is unset or shorter than 32 characters | Set a random secret of at least 32 characters |
 | `https_required` | The request came in over plain HTTP | Open the site over HTTPS |
 
-## Production
+## Tester inbox
 
-In the exact root context `Production`, external access is limited to the catch list. It only works with delivery mode `listed`, and only mails to caught addresses are visible. An empty catch list keeps access off, because there would be nothing safe to show. Other contexts, including `Production/Staging`, see everything the transport caught.
+Share `<site URL>_letterbox/inbox?t=<token>` with your testers, with the same token as the API. The backend page shows the URL without the token.
 
-## IP allowlist
-
-`LETTERBOX_EXTERNAL_ALLOWED_IPS` is matched against the client address from `NormalizedParams`. Behind a reverse proxy or load balancer set `SYS/reverseProxyIP`, otherwise the proxy address is what gets compared.
-
-A catch-all entry (`*`, `*.*.*.*`, anything ending in `/0`) switches the whole surface off instead of allowing everyone. Octet wildcards such as `10.0.*.*` are fine. Whitespace inside an entry is removed before the check, so `*. *` counts as a catch-all too.
-
-## Excluded recipients
-
-The extension setting `externalExcludedRecipients` (see [configuration](configuration.md#extension-settings)) hides mails from both surfaces. It takes comma separated addresses or `*@domain` patterns. A mail is hidden when any recipient matches, Bcc included. Use it for staff addresses, so a test system never shows them to testers. One invalid entry switches external access off.
-
-```text
-admin@example.org, *@staff.example.org
-```
-
-## Failed attempts
-
-Ten failed attempts from one IP within 15 minutes block that IP. After that everything from it answers `404` until the window has passed. The API and the tester inbox share the counter. Successful requests never count. These count as a failed attempt:
-
-* API: a missing or wrong token, or a token in the query string
-* Tester inbox: an invalid link token, or a cookie whose link is unknown, revoked or expired
-
-A request without a cookie does not count.
-
-The counters live in the cache `typo3_letterbox_ratelimit`, keyed by an HMAC of the IP with the TYPO3 encryption key, so no IP address is stored. Expired entries are removed by TYPO3's cache garbage collection (scheduler task "Caching framework garbage collection"). Flushing all caches resets every block. Without an encryption key every request is blocked.
+* Opening the link checks the token and answers with a `303` to the clean URL `<site URL>_letterbox/inbox`, so the token leaves the address bar. The redirect sets an `HttpOnly`, `Secure`, `SameSite=Lax` cookie for that path, valid for 7 days. `Lax` keeps the cookie on the redirect when the link is clicked in webmail, chat or a ticket.
+* The cookie holds an HMAC derived from the token, never the token itself. Every request compares it again, so changing `LETTERBOX_ACCESS_TOKEN` ends every session at once. That is the only way to revoke access, and it revokes it for everyone.
+* The inbox lists all caught mails with search and pagination. It shows subject, sender, recipients, date, an HTML view and a text view, the links in the mail, and a button for the first password reset link. It lists the attachments of a mail and lets the tester download them.
+* It never shows headers, the source or `.eml` files, loads no remote images and runs no JavaScript. The HTML view is a sandboxed `srcdoc` frame. The inbox only answers GET and changes nothing. A tester cannot delete mails.
+* It works without a configured site and in maintenance mode, and answers are never cached.
 
 ## Host header
 
@@ -68,34 +48,19 @@ TYPO3 checks the `Host` header before Letterbox runs. With a wrong host and `SYS
 
 ## Backend password reset
 
-A tester who can read a mailbox could read the reset link of a backend user. Set `BE/passwordResetForAdmins` to `false` so administrators cannot request a reset mail, or `BE/passwordReset` to `false` to turn the reset off. Other backend users stay resettable, so add staff addresses to `externalExcludedRecipients`.
-
-## Tester inbox
-
-Open System › Letterbox › External access to issue a link. The form takes a label and at least one recipient pattern (one per line). Every link is read-only and valid for 7 days.
-
-* The link (`<site URL>_letterbox/inbox?t=<token>`) is shown once. Letterbox keeps only a hash, so a lost link cannot be shown again. Revoke it and issue a new one. Reloading the page that shows a new link sends the form again and issues another link, so revoke every link nobody uses.
-* Opening the link exchanges the token for an `HttpOnly`, `Secure`, `SameSite=Lax` cookie and redirects to the clean URL. `Lax` keeps the cookie on the redirect when the link is clicked in webmail, chat or a ticket. The inbox only answers GET and changes nothing. Revoking a link takes effect on the next request. Expired and revoked links stay in the list for 30 days. After that, issuing the next link deletes them from the database.
-* A pattern is an exact address or `*@domain`. A mail is visible when one of its recipients (To, Cc or envelope) matches the scope. Display names never match, and a Bcc header never widens the scope. In root `Production`, one recipient must match both the link and the catch list.
-* The tester sees only the matching recipients and "and N more" for the rest. Addresses written in the mail body are not masked.
-* The inbox shows subject, sender, date, an HTML view and a text view, the links in the mail, and a button for the first password reset link. It never shows headers, the source or `.eml` files, loads no remote images and runs no JavaScript. It lists the attachments of a mail and lets the tester download them. A tester cannot delete mails.
-* It works without a configured site and in maintenance mode, and answers are never cached.
-
-The status card on the page shows whether access is on and, if not, each reason. It also shows whether the API token is configured. The token itself is never displayed.
+Everyone with the link can read the reset link of a backend user. Set `BE/passwordResetForAdmins` to `false` so administrators cannot request a reset mail, or `BE/passwordReset` to `false` to turn the reset off.
 
 ## Upgrading
 
-The tester links live in the table `tx_typo3letterbox_tester_link`. After updating, run the database analyzer in Admin Tools, or `typo3 extension:setup`. Flush the caches, so the new middlewares are registered.
+Earlier versions issued tester links per recipient, kept them in the table `tx_typo3letterbox_tester_link` and read the API token from `LETTERBOX_API_TOKEN`. Rename the variable to `LETTERBOX_ACCESS_TOKEN`. Old tester links and cookies stop working, share the new inbox link instead. The database analyzer in Admin Tools, or `typo3 database:updateschema destructive`, offers to drop the old table. Flush the caches afterwards.
 
 ## DDEV
 
-`.ddev/config.yaml` sets `LETTERBOX_EXTERNAL_ACCESS=Development`. For the API, put the token only in the git-ignored `.ddev/config.local.yaml`:
+`.ddev/config.yaml` sets `LETTERBOX_EXTERNAL_ACCESS=Development`. Put the token only in the git-ignored `.ddev/config.local.yaml` and run `ddev restart`:
 
 ```yaml
 web_environment:
-    - LETTERBOX_API_TOKEN=<at least 32 characters>
+    - LETTERBOX_ACCESS_TOKEN=<at least 32 characters>
 ```
 
 DDEV merges `web_environment` lists from `config.*.yaml` files with `config.yaml`, so the access line stays ([DDEV docs](https://ddev.readthedocs.io/en/stable/users/extend/customization-extendibility/#extending-configyaml-with-custom-configyaml-files)).
-
-Installs that linked the extension file by file before `ext_tables.sql` existed need the file linked into `.Build/{13,14}/packages/typo3_letterbox/`, then `typo3 database:updateschema`.
