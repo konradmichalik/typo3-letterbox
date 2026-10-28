@@ -257,23 +257,25 @@
     grid-template-columns: 52px minmax(0, 1fr);
   }
 
-  /* Without a mail open, the placeholder fills the column next to the list and its content stays in the
-     middle of the visible area, also when the list is longer than the viewport. */
+  /* Without a mail open, the placeholder is at least as tall as the visible area and its content stays in the
+     middle of it, also when the list is longer than the viewport. The illustration grows with the free width
+     and height; the sticky offset centres the content from its known size, so it never leaves the column. */
   .letterbox-placeholder {
+    --letterbox-illu: clamp(120px, min(18vw, 28vh), 280px);
+
     align-self: stretch;
     justify-content: flex-start;
+    min-height: calc(100vh - 12rem);
   }
 
   .letterbox-placeholder-content {
     position: sticky;
-    top: 50vh;
-    transform: translateY(-50%);
+    top: max(1rem, calc(50vh - (var(--letterbox-illu) + 4.5rem) / 2));
   }
 
-  /* Grows with the free space, from the 150px of the markup up to the size of the empty inbox figure. */
   .letterbox-placeholder .letterbox-illu {
     height: auto;
-    width: clamp(150px, 18vw, 280px);
+    width: var(--letterbox-illu);
   }
 
   .letterbox-placeholder h2 {
