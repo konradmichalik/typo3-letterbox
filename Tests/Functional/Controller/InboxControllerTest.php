@@ -206,7 +206,8 @@ final class InboxControllerTest extends FunctionalTestCase
 
         self::assertStringContainsString('img-src data:;', $plain);
         self::assertStringNotContainsString('img-src data: https:', $plain);
-        self::assertStringContainsString('img-src data: https:;', $remote);
+        self::assertStringNotContainsString('img-src data: https:', $remote);
+        self::assertStringContainsString('letterbox/preview', $remote);
         self::assertStringContainsString('remote=1', $plain);
         preg_match_all('/<a href="([^"]+)" class="letterbox-row[^"]*"/', $remote, $rows);
         self::assertNotEmpty($rows[1]);
@@ -261,6 +262,64 @@ final class InboxControllerTest extends FunctionalTestCase
         $this->append('Plain', '<p>x</p><img src="https://example.org/a.png">');
 
         self::assertStringNotContainsString('inline images could not be found', $this->show($this->firstId()));
+    }
+
+    #[Test]
+    public function previewRouteSendsItsOwnPolicy(): void
+    {
+        $this->append('Preview', '<p>Hello</p><script>alert(1)</script><img src="https://example.org/a.png">');
+        $id = $this->firstId();
+
+        $response = $this->controller()->previewAction($this->request('system_letterbox.preview', ['id' => $id]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('text/html; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        self::assertSame("default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; sandbox allow-popups allow-popups-to-escape-sandbox", $response->getHeaderLine('Content-Security-Policy'));
+        self::assertSame('no-referrer', $response->getHeaderLine('Referrer-Policy'));
+        self::assertSame('nosniff', $response->getHeaderLine('X-Content-Type-Options'));
+        self::assertSame('no-store', $response->getHeaderLine('Cache-Control'));
+        $body = (string) $response->getBody();
+        self::assertStringContainsString('<p>Hello</p>', $body);
+        self::assertStringContainsString('img-src data: https:', $body);
+        self::assertStringNotContainsString('<script', $body);
+        self::assertNotContains($id, $this->get(ReadState::class)->readIds());
+    }
+
+    #[Test]
+    public function previewRouteReturns404ForUnknownMail(): void
+    {
+        $this->append('Preview');
+
+        self::assertSame(404, $this->controller()->previewAction($this->request('system_letterbox.preview', ['id' => str_repeat('a', 32)]))->getStatusCode());
+        self::assertSame(404, $this->controller()->previewAction($this->request('system_letterbox.preview', ['id' => 'nonsense']))->getStatusCode());
+        self::assertSame(404, $this->controller()->previewAction($this->request('system_letterbox.preview'))->getStatusCode());
+    }
+
+    #[Test]
+    public function previewRouteReturns404ForMailWithoutHtml(): void
+    {
+        $this->appendRaw("From: A <a@example.org>\nTo: B <b@example.org>\nSubject: Text\nMessage-ID: <t@example.org>\nContent-Type: text/plain\n\nplain\n");
+
+        self::assertSame(404, $this->controller()->previewAction($this->request('system_letterbox.preview', ['id' => $this->firstId()]))->getStatusCode());
+    }
+
+    #[Test]
+    public function remoteModeFramesThePreviewRoute(): void
+    {
+        $this->append('Frame');
+        $id = $this->firstId();
+
+        $remote = $this->show($id, ['remote' => '1']);
+        $plain = $this->show($id);
+
+        self::assertSame(1, preg_match('/<iframe[^>]*class="letterbox-preview[^"]*"[^>]*>/', $remote, $frame));
+        self::assertMatchesRegularExpression('#\ssrc="[^"]*letterbox/preview[^"]*id='.$id.'#', $frame[0]);
+        self::assertStringNotContainsString('srcdoc', $frame[0]);
+        self::assertStringContainsString('sandbox="allow-popups allow-popups-to-escape-sandbox"', $frame[0]);
+        self::assertStringContainsString('letterbox-preview--desktop', $frame[0]);
+        self::assertSame(1, preg_match('/<iframe[^>]*class="letterbox-preview[^"]*"[^>]*>/', $plain, $plainFrame));
+        self::assertStringContainsString('srcdoc="', $plainFrame[0]);
+        self::assertDoesNotMatchRegularExpression('/\ssrc="/', $plainFrame[0]);
     }
 
     #[Test]

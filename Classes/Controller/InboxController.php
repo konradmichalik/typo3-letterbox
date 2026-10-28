@@ -61,6 +61,7 @@ final readonly class InboxController
     private const LANGUAGE_FILE = 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:';
     private const DEFAULT_MAILS_PER_PAGE = 10;
     private const PAGE_LINKS = 5;
+    private const PREVIEW_POLICY = "default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; sandbox allow-popups allow-popups-to-escape-sandbox";
 
     public function __construct(
         private ModuleTemplateFactory $moduleTemplateFactory,
@@ -113,6 +114,30 @@ final readonly class InboxController
         $view->assignMultiple($this->mailListView->previewControls($query));
 
         return $view->renderResponse('Inbox/Show');
+    }
+
+    /**
+     * Frames the mail with remote images. The backend CSP is inherited by srcdoc frames and would block them, so
+     * this response carries its own policy (the middleware leaves a response with a policy alone). The sandbox
+     * directive keeps the document sandboxed even when the URL is opened directly.
+     */
+    public function previewAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $mail = $this->mailFromQuery($request);
+        $document = null === $mail ? '' : $this->htmlDocument->build($mail, true);
+        if ('' === $document) {
+            return $this->error(404, 'Mail not found.');
+        }
+
+        $response = $this->responseFactory->createResponse(200)
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withHeader('Content-Security-Policy', self::PREVIEW_POLICY)
+            ->withHeader('Referrer-Policy', 'no-referrer')
+            ->withHeader('X-Content-Type-Options', 'nosniff')
+            ->withHeader('Cache-Control', 'no-store');
+        $response->getBody()->write($document);
+
+        return $response;
     }
 
     public function sourceAction(ServerRequestInterface $request): ResponseInterface

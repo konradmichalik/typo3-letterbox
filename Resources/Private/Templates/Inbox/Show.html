@@ -121,7 +121,16 @@
                                                 </div>
                                             </div>
                                         </f:if>
-                                        <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"></iframe>
+                                        <f:variable name="previewTitle" value="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
+                                        <f:if condition="{remote}">
+                                            <f:then>
+                                                <f:comment>The remote mode frame loads its own route, because the backend policy blocks remote images in srcdoc frames.</f:comment>
+                                                <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" src="{previewUrl}" title="{previewTitle}"></iframe>
+                                            </f:then>
+                                            <f:else>
+                                                <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{previewTitle}"></iframe>
+                                            </f:else>
+                                        </f:if>
                                     </f:then>
                                     <f:else>
                                         <div class="callout callout-info mt-3">

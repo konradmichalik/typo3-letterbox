@@ -31,6 +31,7 @@ final readonly class MailListView
 {
     private const ROUTE_INDEX = 'system_letterbox';
     private const ROUTE_SHOW = 'system_letterbox.show';
+    private const ROUTE_PREVIEW = 'system_letterbox.preview';
     private const ROUTE_DELETE = 'system_letterbox.delete';
 
     public function __construct(
@@ -77,7 +78,7 @@ final readonly class MailListView
      * Width switch form and remote image links for the HTML tab. Remote loading is carried only to the
      * width form of the same mail, every other link built from the query drops it.
      *
-     * @return array{widthForm: array{action: string, fields: array<string, string>}, remoteUrl: string, blockUrl: string}
+     * @return array{widthForm: array{action: string, fields: array<string, string>}, remoteUrl: string, blockUrl: string, previewUrl: string}
      */
     public function previewControls(InboxQuery $query): array
     {
@@ -87,6 +88,7 @@ final readonly class MailListView
             'widthForm' => $this->form($query->toParameters($tab + ['width' => null, 'remote' => $query->remote ? '1' : null])),
             'remoteUrl' => $this->url($query, $tab + ['remote' => '1']),
             'blockUrl' => $this->url($query, $tab),
+            'previewUrl' => (string) $this->uriBuilder->buildUriFromRoute(self::ROUTE_PREVIEW, ['id' => $query->id ?? '']),
         ];
     }
 

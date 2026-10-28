@@ -32,6 +32,10 @@ return [
             'show' => [
                 'target' => InboxController::class.'::showAction',
             ],
+            'preview' => [
+                'target' => InboxController::class.'::previewAction',
+                'methods' => ['GET'],
+            ],
             'source' => [
                 'target' => InboxController::class.'::sourceAction',
             ],
