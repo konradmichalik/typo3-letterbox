@@ -211,6 +211,7 @@ final readonly class InboxController
         $token = $this->formProtectionFactory->createFromRequest($request)->generateToken(self::TOKEN_FORM);
 
         $this->pageRenderer->addCssFile('EXT:typo3_letterbox/Resources/Public/Css/inbox.css');
+        $this->pageRenderer->loadJavaScriptModule('@konradmichalik/typo3-letterbox/inbox.js');
         $this->pageRenderer->loadJavaScriptModule('@typo3/backend/modal.js');
         $this->pageRenderer->loadJavaScriptModule('@typo3/backend/copy-to-clipboard.js');
         $this->pageRenderer->loadJavaScriptModule($this->typo3Version->getMajorVersion() >= 14 ? '@typo3/backend/tab.js' : '@typo3/backend/tabs.js');
@@ -230,6 +231,7 @@ final readonly class InboxController
             'selectedId' => $query->id ?? '',
             'token' => $token,
             'clearFormId' => self::CLEAR_FORM_ID,
+            'listCollapsed' => $this->readState->isListCollapsed(),
             'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
         ]);
         $view->assignMultiple($this->mailListView->build($query, $paginator->getPaginatedItems(), $pagination, $counts, array_flip($readIds)));

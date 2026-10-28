@@ -648,6 +648,74 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function expandedListIsTheDefault(): void
+    {
+        $this->append('Open list');
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertMatchesRegularExpression('/<div class="card letterbox-list" id="letterbox-list">/', $body);
+        self::assertMatchesRegularExpression('/<button type="button"[^>]*data-letterbox-list-toggle="hide"[^>]*aria-expanded="true"[^>]*aria-controls="letterbox-list"[^>]*hidden[^>]*>/', $body);
+        self::assertMatchesRegularExpression('/<div class="letterbox-rail" hidden>/', $body);
+        self::assertStringNotContainsString('letterbox-inbox--collapsed', $body);
+    }
+
+    #[Test]
+    public function collapsedStateRendersRail(): void
+    {
+        $this->append('Collapsed list');
+        $this->backendUser->uc['letterbox']['listCollapsed'] = '1';
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertStringContainsString('letterbox-inbox letterbox-inbox--collapsed', $body);
+        self::assertMatchesRegularExpression('/<div class="card letterbox-list" id="letterbox-list" hidden>/', $body);
+        self::assertMatchesRegularExpression('/<div class="letterbox-rail">\s*<button type="button"[^>]*data-letterbox-list-toggle="show"[^>]*aria-expanded="false"[^>]*aria-controls="letterbox-list"[^>]*aria-label="Show mail list"[^>]*title="Show mail list">/', $body);
+        self::assertDoesNotMatchRegularExpression('/data-letterbox-list-toggle="show"[^>]*\shidden[\s>]/', $body);
+        self::assertMatchesRegularExpression('/data-letterbox-list-toggle="hide"[^>]*aria-label="Hide mail list"/', $body);
+    }
+
+    #[Test]
+    public function collapsedFlagAcceptsOnlyAnEnabledValue(): void
+    {
+        $this->append('Flag values');
+
+        foreach (['0', 0, '', false, null, 'no'] as $value) {
+            $this->backendUser->uc['letterbox']['listCollapsed'] = $value;
+            $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+            self::assertStringNotContainsString('letterbox-inbox--collapsed', $body, var_export($value, true));
+        }
+    }
+
+    #[Test]
+    public function deepLinkWhileCollapsedShowsMail(): void
+    {
+        $this->append('Deep link subject');
+        $id = $this->firstId();
+        $this->backendUser->uc['letterbox']['listCollapsed'] = '1';
+
+        $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id]));
+
+        self::assertSame(200, $response->getStatusCode());
+        $body = (string) $response->getBody();
+        self::assertStringContainsString('letterbox-inbox letterbox-inbox--collapsed', $body);
+        self::assertMatchesRegularExpression('/<h2 id="letterbox-subject"[^>]*>Deep link subject<\/h2>/', $body);
+        self::assertMatchesRegularExpression('/<div class="card letterbox-list" id="letterbox-list" hidden>/', $body);
+        self::assertStringContainsString('data-letterbox-list-toggle="show"', $body);
+    }
+
+    #[Test]
+    public function markingReadKeepsTheCollapsedFlag(): void
+    {
+        $this->backendUser->uc['letterbox']['listCollapsed'] = '1';
+
+        $this->get(ReadState::class)->markRead(str_repeat('a', 32));
+
+        self::assertSame('1', $this->backendUser->uc['letterbox']['listCollapsed']);
+        self::assertTrue($this->get(ReadState::class)->isRead(str_repeat('a', 32)));
+    }
+
+    #[Test]
     public function paginationKeepsQueryAndFilter(): void
     {
         for ($i = 1; $i <= 12; ++$i) {

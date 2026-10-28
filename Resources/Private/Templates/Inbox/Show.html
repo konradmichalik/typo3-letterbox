@@ -11,7 +11,7 @@
         <h1><f:translate key="inbox.heading" extensionName="Typo3Letterbox" /></h1>
         <f:render partial="InboxMeta" arguments="{_all}" />
 
-        <div class="letterbox-inbox">
+        <div class="letterbox-inbox{f:if(condition: listCollapsed, then: ' letterbox-inbox--collapsed')}">
             <div>
                 <f:render partial="MailList" arguments="{_all}" />
             </div>

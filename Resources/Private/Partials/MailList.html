@@ -8,11 +8,20 @@
     <input type="hidden" name="letterboxToken" value="{token}" />
 </form>
 
-<div class="card letterbox-list">
+<f:variable name="hideLabel" value="{f:translate(key: 'inbox.list.hide', extensionName: 'Typo3Letterbox')}" />
+<f:variable name="showLabel" value="{f:translate(key: 'inbox.list.show', extensionName: 'Typo3Letterbox')}" />
+
+<f:comment>Both toggle buttons stay hidden until inbox.js reveals them, so without JavaScript the list simply stays open.</f:comment>
+<div class="card letterbox-list" id="letterbox-list"{f:if(condition: listCollapsed, then: ' hidden')}>
     <div class="card-header letterbox-list-header">
-        <div>
-            <span class="fw-bold" id="letterbox-list-label"><f:translate key="inbox.mailList" extensionName="Typo3Letterbox" /></span>
-            <span class="text-variant">{total}</span>
+        <div class="d-flex justify-content-between align-items-center gap-2">
+            <div>
+                <span class="fw-bold" id="letterbox-list-label"><f:translate key="inbox.mailList" extensionName="Typo3Letterbox" /></span>
+                <span class="text-variant">{total}</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-default" data-letterbox-list-toggle="hide" aria-expanded="true" aria-controls="letterbox-list" aria-label="{hideLabel}" title="{hideLabel}" hidden>
+                <span aria-hidden="true"><core:icon identifier="actions-menu-sidebar-expanded" size="small" /></span>
+            </button>
         </div>
         <form method="get" action="{search.action}" role="search">
             <f:for each="{search.fields}" as="fieldValue" key="fieldName">
@@ -115,6 +124,13 @@
             </nav>
         </div>
     </f:if>
+</div>
+
+<div class="letterbox-rail"{f:if(condition: listCollapsed, else: ' hidden')}>
+    <button type="button" class="btn btn-sm btn-default" data-letterbox-list-toggle="show" aria-expanded="false" aria-controls="letterbox-list" aria-label="{showLabel}" title="{showLabel}">
+        <span aria-hidden="true"><core:icon identifier="actions-menu-sidebar-collapsed" size="small" /></span>
+    </button>
+    <span class="letterbox-rail-label text-variant" aria-hidden="true"><f:translate key="inbox.mailList" extensionName="Typo3Letterbox" /> · {total}</span>
 </div>
 
 <f:section name="RowContent">

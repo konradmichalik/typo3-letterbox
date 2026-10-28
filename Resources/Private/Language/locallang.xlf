@@ -24,6 +24,12 @@
 			<trans-unit id="inbox.mailList" resname="inbox.mailList">
 				<source>Mails</source>
 			</trans-unit>
+			<trans-unit id="inbox.list.hide" resname="inbox.list.hide">
+				<source>Hide mail list</source>
+			</trans-unit>
+			<trans-unit id="inbox.list.show" resname="inbox.list.show">
+				<source>Show mail list</source>
+			</trans-unit>
 			<trans-unit id="inbox.noSubject" resname="inbox.noSubject">
 				<source>(no subject)</source>
 			</trans-unit>

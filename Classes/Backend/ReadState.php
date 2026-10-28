@@ -54,6 +54,15 @@ final class ReadState
         $backendUser->writeUC();
     }
 
+    /**
+     * inbox.js writes the flag through core's persistent storage, where the key "letterbox.listCollapsed"
+     * lands in uc['letterbox']['listCollapsed'] as a string. Reading it here paints the first frame correctly.
+     */
+    public function isListCollapsed(): bool
+    {
+        return filter_var($this->backendUser()->uc['letterbox']['listCollapsed'] ?? false, \FILTER_VALIDATE_BOOLEAN);
+    }
+
     private function backendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
