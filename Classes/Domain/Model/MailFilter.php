@@ -149,7 +149,18 @@ final readonly class MailFilter
 
     private function inScope(MessageIndexEntry $entry): bool
     {
-        return $this->matchesEveryGroup($this->scopeGroups(), $entry->scopeRecipients);
+        $groups = $this->scopeGroups();
+        if ([] === $groups) {
+            return true;
+        }
+
+        foreach ($entry->scopeRecipients as $address) {
+            if ($this->matchesEveryGroup($groups, [$address])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

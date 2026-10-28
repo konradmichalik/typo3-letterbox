@@ -123,6 +123,22 @@ final class MailFilterTest extends TestCase
     }
 
     #[Test]
+    public function oneAddressMustSatisfyEveryScopeGroup(): void
+    {
+        $filter = MailFilter::all()
+            ->withScope([RecipientPattern::fromString('*@letterbox.invalid')])
+            ->withAdditionalScope([RecipientPattern::fromString('anna@customer.example')]);
+        $linkOnly = MailFilter::all()->withAdditionalScope([RecipientPattern::fromString('*@letterbox.invalid')]);
+
+        self::assertFalse($filter->matches($this->scoped('Hello', ['anna@customer.example', 'test@letterbox.invalid'], ['anna@customer.example', 'test@letterbox.invalid'])));
+        self::assertTrue($linkOnly->matches($this->scoped('Hello', ['anna@letterbox.invalid'], ['anna@letterbox.invalid'])));
+        self::assertTrue(MailFilter::all()
+            ->withScope([RecipientPattern::fromString('*@letterbox.invalid')])
+            ->withAdditionalScope([RecipientPattern::fromString('*@letterbox.invalid')])
+            ->matches($this->scoped('Hello', ['anna@letterbox.invalid'], ['anna@letterbox.invalid'])));
+    }
+
+    #[Test]
     public function additionalScopeNarrowsAnUnrestrictedFilterAndMasksRecipients(): void
     {
         $filter = MailFilter::all()->withAdditionalScope([RecipientPattern::fromString('*@customer.example')]);
