@@ -77,6 +77,9 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         }
 
         $statuses['mode'] = $this->mode($settings, self::ROOT_PRODUCTION === $context);
+        if ($settings->deliveryLoops) {
+            $statuses['delivery'] = $this->status('delivery', 'status.delivery.loops', 'status.delivery.loopsMessage', ContextualFeedbackSeverity::ERROR);
+        }
         $statuses['file'] = $this->file();
         $statuses['retention'] = $this->retention();
         $statuses['external'] = $this->external();

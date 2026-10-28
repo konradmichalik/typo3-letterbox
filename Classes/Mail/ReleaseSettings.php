@@ -14,9 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Mail;
 
 use InvalidArgumentException;
-use Symfony\Component\Mailer\Transport\NullTransport;
 
-use function in_array;
 use function ini_get;
 
 /**
@@ -33,10 +31,6 @@ final readonly class ReleaseSettings
     public const INVALID = 'release_invalid';
     public const DELIVERY_MISSING = 'delivery_missing';
     public const DELIVERY_LOOPS = 'delivery_loops';
-
-    private const RECEIVE_COMMAND = 'letterbox:receive';
-    // Core handles these types itself, every other value is a class name, which core routes to MAIL/dsn when that is set.
-    private const BUILT_IN_TYPES = ['smtp', 'sendmail', 'mbox', 'null', 'dsn'];
 
     /**
      * @param list<RecipientPattern> $allowlist
@@ -63,7 +57,7 @@ final readonly class ReleaseSettings
         $refusal = match (true) {
             [] === $allowlist => self::OFF,
             '' === $delivery => self::DELIVERY_MISSING,
-            self::loops($mail, $delivery, $sendmailPath ?? (string) ini_get('sendmail_path')) => self::DELIVERY_LOOPS,
+            DeliveryLoopGuard::loops($mail, $delivery, $sendmailPath ?? (string) ini_get('sendmail_path')) => self::DELIVERY_LOOPS,
             default => null,
         };
 
@@ -89,38 +83,5 @@ final readonly class ReleaseSettings
         }
 
         return false;
-    }
-
-    /**
-     * Whether the delivery would hand the mail back to Letterbox. A sendmail binary or SMTP server that forwards into
-     * letterbox:receive on its own cannot be detected here.
-     *
-     * @param array<string, mixed> $mail
-     */
-    private static function loops(array $mail, string $delivery, string $sendmailPath): bool
-    {
-        $type = strtolower(ltrim($delivery, '\\'));
-        if ($type === strtolower(LetterboxTransport::class) || 'mbox' === $type) {
-            return true;
-        }
-
-        if ('sendmail' === $type) {
-            // Same precedence as core's TransportFactory.
-            return self::runsReceive((string) ($mail['transport_sendmail_command'] ?? $sendmailPath));
-        }
-
-        $dsn = (string) ($mail['dsn'] ?? '');
-        $usesDsn = 'dsn' === $type || ('' !== $dsn && !in_array($type, self::BUILT_IN_TYPES, true) && $type !== strtolower(NullTransport::class));
-        if (!$usesDsn) {
-            return false;
-        }
-
-        // Symfony's native transport runs the php.ini sendmail_path.
-        return self::runsReceive(rawurldecode($dsn)) || (str_contains(strtolower($dsn), 'native://') && self::runsReceive($sendmailPath));
-    }
-
-    private static function runsReceive(string $command): bool
-    {
-        return str_contains(strtolower($command), self::RECEIVE_COMMAND);
     }
 }

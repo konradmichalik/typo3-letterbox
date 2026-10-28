@@ -85,6 +85,9 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         if ([] !== $delivered && '' === $this->settings->delivery) {
             throw new RuntimeException(sprintf('Letterbox needs MAIL/transport_letterbox_delivery for mode %s.', $this->settings->mode->value), 1761561614);
         }
+        if ([] !== $delivered && $this->settings->deliveryLoops) {
+            throw new RuntimeException(sprintf('MAIL/transport_letterbox_delivery "%s" hands mails back to Letterbox, refusing to deliver in mode %s.', $this->settings->delivery, $this->settings->mode->value), 1761561615);
+        }
 
         if ([] !== $caught) {
             $this->writer()->append(

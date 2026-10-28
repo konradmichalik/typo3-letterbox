@@ -26,7 +26,7 @@ The `transport_letterbox_*` keys cannot be set with `configuration:set` or in th
 | `transport_mbox_file` | Always, also in mode `off` | Path of the mbox file. It must be writable and not match the file deny pattern. |
 | `transport_letterbox_mode` | No | `all`, `listed` or `off`. Default: `listed` in the exact root context `Production`, `all` otherwise (`Production/Staging` gets `all`). |
 | `transport_letterbox_catch` | In mode `listed` | Array or comma separated string of addresses and `*@domain` patterns. |
-| `transport_letterbox_delivery` | When mails are delivered | Transport for non-caught recipients, for example `smtp`. It must not be the Letterbox transport. Its own `transport_*` settings are used as usual. |
+| `transport_letterbox_delivery` | When mails are delivered | Transport for non-caught recipients, for example `smtp`. It must not be the Letterbox transport. Its own `transport_*` settings are used as usual. A delivery that hands mails back to Letterbox (`mbox`, or `sendmail` running `letterbox:receive`, see [the detected loops](backend-module.md#release)) is refused: in modes `listed` and `off` every send that has a recipient to deliver throws, and Reports shows an error. |
 | `transport_letterbox_release` | To release mails | Array or comma separated string of addresses and `*@domain` patterns that a caught mail may be [released](#release) to. Empty or unset switches release off. |
 
 Details on the modes are in [delivery modes](delivery-modes.md).

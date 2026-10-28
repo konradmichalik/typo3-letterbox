@@ -123,6 +123,37 @@ final class LetterboxTransportTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function loopingDeliveryThrowsForListedAndOffBeforeAnythingIsWritten(): void
+    {
+        $deliveries = [
+            ['transport_letterbox_delivery' => 'mbox'],
+            ['transport_letterbox_delivery' => 'sendmail', 'transport_sendmail_command' => 'php vendor/bin/typo3 letterbox:receive -- -t -i'],
+        ];
+        foreach (['listed', 'off'] as $mode) {
+            foreach ($deliveries as $delivery) {
+                $this->configure([...$delivery, 'transport_letterbox_mode' => $mode, 'transport_letterbox_catch' => 'qa@letterbox.invalid']);
+                try {
+                    $this->send((new Email())->from('shop@example.org')->to('customer@example.org', 'qa@letterbox.invalid')->subject('Hello')->text('Body'));
+                    self::fail('Expected a RuntimeException for '.$mode.' and '.$delivery['transport_letterbox_delivery']);
+                } catch (RuntimeException $exception) {
+                    self::assertStringContainsString('hands mails back to Letterbox', $exception->getMessage());
+                    self::assertFileDoesNotExist($this->path);
+                }
+            }
+        }
+    }
+
+    #[Test]
+    public function loopingDeliveryIsUnusedInModeAll(): void
+    {
+        $this->configure(['transport_letterbox_mode' => 'all', 'transport_letterbox_delivery' => 'mbox']);
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Caught anyway')->text('Body'));
+
+        self::assertSame(['Caught anyway'], $this->subjects());
+    }
+
+    #[Test]
     public function unwritableFileThrowsWithPath(): void
     {
         $this->path = '/nonexistent-letterbox-dir/mails.mbox';

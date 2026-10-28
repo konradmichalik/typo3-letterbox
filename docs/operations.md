@@ -152,7 +152,7 @@ Bcc recipients go into the `X-Letterbox-Envelope-To` header and the `Bcc` header
 Errors go to stderr as one line starting with `letterbox:receive:`.
 
 > [!WARNING]
-> Do not combine this with `transport_letterbox_delivery = sendmail` while `sendmail_path` runs `letterbox:receive`. Core's sendmail transport falls back to `sendmail_path`, so mails that should be delivered would be stored instead. [Release](backend-module.md#release) refuses this setup, delivery does not check it.
+> Do not combine this with `transport_letterbox_delivery = sendmail` while `sendmail_path` runs `letterbox:receive`. Core's sendmail transport falls back to `sendmail_path`, so mails that should be delivered would be stored instead. Letterbox refuses this setup: release is off, sending throws in modes `listed` and `off`, and Reports shows an error.
 
 ## Toolbar item
 

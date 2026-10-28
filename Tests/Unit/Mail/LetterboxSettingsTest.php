@@ -116,4 +116,44 @@ final class LetterboxSettingsTest extends TestCase
 
         self::assertCount(1, $settings->catch);
     }
+
+    #[Test]
+    #[DataProvider('loopingDeliveries')]
+    public function deliveryBackIntoLetterboxIsMarked(string $delivery, string $command): void
+    {
+        $mail = ['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_delivery' => $delivery, 'transport_sendmail_command' => $command];
+
+        self::assertTrue(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/sbin/sendmail -t -i')->deliveryLoops);
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function loopingDeliveries(): array
+    {
+        return [
+            'core mbox transport' => ['mbox', ''],
+            'core mbox transport, upper case' => ['MBOX', ''],
+            'sendmail into letterbox:receive' => ['sendmail', 'php vendor/bin/typo3 letterbox:receive -- -t -i'],
+        ];
+    }
+
+    #[Test]
+    public function sendmailPathIntoReceiveIsMarked(): void
+    {
+        $mail = ['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_delivery' => 'sendmail'];
+
+        self::assertTrue(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/bin/php vendor/bin/typo3 letterbox:receive -t -i')->deliveryLoops);
+        self::assertFalse(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/sbin/sendmail -t -i')->deliveryLoops);
+    }
+
+    #[Test]
+    public function realDeliveriesAreNotMarked(): void
+    {
+        foreach (['', 'smtp', 'sendmail'] as $delivery) {
+            $mail = ['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_delivery' => $delivery, 'transport_smtp_server' => 'localhost:1025'];
+
+            self::assertFalse(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/sbin/sendmail -t -i')->deliveryLoops, $delivery);
+        }
+    }
 }

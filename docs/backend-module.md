@@ -67,7 +67,7 @@ When release is configured but cannot work, the button still opens the dialog, w
 | `delivery_loops` | The delivery would hand the mail back to Letterbox, see below. | Point delivery at a real mail server. |
 | `sender_missing` | The mail has no usable From address and `defaultMailFromAddress` is empty or invalid. | Set `MAIL/defaultMailFromAddress`. |
 
-Loops that are detected: delivery is the Letterbox transport, delivery `mbox` (core's mbox transport writes into the Letterbox file), delivery `sendmail` while the sendmail command (`transport_sendmail_command`, else `sendmail_path`) runs `letterbox:receive`, and a DSN (`dsn` delivery, or a class name while `MAIL/dsn` is set) that contains `letterbox:receive` or uses `native://` while `sendmail_path` runs it. Not detectable: an external sendmail binary or SMTP server that forwards mail back into `letterbox:receive` on its own. Check such a setup by hand.
+Loops that are detected: delivery is the Letterbox transport, delivery `mbox` (core's mbox transport writes into the Letterbox file), delivery `sendmail` while the sendmail command (`transport_sendmail_command`, else `sendmail_path`) runs `letterbox:receive`, and a DSN (`dsn` delivery, or a class name while `MAIL/dsn` is set) that contains `letterbox:receive` or uses `native://` while `sendmail_path` runs it. The transport uses the same detection for normal delivery. Not detectable: an external sendmail binary or SMTP server that forwards mail back into `letterbox:receive` on its own. Check such a setup by hand.
 
 ## External access page
 

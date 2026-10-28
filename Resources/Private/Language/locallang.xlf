@@ -588,6 +588,15 @@
 			<trans-unit id="status.settings.invalidMessage" resname="status.settings.invalidMessage">
 				<source>The MAIL settings of Letterbox are invalid, so mails are not caught. Check the mbox file name, the mode and the delivery transport.</source>
 			</trans-unit>
+			<trans-unit id="status.delivery.title" resname="status.delivery.title">
+				<source>Delivery transport</source>
+			</trans-unit>
+			<trans-unit id="status.delivery.loops" resname="status.delivery.loops">
+				<source>Delivery loops back</source>
+			</trans-unit>
+			<trans-unit id="status.delivery.loopsMessage" resname="status.delivery.loopsMessage">
+				<source>MAIL/transport_letterbox_delivery hands mails back to Letterbox (core mbox transport, or sendmail running letterbox:receive). In modes listed and off, every mail that should be delivered fails with an exception. Configure a real delivery, for example smtp.</source>
+			</trans-unit>
 			<trans-unit id="status.mode.title" resname="status.mode.title">
 				<source>Delivery mode</source>
 			</trans-unit>

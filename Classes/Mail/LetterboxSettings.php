@@ -16,6 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Mail;
 use InvalidArgumentException;
 use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 
+use function ini_get;
 use function sprintf;
 
 /**
@@ -33,12 +34,14 @@ final readonly class LetterboxSettings
         public DeliveryMode $mode,
         public array $catch,
         public string $delivery,
+        public bool $deliveryLoops = false,
     ) {}
 
     /**
-     * @param array<string, mixed> $mail the MAIL section of TYPO3_CONF_VARS
+     * @param array<string, mixed> $mail         the MAIL section of TYPO3_CONF_VARS
+     * @param string|null          $sendmailPath the php.ini sendmail_path, read from the runtime when null
      */
-    public static function fromMailSettings(array $mail, string $context): self
+    public static function fromMailSettings(array $mail, string $context, ?string $sendmailPath = null): self
     {
         $mboxFile = (string) ($mail['transport_mbox_file'] ?? '');
         if (!(new FileNameValidator())->isValid($mboxFile)) {
@@ -50,7 +53,13 @@ final readonly class LetterboxSettings
             throw new InvalidArgumentException('transport_letterbox_delivery must not be the Letterbox transport itself.', 1761561611);
         }
 
-        return new self($mboxFile, self::resolveMode($mail['transport_letterbox_mode'] ?? null, $context), RecipientPattern::listFrom($mail['transport_letterbox_catch'] ?? []), $delivery);
+        return new self(
+            $mboxFile,
+            self::resolveMode($mail['transport_letterbox_mode'] ?? null, $context),
+            RecipientPattern::listFrom($mail['transport_letterbox_catch'] ?? []),
+            $delivery,
+            '' !== trim($delivery) && DeliveryLoopGuard::loops($mail, $delivery, $sendmailPath ?? (string) ini_get('sendmail_path')),
+        );
     }
 
     private static function resolveMode(mixed $value, string $context): DeliveryMode

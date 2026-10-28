@@ -171,6 +171,21 @@ final class LetterboxStatusTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function deliveryBackIntoLetterboxIsAnError(): void
+    {
+        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_delivery' => 'mbox']);
+
+        $statuses = $this->provider()->getStatus();
+
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $statuses['delivery']->getSeverity());
+        self::assertSame('Delivery loops back', $statuses['delivery']->getValue());
+        self::assertStringContainsString('transport_letterbox_delivery', $statuses['delivery']->getMessage());
+
+        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_delivery' => 'smtp']);
+        self::assertArrayNotHasKey('delivery', $this->provider()->getStatus());
+    }
+
+    #[Test]
     public function retentionNamesTheLimits(): void
     {
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxMessages'] = '100';
