@@ -134,8 +134,11 @@
   width: 100%;
 }
 
-.letterbox-preview--desktop {
-  max-width: 640px;
+/* Desktop uses the full column. The narrower widths sit centred with a frame, so the mail reads as a device. */
+.letterbox-preview--tablet,
+.letterbox-preview--mobile {
+  border: 1px solid var(--typo3-component-border-color, CanvasText);
+  margin-inline: auto;
 }
 
 .letterbox-preview--tablet {
@@ -216,6 +219,15 @@
   padding: 0.5rem;
 }
 
+.letterbox-placeholder {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
 .letterbox-rail[hidden] {
   display: none;
 }
@@ -228,6 +240,29 @@
 
   .letterbox-inbox--collapsed {
     grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  /* Without a mail open, the placeholder fills the column next to the list and its content stays in the
+     middle of the visible area, also when the list is longer than the viewport. */
+  .letterbox-placeholder {
+    align-self: stretch;
+    justify-content: flex-start;
+  }
+
+  .letterbox-placeholder-content {
+    position: sticky;
+    top: 50vh;
+    transform: translateY(-50%);
+  }
+
+  /* Grows with the free space, from the 150px of the markup up to the size of the empty inbox figure. */
+  .letterbox-placeholder .letterbox-illu {
+    height: auto;
+    width: clamp(150px, 18vw, 280px);
+  }
+
+  .letterbox-placeholder h2 {
+    margin-top: 1rem;
   }
 
   /* The rail fills the column, so it is as tall as the detail next to it. */
