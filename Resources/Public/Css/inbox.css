@@ -6,6 +6,21 @@
   position: relative;
 }
 
+/* Heading and meta line share one row and wrap below each other when space runs out. */
+.letterbox-titlebar {
+  align-items: baseline;
+  column-gap: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.letterbox-titlebar h1,
+.letterbox-meta {
+  margin-bottom: 0;
+}
+
 .letterbox-list-header {
   display: grid;
   gap: 0.75rem;
