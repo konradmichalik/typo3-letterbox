@@ -227,13 +227,18 @@ final readonly class ApiMiddleware implements MiddlewareInterface
 
     /**
      * Only a base filter that sees every mail may truncate the file, any restriction deletes just what it sees.
+     * When visible mails existed but none could be removed, the file changed meanwhile and the client may retry.
      */
     private function deleteAll(MailFilter $filter): ResponseInterface
     {
         if ($filter->isUnrestricted()) {
             $this->repository->clear();
-        } else {
-            $this->repository->deleteMatching($filter);
+
+            return $this->noContent();
+        }
+        $visible = $this->repository->count($filter);
+        if ($visible > 0 && 0 === $this->repository->deleteMatching($filter)) {
+            return $this->responses->json(['error' => 'conflict'], 409);
         }
 
         return $this->noContent();

@@ -29,7 +29,7 @@ Apache with PHP-FPM or CGI drops the `Authorization` header unless you add `CGIP
 | `GET messages/{id}/source` | The raw message as `application/octet-stream`, `404` in root `Production` |
 | `GET messages/{id}/attachments/{index}` | The attachment as `application/octet-stream` |
 | `DELETE messages/{id}` | `204`, or `404` when the mail does not exist or is not visible |
-| `DELETE messages` | `204`, see below |
+| `DELETE messages` | `204`, or `409 {"error":"conflict"}`, see below |
 
 Query parameters of `GET messages`:
 
@@ -42,7 +42,7 @@ Query parameters of `GET messages`:
 
 `messages/latest` takes `to` only. An invalid value (a non-number, a value out of range, an array) answers `404`. Ids are 32 lowercase hex characters, paths take no trailing slash.
 
-`DELETE messages` clears the mbox file when nothing restricts the view. When [excluded recipients](external-access.md#excluded-recipients) or the Production catch list apply, it deletes only the mails the API can see.
+`DELETE messages` clears the mbox file when nothing restricts the view. When [excluded recipients](external-access.md#excluded-recipients) or the Production catch list apply, it deletes only the mails the API can see. If the file changed while deleting so that none of them could be removed, the answer is `409 {"error":"conflict"}` and nothing is deleted. Send the request again.
 
 ## Response shape
 

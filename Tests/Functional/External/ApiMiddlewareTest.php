@@ -20,7 +20,7 @@ use KonradMichalik\Typo3Letterbox\External\Api\{ApiMiddleware, MailJson};
 use KonradMichalik\Typo3Letterbox\External\{AuthenticationThrottle, EnvironmentVariables, ExternalAccessGuard, ExternalResponses, RateLimitStorage};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
-use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
+use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, MailboxLock, MailboxWriter, MboxFormat};
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
@@ -319,6 +319,34 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         self::assertSame(204, $this->send($this->middleware(), '/_letterbox/api/v1/messages', 'DELETE')->getStatusCode());
         self::assertSame([], $this->mails());
         self::assertSame(0, (int) filesize($this->path), 'an unrestricted base filter clears the file');
+    }
+
+    #[Test]
+    public function deleteAllAnswersConflictWhenTheFileChangedMeanwhile(): void
+    {
+        $this->append('Visible', 'anna@example.org');
+        $this->append('Admin', 'admin@example.org');
+        $this->excludeRecipients('admin@example.org');
+        $api = $this->middleware();
+        self::assertSame(1, $this->json($this->send($api, '/_letterbox/api/v1/messages'))['total']);
+        // A stale index stands in for another process that rewrote the file between indexing and deleting.
+        $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
+        $key = 'v4_'.hash('sha256', $this->path);
+        $cached = $cache->get($key);
+        self::assertIsArray($cached);
+        $cached['entries'] = array_map(
+            static fn (MessageIndexEntry $entry): MessageIndexEntry => new MessageIndexEntry($entry->span, str_repeat('f', 32), $entry->date, $entry->sender, $entry->fromName, $entry->recipients, $entry->recipientLabels, $entry->scopeRecipients, $entry->subject, $entry->attachmentCount),
+            $cached['entries'],
+        );
+        $cache->set($key, $cached);
+
+        $response = $this->send($api, '/_letterbox/api/v1/messages', 'DELETE');
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertSame(['error' => 'conflict'], $this->json($response));
+        self::assertSame(self::API_CSP, $response->getHeaderLine('Content-Security-Policy'));
+        $cache->flush();
+        self::assertCount(2, $this->mails());
     }
 
     #[Test]
