@@ -135,6 +135,36 @@
 			<trans-unit id="inbox.preview" resname="inbox.preview">
 				<source>Mail preview: %s</source>
 			</trans-unit>
+			<trans-unit id="inbox.width.label" resname="inbox.width.label">
+				<source>Preview width</source>
+			</trans-unit>
+			<trans-unit id="inbox.width.desktop" resname="inbox.width.desktop">
+				<source>Desktop width</source>
+			</trans-unit>
+			<trans-unit id="inbox.width.tablet" resname="inbox.width.tablet">
+				<source>Tablet width</source>
+			</trans-unit>
+			<trans-unit id="inbox.width.mobile" resname="inbox.width.mobile">
+				<source>Mobile width</source>
+			</trans-unit>
+			<trans-unit id="inbox.remote.blocked" resname="inbox.remote.blocked">
+				<source>Scripts, forms and remote images are blocked.</source>
+			</trans-unit>
+			<trans-unit id="inbox.remote.load" resname="inbox.remote.load">
+				<source>Load remote images</source>
+			</trans-unit>
+			<trans-unit id="inbox.remote.hint" resname="inbox.remote.hint">
+				<source>Loading remote images tells the sender your IP address and that the mail was opened.</source>
+			</trans-unit>
+			<trans-unit id="inbox.remote.active" resname="inbox.remote.active">
+				<source>Remote images are loaded for this view only.</source>
+			</trans-unit>
+			<trans-unit id="inbox.remote.block" resname="inbox.remote.block">
+				<source>Block remote images</source>
+			</trans-unit>
+			<trans-unit id="inbox.cidUnresolved" resname="inbox.cidUnresolved">
+				<source>Some inline images could not be found in this mail:</source>
+			</trans-unit>
 			<trans-unit id="inbox.noHtml" resname="inbox.noHtml">
 				<source>No HTML preview available for this mail. See Text or Source.</source>
 			</trans-unit>

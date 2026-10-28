@@ -172,6 +172,98 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function widthToggleSetsPreviewWidth(): void
+    {
+        $this->append('Width');
+        $id = $this->firstId();
+
+        $mobile = $this->show($id, ['width' => 'mobile']);
+        $default = $this->show($id);
+
+        self::assertStringContainsString('class="letterbox-preview letterbox-preview--mobile"', $mobile);
+        self::assertStringContainsString('class="letterbox-preview letterbox-preview--desktop"', $default);
+        self::assertStringContainsString('class="letterbox-preview letterbox-preview--desktop"', $this->show($id, ['width' => 'nonsense']));
+        self::assertSame(1, preg_match('/<button[^>]*name="width"[^>]*value="mobile"[^>]*>/', $mobile, $pressed));
+        self::assertStringContainsString('aria-pressed="true"', $pressed[0]);
+        self::assertSame(1, preg_match('/<button[^>]*name="width"[^>]*value="tablet"[^>]*>/', $mobile, $other));
+        self::assertStringContainsString('aria-pressed="false"', $other[0]);
+        foreach (['Desktop width', 'Tablet width', 'Mobile width'] as $label) {
+            self::assertStringContainsString('aria-label="'.$label.'"', $mobile);
+            self::assertStringContainsString('title="'.$label.'"', $mobile);
+        }
+        self::assertStringContainsString('name="id" value="'.$id.'"', $mobile);
+    }
+
+    #[Test]
+    public function loadRemoteImagesIsPerMessage(): void
+    {
+        $this->append('One', '<p>One</p>');
+        $this->append('Two', '<p>Two</p>');
+
+        $id = $this->firstId();
+        $plain = $this->show($id);
+        $remote = $this->show($id, ['remote' => '1', 'q' => 'o']);
+
+        self::assertStringContainsString('img-src data:;', $plain);
+        self::assertStringNotContainsString('img-src data: https:', $plain);
+        self::assertStringContainsString('img-src data: https:;', $remote);
+        self::assertStringContainsString('remote=1', $plain);
+        preg_match_all('/<a href="([^"]+)" class="letterbox-row[^"]*"/', $remote, $rows);
+        self::assertNotEmpty($rows[1]);
+        foreach ($rows[1] as $href) {
+            self::assertStringNotContainsString('remote', $href);
+        }
+        self::assertStringNotContainsString('remote=1', preg_replace('/<form[^>]*letterbox-preview-width.*?<\/form>/s', '', $remote) ?? '');
+    }
+
+    #[Test]
+    public function remoteToggleExplainsTheTradeOff(): void
+    {
+        $this->append('Remote');
+
+        $body = $this->show($this->firstId());
+
+        self::assertStringContainsString('Scripts, forms and remote images are blocked.', $body);
+        self::assertSame(1, preg_match('/<a[^>]*aria-describedby="([^"]+)"[^>]*>\s*Load remote images\s*<\/a>/', $body, $link));
+        self::assertSame(1, preg_match('/id="'.preg_quote($link[1] ?? '', '/').'"[^>]*>([^<]*)</', $body, $description));
+        self::assertStringContainsString('tells the sender your IP address and that the mail was opened', $description[1] ?? '');
+    }
+
+    #[Test]
+    public function remoteModeOffersToBlockAgain(): void
+    {
+        $this->append('Remote');
+
+        $body = $this->show($this->firstId(), ['remote' => '1']);
+
+        self::assertStringNotContainsString('>Load remote images<', $body);
+        self::assertStringContainsString('Remote images are loaded for this view only.', $body);
+        self::assertSame(1, preg_match('/<a[^>]*href="([^"]+)"[^>]*>\s*Block remote images\s*<\/a>/', $body, $link));
+        self::assertStringNotContainsString('remote', $link[1] ?? '');
+    }
+
+    #[Test]
+    public function unresolvedContentIdsAreListedInACallout(): void
+    {
+        $this->append('Cid', '<p>x</p><img src="cid:logo"><img src="cid:&quot;&gt;&lt;b&gt;evil">');
+
+        $body = $this->show($this->firstId());
+
+        self::assertStringContainsString('Some inline images could not be found in this mail:', $body);
+        self::assertStringContainsString('cid:logo', $body);
+        self::assertStringContainsString('cid:&quot;&gt;&lt;b&gt;evil', $body);
+        self::assertStringNotContainsString('<b>evil', $body);
+    }
+
+    #[Test]
+    public function noCidCalloutWhenAllReferencesResolve(): void
+    {
+        $this->append('Plain', '<p>x</p><img src="https://example.org/a.png">');
+
+        self::assertStringNotContainsString('inline images could not be found', $this->show($this->firstId()));
+    }
+
+    #[Test]
     public function showEscapesHostileMetadata(): void
     {
         $subject = '"><img src=x onerror=alert(1)>';

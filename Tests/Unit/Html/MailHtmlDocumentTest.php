@@ -25,7 +25,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class MailHtmlDocumentTest extends TestCase
 {
-    private const SHELL = '<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'"><meta name="referrer" content="no-referrer"></head><body>';
+    private const SHELL = '<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'"><meta name="referrer" content="no-referrer"><style>';
     private const CSP = "default-src 'none'; img-src data:; style-src 'unsafe-inline'";
 
     #[Test]
@@ -66,6 +66,66 @@ final class MailHtmlDocumentTest extends TestCase
         self::assertStringContainsString('href="cid:page"', $doc);
         self::assertStringContainsString('data:image/svg+xml;base64,'.base64_encode('ghi'), $doc);
         self::assertStringNotContainsString('data:text/html', $doc);
+    }
+
+    #[Test]
+    public function remoteImagesOnlyWidenImgSrc(): void
+    {
+        $mail = $this->mailWithHtml('<p>Hi</p>');
+
+        $blocked = (new MailHtmlDocument())->build($mail);
+        $allowed = (new MailHtmlDocument())->build($mail, true);
+
+        self::assertStringContainsString('content="'.self::CSP.'"', $blocked);
+        self::assertStringContainsString('content="default-src \'none\'; img-src data: https:; style-src \'unsafe-inline\'"', $allowed);
+        self::assertSame(str_replace('img-src data:;', 'img-src data: https:;', $blocked), $allowed);
+        self::assertStringContainsString('<meta name="referrer" content="no-referrer">', $allowed);
+    }
+
+    #[Test]
+    public function shellPaintsWhiteCanvasAndFadesInOnlyWithoutReducedMotionPreference(): void
+    {
+        $doc = (new MailHtmlDocument())->build($this->mailWithHtml('<p>Hi</p>'));
+
+        self::assertMatchesRegularExpression('/<head>.*<style>(?<css>.*)<\/style><\/head><body>/s', $doc);
+        preg_match('/<head>.*<style>(?<css>.*)<\/style><\/head><body>/s', $doc, $match);
+        $css = $match['css'];
+        self::assertStringContainsString('html{background-color:Canvas;color-scheme:light}', $css);
+        self::assertSame(1, substr_count($css, 'animation'));
+        self::assertSame(1, preg_match('/@media \(prefers-reduced-motion:\s?no-preference\)\{.*animation:.*\}\}$/s', $css));
+        self::assertStringNotContainsString('opacity:0', preg_replace('/@media.*$/s', '', $css) ?? '');
+    }
+
+    #[Test]
+    public function unresolvedContentIdsListsOnlyReferencesWithoutMatchingPart(): void
+    {
+        $mail = $this->mailWithHtml('<img src="cid:logo"><img src="cid:gone"><img src="CID:Gone"><img src="cid:a%20b"><img src="cid:page"><img src="https://x.test/a.png">', [
+            new Attachment(0, 'a.png', '<logo>', 'image/png', 3, 'abc'),
+            new Attachment(1, 'a.html', '<page>', 'text/html', 3, 'def'),
+        ]);
+
+        self::assertSame(['gone', 'Gone', 'a b', 'page'], (new MailHtmlDocument())->unresolvedContentIds($mail));
+    }
+
+    #[Test]
+    public function unresolvedContentIdsMatchesStrictlyAndIsEmptyWithoutHtml(): void
+    {
+        $mail = $this->mailWithHtml('<img src="cid:LOGO">', [new Attachment(0, 'a.png', '<logo>', 'image/png', 3, 'abc')]);
+
+        self::assertSame(['LOGO'], (new MailHtmlDocument())->unresolvedContentIds($mail));
+        self::assertSame([], (new MailHtmlDocument())->unresolvedContentIds($this->mailWithHtml('')));
+        self::assertSame([], (new MailHtmlDocument())->unresolvedContentIds($this->mailWithHtml('<p>no images</p>')));
+    }
+
+    #[Test]
+    public function unresolvedContentIdsAreCapped(): void
+    {
+        $html = '';
+        for ($i = 0; $i < 30; ++$i) {
+            $html .= '<img src="cid:missing'.$i.'">';
+        }
+
+        self::assertCount(20, (new MailHtmlDocument())->unresolvedContentIds($this->mailWithHtml($html)));
     }
 
     #[Test]

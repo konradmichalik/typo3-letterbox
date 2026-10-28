@@ -80,7 +80,48 @@
                             <div class="tab-pane{f:if(condition: '{defaultTab} == \'html\'', then: ' active')}" id="letterbox-pane-html" role="tabpanel" aria-labelledby="letterbox-tab-html" tabindex="0">
                                 <f:if condition="{htmlDocument}">
                                     <f:then>
-                                        <iframe class="letterbox-preview" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"></iframe>
+                                        <form class="letterbox-preview-width mt-3" method="get" action="{widthForm.action}">
+                                            <f:for each="{widthForm.fields}" key="fieldName" as="fieldValue">
+                                                <input type="hidden" name="{fieldName}" value="{fieldValue}" />
+                                            </f:for>
+                                            <div class="btn-group" role="group" aria-label="{f:translate(key: 'inbox.width.label', extensionName: 'Typo3Letterbox')}">
+                                                <f:render section="WidthButton" arguments="{name: 'desktop', icon: 'actions-device-desktop', previewWidth: previewWidth}" />
+                                                <f:render section="WidthButton" arguments="{name: 'tablet', icon: 'actions-device-tablet', previewWidth: previewWidth}" />
+                                                <f:render section="WidthButton" arguments="{name: 'mobile', icon: 'actions-device-mobile', previewWidth: previewWidth}" />
+                                            </div>
+                                        </form>
+                                        <div class="callout {f:if(condition: remote, then: 'callout-info', else: 'callout-warning')} mt-3">
+                                            <div class="callout-content">
+                                                <div class="callout-body">
+                                                    <f:if condition="{remote}">
+                                                        <f:then>
+                                                            <p class="mb-2"><f:translate key="inbox.remote.active" extensionName="Typo3Letterbox" /></p>
+                                                            <a class="btn btn-sm btn-default" href="{blockUrl}"><f:translate key="inbox.remote.block" extensionName="Typo3Letterbox" /></a>
+                                                        </f:then>
+                                                        <f:else>
+                                                            <p class="mb-2"><f:translate key="inbox.remote.blocked" extensionName="Typo3Letterbox" /></p>
+                                                            <a class="btn btn-sm btn-default" href="{remoteUrl}" aria-describedby="letterbox-remote-hint"><f:translate key="inbox.remote.load" extensionName="Typo3Letterbox" /></a>
+                                                            <p class="mb-0 mt-2" id="letterbox-remote-hint"><f:translate key="inbox.remote.hint" extensionName="Typo3Letterbox" /></p>
+                                                        </f:else>
+                                                    </f:if>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <f:if condition="{unresolvedContentIds}">
+                                            <div class="callout callout-info mt-3">
+                                                <div class="callout-content">
+                                                    <div class="callout-body">
+                                                        <p class="mb-1"><f:translate key="inbox.cidUnresolved" extensionName="Typo3Letterbox" /></p>
+                                                        <ul class="mb-0">
+                                                            <f:for each="{unresolvedContentIds}" as="contentId">
+                                                                <li class="text-break"><code>cid:{contentId}</code></li>
+                                                            </f:for>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </f:if>
+                                        <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"></iframe>
                                     </f:then>
                                     <f:else>
                                         <div class="callout callout-info mt-3">
@@ -194,6 +235,13 @@
             <f:translate key="inbox.tab.{name}" extensionName="Typo3Letterbox" /><f:if condition="{showCount}"> ({count})</f:if>
         </button>
     </li>
+</f:section>
+
+<f:section name="WidthButton">
+    <f:variable name="widthLabel"><f:translate key="inbox.width.{name}" extensionName="Typo3Letterbox" /></f:variable>
+    <button type="submit" name="width" value="{name}" class="btn btn-sm btn-default{f:if(condition: '{name} == {previewWidth}', then: ' active')}" title="{widthLabel}" aria-label="{widthLabel}" aria-pressed="{f:if(condition: '{name} == {previewWidth}', then: 'true', else: 'false')}">
+        <span aria-hidden="true"><core:icon identifier="{icon}" /></span>
+    </button>
 </f:section>
 
 <f:section name="Addresses">

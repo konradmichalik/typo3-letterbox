@@ -132,6 +132,18 @@
   width: 100%;
 }
 
+.letterbox-preview--desktop {
+  max-width: 640px;
+}
+
+.letterbox-preview--tablet {
+  max-width: 520px;
+}
+
+.letterbox-preview--mobile {
+  max-width: 360px;
+}
+
 .letterbox-text {
   max-height: 70vh;
   overflow: auto;

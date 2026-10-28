@@ -95,7 +95,7 @@ final readonly class InboxController
         }
 
         $this->readState->markRead($mail->id);
-        $htmlDocument = $this->htmlDocument->build($mail);
+        $htmlDocument = $this->htmlDocument->build($mail, $query->remote);
         $hasHtml = '' !== trim($mail->html);
         $view = $this->createView($request, $query);
         $view->assignMultiple([
@@ -103,10 +103,14 @@ final readonly class InboxController
             'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
             'hasHtml' => $hasHtml,
             'htmlDocument' => $htmlDocument,
+            'unresolvedContentIds' => '' === $htmlDocument ? [] : $this->htmlDocument->unresolvedContentIds($mail),
+            'previewWidth' => $query->width,
+            'remote' => $query->remote,
             'textSegments' => TextSegments::split($mail->text),
             'headersUrl' => $this->mailListView->url($query, ['id' => $mail->id, 'tab' => 'headers']),
             'defaultTab' => $this->defaultTab($query->tab, $hasHtml, '' !== $htmlDocument),
         ]);
+        $view->assignMultiple($this->mailListView->previewControls($query));
 
         return $view->renderResponse('Inbox/Show');
     }
