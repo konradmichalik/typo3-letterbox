@@ -144,9 +144,12 @@ final readonly class MailRelease
         return new Address($value);
     }
 
+    /**
+     * The site's own address first: the From of a contact form mail is the visitor, who must not get the bounces.
+     */
     private function sender(Mail $mail): ?Address
     {
-        foreach ([$mail->from?->address, $this->mailSettings()['defaultMailFromAddress'] ?? null] as $candidate) {
+        foreach ([$this->mailSettings()['defaultMailFromAddress'] ?? null, $mail->from?->address] as $candidate) {
             if (!is_string($candidate) || '' === $candidate) {
                 continue;
             }

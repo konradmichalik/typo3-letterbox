@@ -38,6 +38,7 @@ Details on the modes are in [delivery modes](delivery-modes.md).
 * Release is opt-in. An empty or missing list hides the button.
 * One invalid entry switches release off for everybody, so a typo cannot widen the list.
 * Release sends through `transport_letterbox_delivery`, so that key must be set, and must not lead back into Letterbox. See the [refusals](backend-module.md#release).
+* Set `MAIL/defaultMailFromAddress`. Release uses it as the envelope sender, and falls back to the From of the mail only when it is empty.
 
 ## Extension settings
 

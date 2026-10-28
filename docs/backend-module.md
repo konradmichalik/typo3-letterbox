@@ -53,7 +53,7 @@ What is sent:
 
 * The stored message unchanged, except that the `X-Letterbox-Envelope-To` header is removed, with CRLF line endings. To and Cc still show the original recipients.
 * Only to the chosen address, as the envelope recipient. Nobody else gets it.
-* The envelope sender is the From address of the mail, else `MAIL/defaultMailFromAddress`.
+* The envelope sender is `MAIL/defaultMailFromAddress`, else the From address of the mail. The site's own address comes first, because the From of a contact form mail is the visitor, who would get the bounces, and SPF would fail for their domain. The From header itself stays unchanged.
 * Through `MAIL/transport_letterbox_delivery`, never through Letterbox itself. A configured `transport_spool_type` is ignored for the release, because the spool would be flushed back into Letterbox.
 
 The copy in Letterbox stays. TYPO3 logs `Released mail <id> to a recipient at <domain> by backend user <uid>` at info level (the domain only, not the address). A failing transport shows an error message, and TYPO3 logs `Release of mail <id> to a recipient at <domain> failed: <exception class>` at warning level. The exception message is not logged, because it can carry addresses or server answers.

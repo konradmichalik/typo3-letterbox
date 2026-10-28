@@ -88,6 +88,18 @@ final class MailReleaseTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function envelopePrefersDefaultFromAddressOverTheMailsFrom(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['defaultMailFromAddress'] = 'noreply@example.org';
+        $mail = $this->catch((new Email())->from('visitor@other.test')->to('anna@example.org')->subject('Contact form')->text('Body'));
+
+        $this->release()->release($mail, 'anna@example.org', 1);
+
+        self::assertSame(['noreply@example.org'], RecordingTransport::$senders, 'bounces must not go to the visitor of a contact form');
+        self::assertStringContainsString('From: visitor@other.test', RecordingTransport::$messages[0]);
+    }
+
+    #[Test]
     public function envelopeFallsBackToDefaultFromAddress(): void
     {
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['defaultMailFromAddress'] = 'noreply@example.org';
