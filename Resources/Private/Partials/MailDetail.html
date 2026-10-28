@@ -70,15 +70,6 @@
                     <f:if condition="{hasPreview}">
                         <f:then>
                             <div class="d-flex flex-wrap gap-3 mt-3">
-                                <form class="letterbox-preview-view" method="get" action="{viewForm.action}">
-                                    <f:for each="{viewForm.fields}" key="fieldName" as="fieldValue">
-                                        <input type="hidden" name="{fieldName}" value="{fieldValue}" />
-                                    </f:for>
-                                    <div class="btn-group" role="group" aria-label="{f:translate(key: 'inbox.view.label', extensionName: 'Typo3Letterbox')}">
-                                        <f:render section="ViewButton" arguments="{name: 'preview', view: view}" />
-                                        <f:render section="ViewButton" arguments="{name: 'code', view: view}" />
-                                    </div>
-                                </form>
                                 <f:if condition="{codeView}">
                                     <f:else>
                                         <form class="letterbox-preview-width" method="get" action="{widthForm.action}">
@@ -93,6 +84,15 @@
                                         </form>
                                     </f:else>
                                 </f:if>
+                                <form class="letterbox-preview-view ms-auto" method="get" action="{viewForm.action}">
+                                    <f:for each="{viewForm.fields}" key="fieldName" as="fieldValue">
+                                        <input type="hidden" name="{fieldName}" value="{fieldValue}" />
+                                    </f:for>
+                                    <div class="btn-group" role="group" aria-label="{f:translate(key: 'inbox.view.label', extensionName: 'Typo3Letterbox')}">
+                                        <f:render section="ViewButton" arguments="{name: 'preview', icon: 'actions-eye', view: view}" />
+                                        <f:render section="ViewButton" arguments="{name: 'code', icon: 'actions-code', view: view}" />
+                                    </div>
+                                </form>
                             </div>
                             <f:if condition="{codeView}">
                                 <f:else>
@@ -268,7 +268,9 @@
 
 <f:section name="ViewButton">
     <f:variable name="viewLabel"><f:translate key="inbox.view.{name}" extensionName="Typo3Letterbox" /></f:variable>
-    <button type="submit" name="view" value="{name}" class="btn btn-sm btn-default{f:if(condition: '{view} == {name}', then: ' active')}" title="{viewLabel}" aria-pressed="{f:if(condition: '{view} == {name}', then: 'true', else: 'false')}">{viewLabel}</button>
+    <button type="submit" name="view" value="{name}" class="btn btn-sm btn-default{f:if(condition: '{view} == {name}', then: ' active')}" title="{viewLabel}" aria-label="{viewLabel}" aria-pressed="{f:if(condition: '{view} == {name}', then: 'true', else: 'false')}">
+        <span aria-hidden="true"><core:icon identifier="{icon}" /></span>
+    </button>
 </f:section>
 
 <f:section name="Addresses">
