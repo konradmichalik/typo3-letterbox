@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 return [
     'directories' => [
-        '.build',
+        '.Build',
         '.ddev',
         '.git',
         '.github',
@@ -22,7 +22,7 @@ return [
         'docs',
         'public',
         'tailor-version-upload',
-        'tests',
+        'Tests',
         'var',
         'vendor',
     ],
@@ -45,6 +45,7 @@ return [
         'phpunit.xml',
         'renovate.json',
         'SECURITY.md',
+        'typo3-vendor-bundler.yaml',
         'version-bumper.yaml',
     ],
 ];

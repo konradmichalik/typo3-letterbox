@@ -12,6 +12,8 @@
 /composer.lock                 export-ignore
 /composer-require-checker.json export-ignore
 /composer-unused.php           export-ignore
+/docs/design/screens/*.png     export-ignore
+/docs/images                   export-ignore
 /CONTRIBUTING.md               export-ignore
 /packaging_exclude.php         export-ignore
 /phpunit.functional.xml        export-ignore
@@ -19,4 +21,5 @@
 /renovate.json                 export-ignore
 /SECURITY.md                   export-ignore
 /Tests                         export-ignore
+/typo3-vendor-bundler.yaml      export-ignore
 /version-bumper.yaml           export-ignore
