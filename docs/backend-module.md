@@ -35,6 +35,14 @@ The "External access" button in the doc header opens `system_letterbox.access`, 
 
 The URL of a new link (`<site URL>_letterbox/inbox?t=<token>`) appears once, in the response to the create form, and is not stored or put in a flash message. Letterbox keeps only a hash of the token, so a lost link cannot be shown again and has to be revoked and replaced.
 
+## Reports status
+
+With EXT:reports installed (`composer require typo3/cms-reports`, listed under `suggest`), Admin Tools > Reports > Status has a "Letterbox" section. It names the transport, the delivery mode, the mbox file, the retention limits and whether external access is on. When another transport is configured it only says that Letterbox is not the mail transport.
+
+* Warning: mode `all` in the exact root context `Production`, an mbox file or directory that is not writable, external access on in root `Production`.
+* Info: mode `listed` (the value shows how many addresses are caught), external access on in any other context.
+* Error: the mail settings are invalid.
+
 ## Navigation without reload
 
 The module is a TYPO3 JavaScript module (`Resources/Public/JavaScript/inbox.js`). Mail rows, pagination, quick filters, the width switch and "Load remote images" replace only the list or the detail view, and search does the same after 300 ms of typing or on Enter. The browser history and the backend URL follow, so back and reload work as usual. Typing in the search field replaces the current history entry instead of adding one per keystroke; Enter adds one.

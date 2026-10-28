@@ -12,8 +12,10 @@ declare(strict_types=1);
  */
 
 use KonradMichalik\Typo3Letterbox\Command\{ClearCommand, ListCommand, SendTestMailsCommand, ShowCommand};
+use KonradMichalik\Typo3Letterbox\Report\LetterboxStatus;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use TYPO3\CMS\Reports\Registry\StatusRegistry;
 
 return static function (ContainerConfigurator $container, ContainerBuilder $containerBuilder): void {
     $services = $container->services();
@@ -26,6 +28,11 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
     ];
     foreach ($commands as $class => [$name, $description]) {
         $services->set($class)->autowire()->tag('console.command', ['command' => $name, 'description' => $description, 'schedulable' => false]);
+    }
+
+    // EXT:reports is a suggestion. Core loads it before this extension (composer suggest), so its registry is known here.
+    if ($containerBuilder->hasDefinition(StatusRegistry::class)) {
+        $services->set(LetterboxStatus::class)->autowire()->tag('reports.status');
     }
 
     if ('1' !== (string) ($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['debugMode'] ?? '0')) {

@@ -516,6 +516,117 @@
 			<trans-unit id="toolbar.file" resname="toolbar.file">
 				<source>Mbox file</source>
 			</trans-unit>
+			<trans-unit id="status.label" resname="status.label">
+				<source>Letterbox</source>
+			</trans-unit>
+			<trans-unit id="status.transport.title" resname="status.transport.title">
+				<source>Mail transport</source>
+			</trans-unit>
+			<trans-unit id="status.transport.ok" resname="status.transport.ok">
+				<source>Letterbox</source>
+			</trans-unit>
+			<trans-unit id="status.transport.okMessage" resname="status.transport.okMessage">
+				<source>Mails are caught by Letterbox as configured in the mail transport.</source>
+			</trans-unit>
+			<trans-unit id="status.transport.other" resname="status.transport.other">
+				<source>Not Letterbox</source>
+			</trans-unit>
+			<trans-unit id="status.transport.otherMessage" resname="status.transport.otherMessage">
+				<source>Letterbox is installed but not the mail transport.</source>
+			</trans-unit>
+			<trans-unit id="status.settings.title" resname="status.settings.title">
+				<source>Mail settings</source>
+			</trans-unit>
+			<trans-unit id="status.settings.invalid" resname="status.settings.invalid">
+				<source>Mail settings invalid</source>
+			</trans-unit>
+			<trans-unit id="status.settings.invalidMessage" resname="status.settings.invalidMessage">
+				<source>The MAIL settings of Letterbox are invalid, so mails are not caught. Check the mbox file name, the mode and the delivery transport.</source>
+			</trans-unit>
+			<trans-unit id="status.mode.title" resname="status.mode.title">
+				<source>Delivery mode</source>
+			</trans-unit>
+			<trans-unit id="status.mode.all" resname="status.mode.all">
+				<source>All mails are caught</source>
+			</trans-unit>
+			<trans-unit id="status.mode.allWarning" resname="status.mode.allWarning">
+				<source>Every mail is caught and none is delivered, although the context is Production. Set the mode to listed or switch the transport before go-live.</source>
+			</trans-unit>
+			<trans-unit id="status.mode.allMessage" resname="status.mode.allMessage">
+				<source>Every mail is caught and not delivered.</source>
+			</trans-unit>
+			<trans-unit id="status.mode.listed" resname="status.mode.listed">
+				<source>Listed, %d addresses</source>
+			</trans-unit>
+			<trans-unit id="status.mode.listed.one" resname="status.mode.listed.one">
+				<source>Listed, 1 address</source>
+			</trans-unit>
+			<trans-unit id="status.mode.listedMessage" resname="status.mode.listedMessage">
+				<source>Only mails to these addresses are caught, all others are delivered: %s</source>
+			</trans-unit>
+			<trans-unit id="status.mode.listedEmptyMessage" resname="status.mode.listedEmptyMessage">
+				<source>The catch list is empty, so every mail is delivered.</source>
+			</trans-unit>
+			<trans-unit id="status.mode.off" resname="status.mode.off">
+				<source>Off</source>
+			</trans-unit>
+			<trans-unit id="status.mode.offMessage" resname="status.mode.offMessage">
+				<source>No mail is caught, all mails are delivered.</source>
+			</trans-unit>
+			<trans-unit id="status.file.title" resname="status.file.title">
+				<source>Mbox file</source>
+			</trans-unit>
+			<trans-unit id="status.file.value.one" resname="status.file.value.one">
+				<source>1 mail, %s</source>
+			</trans-unit>
+			<trans-unit id="status.file.value.other" resname="status.file.value.other">
+				<source>%d mails, %s</source>
+			</trans-unit>
+			<trans-unit id="status.file.empty" resname="status.file.empty">
+				<source>No mail yet</source>
+			</trans-unit>
+			<trans-unit id="status.file.message" resname="status.file.message">
+				<source>Caught mails are written to %s.</source>
+			</trans-unit>
+			<trans-unit id="status.file.notWritable" resname="status.file.notWritable">
+				<source>The file %s is not writable, so mails cannot be caught.</source>
+			</trans-unit>
+			<trans-unit id="status.file.directoryNotWritable" resname="status.file.directoryNotWritable">
+				<source>The directory of %s does not exist or is not writable, so mails cannot be caught.</source>
+			</trans-unit>
+			<trans-unit id="status.file.notConfigured" resname="status.file.notConfigured">
+				<source>No mbox file is configured.</source>
+			</trans-unit>
+			<trans-unit id="status.retention.title" resname="status.retention.title">
+				<source>Retention</source>
+			</trans-unit>
+			<trans-unit id="status.retention.none" resname="status.retention.none">
+				<source>Keeps all mails</source>
+			</trans-unit>
+			<trans-unit id="status.retention.message" resname="status.retention.message">
+				<source>Older mails are removed when new mails arrive.</source>
+			</trans-unit>
+			<trans-unit id="status.retention.noneMessage" resname="status.retention.noneMessage">
+				<source>Neither a mail limit nor an age limit is set, the file grows until it is cleared.</source>
+			</trans-unit>
+			<trans-unit id="status.external.title" resname="status.external.title">
+				<source>External access</source>
+			</trans-unit>
+			<trans-unit id="status.external.on" resname="status.external.on">
+				<source>On</source>
+			</trans-unit>
+			<trans-unit id="status.external.off" resname="status.external.off">
+				<source>Off</source>
+			</trans-unit>
+			<trans-unit id="status.external.onMessage" resname="status.external.onMessage">
+				<source>The API and tester links answer for this context, see the external access page of the module.</source>
+			</trans-unit>
+			<trans-unit id="status.external.onProductionMessage" resname="status.external.onProductionMessage">
+				<source>The API and tester links answer in Production. Only the catch list is reachable, check that this is intended.</source>
+			</trans-unit>
+			<trans-unit id="status.external.offMessage" resname="status.external.offMessage">
+				<source>No request from outside the backend can read the caught mails.</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>
