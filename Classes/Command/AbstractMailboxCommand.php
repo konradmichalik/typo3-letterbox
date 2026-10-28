@@ -43,6 +43,14 @@ abstract class AbstractMailboxCommand extends Command
         return $this->handle($input, $io);
     }
 
+    /**
+     * Removes C0 and C1 control characters except tab and line feed, so a mail cannot send escape sequences to the terminal.
+     */
+    final protected static function printable(string $text): string
+    {
+        return preg_replace('/[\x00-\x08\x0B-\x1F\x7F\x{80}-\x{9F}]/u', '', mb_scrub($text, 'UTF-8')) ?? '';
+    }
+
     final protected function fail(SymfonyStyle $io, string $message): int
     {
         $io->getErrorStyle()->error($message);

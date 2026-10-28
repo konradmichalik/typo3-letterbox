@@ -115,6 +115,19 @@ final class ListCommandTest extends MailboxCommandTestCase
         self::assertStringContainsString('Letterbox is not configured: MAIL/transport_mbox_file is empty.', $tester->getDisplay());
     }
 
+    #[Test]
+    public function stripsControlCharactersFromTheColumns(): void
+    {
+        $this->addMail("Red \e[31malert\e[0m\u{9B}2J", "Eve\e[2J <eve@example.org>");
+
+        $tester = $this->tester();
+        $tester->execute([]);
+
+        self::assertStringNotContainsString("\e", $tester->getDisplay());
+        self::assertStringNotContainsString("\u{9B}", $tester->getDisplay());
+        self::assertStringContainsString('Red [31malert[0m2J', $tester->getDisplay());
+    }
+
     private function tester(): CommandTester
     {
         return new CommandTester($this->get(ListCommand::class));

@@ -53,7 +53,12 @@ final class ShowCommand extends AbstractMailboxCommand
             return $this->fail($io, 'Mail not found.');
         }
 
-        $io->write(self::content($mail, $part), false, OutputInterface::OUTPUT_RAW);
+        $content = self::content($mail, $part);
+        // The source stays byte for byte, it is meant to be piped. Everything else is for reading on a terminal.
+        if ('source' !== $part && $io->isDecorated()) {
+            $content = self::printable($content);
+        }
+        $io->write($content, false, OutputInterface::OUTPUT_RAW);
 
         return Command::SUCCESS;
     }

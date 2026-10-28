@@ -116,6 +116,26 @@ final class ShowCommandTest extends MailboxCommandTestCase
         self::assertStringContainsString('Letterbox is not configured: MAIL/transport_mbox_file is empty.', $tester->getDisplay());
     }
 
+    #[Test]
+    public function stripsControlCharactersOnATerminalButKeepsTheSourceRaw(): void
+    {
+        $this->addMail("Hello\e]0;pwned\x07", 'r@example.org', '2026-10-27 10:00:00', "Plain \e[31mred\e[0m text\x7F2J");
+
+        $tester = $this->tester();
+        $tester->execute(['id' => $this->firstId()], ['decorated' => true]);
+        self::assertSame("Plain [31mred[0m text2J\n", $tester->getDisplay());
+
+        $tester->execute(['id' => $this->firstId(), '--part' => 'headers'], ['decorated' => true]);
+        self::assertStringNotContainsString("\e", $tester->getDisplay());
+        self::assertStringNotContainsString("\x07", $tester->getDisplay());
+
+        $tester->execute(['id' => $this->firstId(), '--part' => 'source'], ['decorated' => true]);
+        self::assertStringContainsString("\e[31mred", $tester->getDisplay());
+
+        $tester->execute(['id' => $this->firstId()], ['decorated' => false]);
+        self::assertStringContainsString("\e[31mred", $tester->getDisplay());
+    }
+
     private function tester(): CommandTester
     {
         return new CommandTester($this->get(ShowCommand::class));

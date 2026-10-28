@@ -57,7 +57,7 @@ vendor/bin/typo3 letterbox:list --limit 2 --to anna@example.org
  ---------------------------------- --------------------- ------------------- ------------------ ---------------------------
 ```
 
-The time is shown in the PHP default timezone, `unknown` when the arrival time is unreadable. More than one recipient is shown as the first plus a count, such as `anna@example.org +2`. Long subjects are cut at 60 characters.
+The time is shown in the PHP default timezone, `unknown` when the arrival time is unreadable. More than one recipient is shown as the first plus a count, such as `anna@example.org +2`. Long subjects are cut at 60 characters. Control characters in sender, recipient and subject are removed, so a mail cannot send escape sequences to the terminal.
 
 ### `letterbox:show`
 
@@ -70,7 +70,7 @@ The time is shown in the PHP default timezone, `unknown` when the arrival time i
 vendor/bin/typo3 letterbox:show 3f9a1c0e5b7d4a2c8e6f1b0d9a7c5e3b --part headers
 ```
 
-The part is printed as it is, without formatting, so it can be piped or redirected. An unknown ID or part exits with `1`.
+The part is printed without formatting, so it can be piped or redirected. On a terminal, control characters other than tab and line feed are removed from `text`, `html` and `headers`. `source` is always printed byte for byte. An unknown ID or part exits with `1`.
 
 ### `letterbox:clear`
 

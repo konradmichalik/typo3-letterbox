@@ -67,9 +67,9 @@ final class ListCommand extends AbstractMailboxCommand
             static fn (MessageIndexEntry $entry): array => [
                 $entry->id,
                 $entry->received?->setTimezone($timezone)->format('Y-m-d H:i:s') ?? 'unknown',
-                OutputFormatter::escape($entry->sender),
-                OutputFormatter::escape(self::recipients($entry)),
-                OutputFormatter::escape(mb_strimwidth($entry->subject, 0, self::SUBJECT_WIDTH, '...')),
+                OutputFormatter::escape(self::printable($entry->sender)),
+                OutputFormatter::escape(self::printable(self::recipients($entry))),
+                OutputFormatter::escape(mb_strimwidth(self::printable($entry->subject), 0, self::SUBJECT_WIDTH, '...')),
             ],
             $this->mails->findEntries($filter, 0, (int) $option),
         );
