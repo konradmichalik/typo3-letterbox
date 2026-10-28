@@ -13,6 +13,8 @@ services:
       - '../Classes/Command/ClearCommand.php'
       # Implements an interface of EXT:reports, which is optional. Registered in Services.php when it is installed.
       - '../Classes/Report/*'
+      # Implements an interface of EXT:dashboard, which is optional. Registered in Services.php when it is installed.
+      - '../Classes/Widgets/*'
 
   cache.typo3_letterbox_index:
     class: TYPO3\CMS\Core\Cache\Frontend\FrontendInterface

@@ -516,6 +516,18 @@
 			<trans-unit id="toolbar.file" resname="toolbar.file">
 				<source>Mbox file</source>
 			</trans-unit>
+			<trans-unit id="widget.title" resname="widget.title">
+				<source>Recent mails</source>
+			</trans-unit>
+			<trans-unit id="widget.description" resname="widget.description">
+				<source>Shows the latest mails caught by Letterbox.</source>
+			</trans-unit>
+			<trans-unit id="widget.notConfigured" resname="widget.notConfigured">
+				<source>No mbox file configured.</source>
+			</trans-unit>
+			<trans-unit id="widget.notActive" resname="widget.notActive">
+				<source>Letterbox is not the active mail transport.</source>
+			</trans-unit>
 			<trans-unit id="status.label" resname="status.label">
 				<source>Letterbox</source>
 			</trans-unit>
