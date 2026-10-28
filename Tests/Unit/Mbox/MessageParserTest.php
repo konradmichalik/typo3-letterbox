@@ -170,7 +170,7 @@ final class MessageParserTest extends TestCase
     {
         $entry = (new MessageParser())->summarize($this->fixture('html-with-attachment.eml'), new MessageSpan(0, 10));
 
-        self::assertSame(['one@example.org', 'two@example.org', 'cc@example.org', 'envelope@example.org'], $entry->scopeRecipients);
+        self::assertSame(['one@example.org', 'two@example.org', 'cc@example.org', 'envelope@example.org'], $entry->recipientAddresses);
         self::assertContains('hidden@example.org', $entry->recipients);
     }
 

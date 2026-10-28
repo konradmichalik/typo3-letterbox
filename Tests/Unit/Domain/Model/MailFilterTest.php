@@ -118,12 +118,12 @@ final class MailFilterTest extends TestCase
     }
 
     /**
-     * @param list<string> $recipients      every recipient, Bcc included
-     * @param list<string> $scopeRecipients To, Cc and envelope only
+     * @param list<string> $recipients         every recipient, Bcc included
+     * @param list<string> $recipientAddresses To, Cc and envelope only
      */
-    private function addressed(string $subject, array $recipients, array $scopeRecipients): MessageIndexEntry
+    private function addressed(string $subject, array $recipients, array $recipientAddresses): MessageIndexEntry
     {
-        return new MessageIndexEntry(new MessageSpan(0, 10), 'id', null, 'a@example.com', '', $recipients, $recipients, $scopeRecipients, $subject, 0);
+        return new MessageIndexEntry(new MessageSpan(0, 10), 'id', null, 'a@example.com', '', $recipients, $recipients, $recipientAddresses, $subject, 0);
     }
 
     /**

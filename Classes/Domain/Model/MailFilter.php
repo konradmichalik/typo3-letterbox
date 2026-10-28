@@ -92,7 +92,7 @@ final readonly class MailFilter
 
     private function recipientAndSubjectMatch(MessageIndexEntry $entry): bool
     {
-        if ('' !== $this->recipient && !in_array($this->recipient, $entry->scopeRecipients, true)) {
+        if ('' !== $this->recipient && !in_array($this->recipient, $entry->recipientAddresses, true)) {
             return false;
         }
 
