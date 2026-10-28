@@ -47,4 +47,9 @@ final readonly class MessageIndexEntry
         public array $to = [],
         public array $cc = [],
     ) {}
+
+    public function withSpan(MessageSpan $span): self
+    {
+        return new self($span, $this->id, $this->date, $this->sender, $this->fromName, $this->recipients, $this->recipientLabels, $this->recipientAddresses, $this->subject, $this->attachmentCount, $this->received, $this->messageId, $this->to, $this->cc);
+    }
 }

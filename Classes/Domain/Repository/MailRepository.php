@@ -141,7 +141,7 @@ final readonly class MailRepository
     {
         foreach ($this->index->entries() as $entry) {
             if ($entry->id === $id) {
-                return $this->writer->remove([$entry->span], fn (): bool => $this->isCurrent($entry));
+                return $this->remove([$entry]) > 0;
             }
         }
 
@@ -230,14 +230,15 @@ final readonly class MailRepository
 
     /**
      * Removes all entries in one rewrite, or none when the file changed since the index was read.
-     * Mails appended after that stay, because only the given spans are cut out.
+     * Mails appended after that stay, because only the given spans are cut out. The index follows without a scan.
      *
      * @param list<MessageIndexEntry> $entries
      */
     private function remove(array $entries): int
     {
+        $spans = array_map(static fn (MessageIndexEntry $entry): MessageSpan => $entry->span, $entries);
         $removed = $this->writer->remove(
-            array_map(static fn (MessageIndexEntry $entry): MessageSpan => $entry->span, $entries),
+            $spans,
             function () use ($entries): bool {
                 foreach ($entries as $entry) {
                     if (!$this->isCurrent($entry)) {
@@ -247,6 +248,7 @@ final readonly class MailRepository
 
                 return true;
             },
+            fn () => $this->index->removed($spans),
         );
 
         return $removed ? count($entries) : 0;

@@ -62,11 +62,12 @@ final readonly class MailboxWriter
 
     /**
      * @param list<MessageSpan>       $spans
-     * @param (callable(): bool)|null $guard evaluated under the lock, the spans are only removed when it returns true
+     * @param (callable(): bool)|null $guard        evaluated under the lock, the spans are only removed when it returns true
+     * @param (callable(): void)|null $afterRemoval evaluated under the lock right after the file was replaced
      *
      * @return bool whether the spans were removed
      */
-    public function remove(array $spans, ?callable $guard = null): bool
+    public function remove(array $spans, ?callable $guard = null, ?callable $afterRemoval = null): bool
     {
         if ([] === $spans) {
             return false;
@@ -74,7 +75,7 @@ final readonly class MailboxWriter
 
         usort($spans, static fn (MessageSpan $a, MessageSpan $b): int => $a->offset <=> $b->offset);
 
-        return $this->lock->run(function () use ($spans, $guard): bool {
+        return $this->lock->run(function () use ($spans, $guard, $afterRemoval): bool {
             if (null !== $guard && !$guard()) {
                 return false;
             }
@@ -96,6 +97,9 @@ final readonly class MailboxWriter
             }
 
             GeneralUtility::fixPermissions($this->path);
+            if (null !== $afterRemoval) {
+                $afterRemoval();
+            }
 
             return true;
         });

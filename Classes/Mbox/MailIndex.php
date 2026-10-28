@@ -57,7 +57,7 @@ final class MailIndex
             return $this->memo['entries'];
         }
 
-        $key = self::CACHE_VERSION.hash('sha256', $this->mailbox->path());
+        $key = $this->cacheKey();
         $cached = $this->cache->get($key);
         $entries = $this->usable($cached, $fingerprint);
 
@@ -73,6 +73,44 @@ final class MailIndex
         $this->memo = ['fingerprint' => $fingerprint, 'entries' => array_reverse($entries)];
 
         return $this->memo['entries'];
+    }
+
+    /**
+     * Cuts the removed spans out of the index of this request and moves the later ones up, so the next read does not
+     * scan the rewritten file. Call it under the mailbox lock right after the rewrite.
+     *
+     * @param list<MessageSpan> $removed spans of indexed mails
+     */
+    public function removed(array $removed): void
+    {
+        if (null === $this->memo) {
+            return;
+        }
+        $lengths = [];
+        foreach ($removed as $span) {
+            $lengths[$span->offset] = $span->length;
+        }
+        $kept = [];
+        $shift = 0;
+        foreach (array_reverse($this->memo['entries']) as $entry) {
+            if (isset($lengths[$entry->span->offset])) {
+                $shift += $lengths[$entry->span->offset];
+                continue;
+            }
+            $kept[] = 0 === $shift ? $entry : $entry->withSpan(new MessageSpan($entry->span->offset - $shift, $entry->span->length));
+        }
+
+        $fingerprint = $this->mailbox->fingerprint();
+        $size = self::sizeOf($fingerprint);
+        // Another writer changed the file since the index was read when size or last mail do not fit. The next read scans it then.
+        if ('' === $fingerprint || $size !== self::sizeOf($this->memo['fingerprint']) - array_sum($lengths) || !$this->endsWithKnownMessage($kept, $size)) {
+            $this->memo = null;
+
+            return;
+        }
+
+        $this->cache->set($this->cacheKey(), ['fingerprint' => $fingerprint, 'entries' => array_map(self::toRow(...), $kept)]);
+        $this->memo = ['fingerprint' => $fingerprint, 'entries' => array_reverse($kept)];
     }
 
     /**
@@ -217,6 +255,11 @@ final class MailIndex
         }
 
         return array_values(array_map(static fn (mixed $pair): Address => is_array($pair) ? new Address($pair[0], $pair[1]) : throw new UnexpectedValueException('Invalid address in the mail index.', 2093317548), $row));
+    }
+
+    private function cacheKey(): string
+    {
+        return self::CACHE_VERSION.hash('sha256', $this->mailbox->path());
     }
 
     private static function sizeOf(string $fingerprint): int

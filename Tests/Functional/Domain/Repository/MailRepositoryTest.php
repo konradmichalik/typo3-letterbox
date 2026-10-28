@@ -19,8 +19,10 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry, MessageParser};
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
-use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\{DataProvider, Test};
+use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Locking\{LockFactory, LockingStrategyInterface};
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -160,6 +162,62 @@ final class MailRepositoryTest extends FunctionalTestCase
 
         self::assertSame(['three', 'one'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
         self::assertFalse($this->repository->delete($two->id));
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function deletedPositions(): iterable
+    {
+        yield 'first in the file' => [3];
+        yield 'in the middle' => [1];
+        yield 'last in the file' => [0];
+    }
+
+    #[Test]
+    #[DataProvider('deletedPositions')]
+    public function deleteKeepsTheIndexWithoutReadingTheMailboxAgain(int $position): void
+    {
+        foreach (['one', 'two', 'three', 'four'] as $subject) {
+            $this->append($subject);
+        }
+        $entry = $this->repository->findEntries(MailFilter::all(), $position, 1)[0];
+
+        self::assertTrue($this->repository->delete($entry->id));
+
+        $this->assertCachedIndexIsCurrent(3);
+    }
+
+    #[Test]
+    public function pruneKeepsTheIndexWithoutReadingTheMailboxAgain(): void
+    {
+        $now = self::now();
+        $this->appendReceived('old', $now->modify('-40 days'));
+        foreach (['one', 'two', 'three', 'four'] as $subject) {
+            $this->appendReceived($subject, $now->modify('-1 day'));
+        }
+        $this->repository->count(MailFilter::all());
+
+        self::assertSame(1, $this->repository->prune(0, 30, $now));
+        $this->assertCachedIndexIsCurrent(4);
+        self::assertSame(2, $this->repository->prune(2, 0, $now));
+        $this->assertCachedIndexIsCurrent(2);
+        self::assertSame(['four', 'three'], $this->entrySubjects());
+    }
+
+    #[Test]
+    public function aMailAppendedByAnotherWriterBeforeTheDeleteIsKept(): void
+    {
+        foreach (['one', 'two'] as $subject) {
+            $this->append($subject);
+        }
+        $one = $this->repository->findEntries(MailFilter::all(), 1, 1)[0];
+        $this->append('three');
+
+        self::assertTrue($this->repository->delete($one->id));
+
+        self::assertSame(['three', 'two'], $this->entrySubjects());
+        self::assertSame(['three', 'two'], array_map(static fn (MessageIndexEntry $entry): string => $entry->subject, $this->repositoryWith($this->writer)->findEntries(MailFilter::all(), 0, 10)));
     }
 
     #[Test]
@@ -346,6 +404,21 @@ final class MailRepositoryTest extends FunctionalTestCase
         self::assertSame(2, $repository->prune(1, 0, self::now()));
 
         self::assertSame(['four', 'three'], $this->entrySubjects());
+    }
+
+    /**
+     * The cached index has to describe the file as it is now, and match what a full scan yields.
+     */
+    private function assertCachedIndexIsCurrent(int $count): void
+    {
+        $mailbox = new Mailbox($this->path, new MboxFormat());
+        $cached = $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->get('v8_'.hash('sha256', $this->path));
+        $scanned = (new MailIndex($mailbox, new MessageParser(), new VariableFrontend('letterbox_scan', new TransientMemoryBackend())))->entries();
+
+        self::assertIsArray($cached);
+        self::assertSame($mailbox->fingerprint(), $cached['fingerprint']);
+        self::assertCount($count, $scanned);
+        self::assertEquals($scanned, $this->repositoryWith($this->writer)->findEntries(MailFilter::all(), 0, 100));
     }
 
     private function repositoryWith(MailboxWriter $writer): MailRepository
