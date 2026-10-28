@@ -83,6 +83,17 @@ final class SendmailArgumentsTest extends TestCase
     }
 
     #[Test]
+    public function afterCommandSkipsALeadingDoubleDash(): void
+    {
+        $tokens = SendmailArguments::afterCommand(['vendor/bin/typo3', 'letterbox:receive', '--', '-t', '-i', '-V', 'envid', '--', '-odd@example.org'], 'letterbox:receive');
+
+        self::assertSame(['-t', '-i', '-V', 'envid', '--', '-odd@example.org'], $tokens);
+        $arguments = SendmailArguments::fromArgv($tokens);
+        self::assertTrue($arguments->recipientsFromHeaders);
+        self::assertSame(['-odd@example.org'], $arguments->recipients);
+    }
+
+    #[Test]
     public function afterCommandIsEmptyWithoutTheCommandName(): void
     {
         self::assertSame([], SendmailArguments::afterCommand(['vendor/bin/phpunit', '-t'], 'letterbox:receive'));

@@ -73,6 +73,9 @@ final readonly class SendmailArguments
     }
 
     /**
+     * A `--` right after the command name is dropped: it only keeps Symfony from reading sendmail flags such as -V or -h
+     * as its own --version or --help.
+     *
      * @param array<array-key, mixed> $argv the raw $_SERVER['argv'], whose command name may follow the script path and global options
      *
      * @return list<string> the tokens after the command name, empty when it is missing
@@ -81,8 +84,12 @@ final readonly class SendmailArguments
     {
         $tokens = array_values(array_filter($argv, is_string(...)));
         $position = array_search($commandName, $tokens, true);
+        if (false === $position) {
+            return [];
+        }
+        $start = $position + 1;
 
-        return false === $position ? [] : array_slice($tokens, $position + 1);
+        return array_slice($tokens, '--' === ($tokens[$start] ?? null) ? $start + 1 : $start);
     }
 
     /**

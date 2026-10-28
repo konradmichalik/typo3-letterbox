@@ -56,7 +56,7 @@ final class ReceiveCommand extends Command
         // TYPO3 binds the input against the application before the command runs and loses every token after the
         // first unknown sendmail flag, so the command reads $_SERVER['argv'] itself and must not reject the flags.
         $this->ignoreValidationErrors();
-        $this->setHelp('Reads one RFC 822 message from stdin and stores it in the mailbox, for sendmail_path = "/usr/bin/php /path/to/vendor/bin/typo3 letterbox:receive -t -i". Understands -t, -i, -f <sender>, -r <sender> and recipient arguments, ignores other sendmail flags. Exit code 0 when stored, 1 for invalid input, 2 when the mailbox is not configured or not writable.');
+        $this->setHelp('Reads one RFC 822 message from stdin and stores it in the mailbox, for sendmail_path = "/usr/bin/php /path/to/vendor/bin/typo3 letterbox:receive -- -t -i". Keep the "--": without it the console reads the sendmail flags -V and -h as --version and --help and drops the mail. Understands -t, -i, -f <sender>, -r <sender> and recipient arguments, ignores other sendmail flags. Exit code 0 when stored, 1 for invalid input, 2 when the mailbox is not configured or not writable.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

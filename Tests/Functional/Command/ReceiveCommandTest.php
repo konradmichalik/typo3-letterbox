@@ -17,6 +17,10 @@ use KonradMichalik\Typo3Letterbox\Command\ReceiveCommand;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\CommandLoader\FactoryCommandLoader;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Tester\CommandTester;
 
 /**
@@ -77,6 +81,31 @@ final class ReceiveCommandTest extends MailboxCommandTestCase
         self::assertDoesNotMatchRegularExpression('/^bcc:/im', strstr($mbox, "\n\n", true) ?: '');
         self::assertStringNotContainsString('eve@example.org,', $mbox);
         self::assertStringContainsString("Subject: Hidden copy\n\nBcc: stays in the body", $mbox);
+    }
+
+    #[Test]
+    public function versionAndHelpFlagsAfterDoubleDashStillStoreTheMail(): void
+    {
+        $application = new Application();
+        $application->setAutoExit(false);
+        $application->setCatchExceptions(false);
+        $command = $this->get(ReceiveCommand::class);
+        $application->setCommandLoader(new FactoryCommandLoader([ReceiveCommand::NAME => static fn (): ReceiveCommand => $command]));
+        $argv = ['/abs/vendor/bin/typo3', 'letterbox:receive', '--', '-t', '-i', '-V', 'envid', '-h', '5'];
+        $this->argv ??= $_SERVER['argv'] ?? [];
+        $_SERVER['argv'] = $argv;
+        $input = new ArgvInput($argv);
+        $stream = fopen('php://memory', 'r+');
+        self::assertIsResource($stream);
+        fwrite($stream, self::MESSAGE);
+        rewind($stream);
+        $input->setStream($stream);
+        $output = new BufferedOutput();
+
+        $exitCode = $application->run($input, $output);
+
+        self::assertSame(0, $exitCode, $output->fetch());
+        self::assertStringContainsString('X-Letterbox-Envelope-To: anna@example.org', (string) file_get_contents($this->path));
     }
 
     #[Test]

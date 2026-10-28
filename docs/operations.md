@@ -120,8 +120,10 @@ If another process rewrites the file while the command prunes, it tries once mor
 Stores one mail from stdin in the mailbox. It lets mails that do not go through the TYPO3 mailer land in Letterbox, for example PHP `mail()` calls from legacy code or other extensions. Point PHP's `sendmail_path` at it:
 
 ```ini
-sendmail_path = "/usr/bin/php /var/www/html/vendor/bin/typo3 letterbox:receive -t -i"
+sendmail_path = "/usr/bin/php /var/www/html/vendor/bin/typo3 letterbox:receive -- -t -i"
 ```
+
+Keep the `--` after the command name. Without it the console application reads sendmail flags starting with `-V` or `-h` (for example `-V envid` or `-h 5`) as its own `--version` or `--help`, prints that and exits with `0` without reading the mail, so the sender believes it was delivered. The `--` right after the command name is skipped and does not end the sendmail options.
 
 * Use absolute paths and the PHP CLI binary (`php`, not `php-fpm` or `php-cgi`). The command runs in a fresh process without your shell's `PATH` or working directory.
 * `sendmail_path` is `PHP_INI_SYSTEM`. Set it in `php.ini` or the FPM pool configuration (`php_admin_value[sendmail_path]`), not with `ini_set()` or `.user.ini`.
@@ -139,7 +141,7 @@ Flags are read from the raw command line, because TYPO3 would drop everything af
 | `-f <sender>`, `-r <sender>` | Envelope sender, the value may be attached (`-fsender`). Otherwise the address of the From header, else none. |
 | Addresses | Further arguments are recipients, also comma separated. |
 
-Other sendmail flags (`-o...`, `-F name`, `-b...`, long options and unknown ones) are accepted and ignored, flags can be combined (`-ti`), and `--` ends the options. Symfony's own options still apply to the same command line, so `-v` makes the output verbose and `-q`, `-h`, `-V` and `-n` would be read by the console application, not ignored. PHP's `mail()` does not pass them.
+Other sendmail flags (`-o...`, `-F name`, `-b...`, long options and unknown ones) are accepted and ignored, flags can be combined (`-ti`), and a later `--` ends the options. Without the leading `--`, Symfony's own options apply to the same command line: `-v` makes the output verbose, and `-q`, `-h`, `-V` and `-n` are read by the console application, not ignored. PHP's `mail()` does not pass them, other senders may.
 
 Bcc recipients go into the `X-Letterbox-Envelope-To` header and the `Bcc` header itself is removed from the stored copy, as for caught mails. The message is limited to 25 MiB.
 
