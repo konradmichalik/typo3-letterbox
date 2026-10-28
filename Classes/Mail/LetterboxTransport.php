@@ -141,7 +141,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
             }
         } catch (Throwable $e) {
             // The mail is already caught, so a failed cleanup must not fail the send.
-            $this->getLogger()->warning('Letterbox could not apply the retention limits: {reason}', ['reason' => $e->getMessage()]);
+            $this->getLogger()->warning('Letterbox could not apply the retention limits: {exception} ({code})', ['exception' => $e::class, 'code' => $e->getCode()]);
         }
     }
 
