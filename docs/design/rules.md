@@ -6,7 +6,7 @@ These rules are binding for every change to Letterbox's backend module, the test
 
 The screens these rules produce are listed in [screens.md](screens.md).
 
-Phases 2, 3 and 4 are implemented: inbox, detail view, empty state, the "No mail selected" state, the external access page, the tester inbox, the toolbar item, the Reports status and the dashboard widget. The other screens are the target design for later phases.
+Phase 5 implemented. Phases 2, 3 and 4 are implemented as well: inbox, detail view, empty state, the "No mail selected" state, the external access page, the tester inbox, the toolbar item, the Reports status and the dashboard widget, and in Phase 5 the Checks tab and the release dialog.
 
 ## Principles
 
@@ -75,9 +75,22 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 ## Mail detail
 
 - Header: subject as `h2`, then a definition list (`dl`) with the rows From, To, Cc and Date. Labels sit in a narrow muted column (48px), values in the second, 4px between rows. An address shows the display name in semibold and the address in muted angle brackets, or only the address in normal weight when there is no name. Cc only when present. The Date row carries the full date and time and ends with "All headers", which jumps to the Headers tab; there is no second, collapsible header block.
-- Actions are icon-only buttons with a tooltip and an accessible name that includes the subject: download `.eml`, delete.
-- Tabs: HTML, Text, Headers, Source, Links, Attachments (all six ship in Phase 2). Core tab markup with the full ARIA tabs pattern.
+- Actions are icon-only buttons with a tooltip and an accessible name that includes the subject: release, download `.eml`, delete.
+- Tabs: HTML, Text, Headers, Source, Links, Checks, Attachments. Core tab markup with the full ARIA tabs pattern.
 - Preview width: icon-only toggles for desktop, tablet and mobile width, with tooltip and accessible name.
+
+## Checks
+
+- The panel has one intro line ("Rule based checks of this mail. Nothing is fetched from the network."), then one core card per finding, errors first, then warnings, then infos.
+- A finding has a badge with icon and severity word (never colour alone), a semibold message and, where there is something to point at, a short excerpt in `code`. No line numbers.
+- The tab label counts errors and warnings, no number at 0. Without findings the panel says "No findings."
+
+## Release
+
+- The release button is the first icon action in the mail header, with the tooltip "Release to a real address" and an accessible name that includes the subject. Without `transport_letterbox_release` it is not rendered.
+- The dialog is a core modal with a paper-plane icon in the title. A warning callout says the mail leaves the system and that the copy stays, a list shows Subject, From and Sent to, and one email field "Release to" carries help text with the allowed patterns and an error text linked with `aria-describedby`. Footer: Cancel and the primary "Release mail". Enter submits, Escape closes and returns focus to the button.
+- When release is configured but refused, the same button opens a danger callout "Release is not available" with the reason and the setting to change, no field, and only a "Close" button that takes focus.
+- The result is a core flash message after a redirect back to the same mail.
 
 ## Mail preview
 

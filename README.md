@@ -25,7 +25,10 @@ Catches TYPO3 mails in an mbox file and shows them in the backend, for local, st
 
 * [Mail transport](docs/delivery-modes.md) that appends every caught mail to a local mbox file (RFC 4155)
 * Three [delivery modes](docs/delivery-modes.md): `all` catches everything, `listed` catches only chosen recipients and delivers the rest, `off` delivers everything
-* [Backend module](docs/backend-module.md) under System › Letterbox with search, quick filters, per-user unread state, detail tabs (HTML, text, headers, source, links, attachments) and delete
+* [Backend module](docs/backend-module.md) under System › Letterbox with search, quick filters, per-user unread state, detail tabs (HTML, text, headers, source, links, checks, attachments), download and delete
+* [Release](docs/backend-module.md#release) of a caught mail to an allowed real address, for example to show a client the real inbox view
+* [Checks](docs/backend-module.md#checks) per mail: rule based findings such as images without `alt`, `http` links, tracking pixels, scripts and a size over Gmail's clip limit
+* [Sendmail intake](docs/operations.md#letterboxreceive): `letterbox:receive` catches mails that bypass the TYPO3 mailer, such as PHP `mail()`
 * Sandboxed HTML preview with a width switch (desktop, tablet, mobile) that blocks remote images until you load them per mail
 * Collapsible mail list and navigation without page reload, with a full-page fallback when JavaScript is off
 * [External access](docs/external-access.md) for test systems, off by default and always off in root `Production`: a token-protected [JSON API](docs/api.md) for end-to-end tests and a read-only tester inbox. Everyone with the link sees all caught mails of the system
@@ -76,10 +79,10 @@ Then open System › Letterbox as an administrator. Outside the exact root conte
 
 | Page | What's inside |
 |------|---------------|
-| [Configuration](docs/configuration.md) | Transport settings and extension settings |
+| [Configuration](docs/configuration.md) | Transport settings, release list and extension settings |
 | [Delivery modes](docs/delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
-| [Backend module](docs/backend-module.md) | Search, filters, tabs, preview, navigation, delete and clear |
-| [Operations](docs/operations.md) | Retention, console commands, toolbar item, Reports status and dashboard widget |
+| [Backend module](docs/backend-module.md) | Search, filters, tabs, checks, release, preview, navigation, delete and clear |
+| [Operations](docs/operations.md) | Retention, console commands, sendmail intake, toolbar item, Reports status and dashboard widget |
 | [External access](docs/external-access.md) | Activation, the shared token, guard reasons and the tester inbox |
 | [JSON API](docs/api.md) | Endpoints, authentication, response shape, Playwright example |
 | [Test mails](docs/test-mails.md) | Console command `letterbox:testmails:send` |

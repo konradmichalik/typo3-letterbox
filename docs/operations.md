@@ -41,9 +41,10 @@ Run them with `vendor/bin/typo3` (in DDEV `ddev exec vendor/bin/typo3`). Every c
 | `letterbox:show` | Print one part of a mail | No |
 | `letterbox:clear` | Delete every caught mail | No |
 | `letterbox:prune` | Remove mails beyond the retention limits | Yes |
+| `letterbox:receive` | Store one mail from stdin, as a `sendmail_path` replacement, see [below](#letterboxreceive) | No |
 | `letterbox:testmails:send` | Send test mails, only with `debugMode`, see [test mails](test-mails.md) | No |
 
-Exit codes: `0` on success, `1` on invalid input, a missing mail or a missing configuration. `letterbox:testmails:send` returns `2` for an invalid `--count`.
+Exit codes: `0` on success, `1` on invalid input, a missing mail or a missing configuration (`letterbox:receive` differs, see below). `letterbox:testmails:send` returns `2` for an invalid `--count`.
 
 ### `letterbox:list`
 
@@ -113,6 +114,45 @@ vendor/bin/typo3 letterbox:prune --max-age-days 7
 ```
 
 If another process rewrites the file while the command prunes, it tries once more. When that also removes nothing, it prints a warning and exits with `1`. An option replaces its setting for this run only. A value that is not a whole number of 0 or more exits with `1`. To run it regularly, add the task "Execute console commands" in the Scheduler (EXT:scheduler) and select `letterbox:prune`.
+
+### `letterbox:receive`
+
+Stores one mail from stdin in the mailbox. It lets mails that do not go through the TYPO3 mailer land in Letterbox, for example PHP `mail()` calls from legacy code or other extensions. Point PHP's `sendmail_path` at it:
+
+```ini
+sendmail_path = "/usr/bin/php /var/www/html/vendor/bin/typo3 letterbox:receive -t -i"
+```
+
+* Use absolute paths and the PHP CLI binary (`php`, not `php-fpm` or `php-cgi`). The command runs in a fresh process without your shell's `PATH` or working directory.
+* `sendmail_path` is `PHP_INI_SYSTEM`. Set it in `php.ini` or the FPM pool configuration (`php_admin_value[sendmail_path]`), not with `ini_set()` or `.user.ini`.
+* The command boots TYPO3 for each mail, so it needs the same environment as the web request, above all `TYPO3_CONTEXT` and the database variables. PHP-FPM pools with `clear_env = yes` (the default) do not pass them on. Set `clear_env = no` or list the variables in the pool with `env[NAME] = ...`.
+* One TYPO3 boot per mail. Fine for test systems, slow for mass mailing.
+* It stores every mail regardless of `transport_letterbox_mode`. Using it is the explicit choice to catch.
+* The [retention](#retention) limits are applied afterwards, as for a caught mail.
+
+Flags are read from the raw command line, because TYPO3 would drop everything after the first flag it does not know:
+
+| Flag | Effect |
+|------|--------|
+| `-t` | Take the recipients from the To, Cc and Bcc headers. |
+| `-i` | Ignored. |
+| `-f <sender>`, `-r <sender>` | Envelope sender, the value may be attached (`-fsender`). Otherwise the address of the From header, else none. |
+| Addresses | Further arguments are recipients, also comma separated. |
+
+Other sendmail flags (`-o...`, `-F name`, `-b...`, long options and unknown ones) are accepted and ignored, flags can be combined (`-ti`), and `--` ends the options. Symfony's own options still apply to the same command line, so `-v` makes the output verbose and `-q`, `-h`, `-V` and `-n` would be read by the console application, not ignored. PHP's `mail()` does not pass them.
+
+Bcc recipients go into the `X-Letterbox-Envelope-To` header and the `Bcc` header itself is removed from the stored copy, as for caught mails. The message is limited to 25 MiB.
+
+| Exit code | Meaning |
+|-----------|---------|
+| `0` | Stored. Nothing is printed. |
+| `1` | Invalid input: empty message, over 25 MiB, unparsable, no recipients (neither arguments nor `-t` addresses), or an address with whitespace, control characters or `, < > "`. |
+| `2` | The mailbox is not configured (`transport_mbox_file` empty or rejected by the file deny pattern) or not writable. |
+
+Errors go to stderr as one line starting with `letterbox:receive:`.
+
+> [!WARNING]
+> Do not combine this with `transport_letterbox_delivery = sendmail` while `sendmail_path` runs `letterbox:receive`. Core's sendmail transport falls back to `sendmail_path`, so mails that should be delivered would be stored instead. [Release](backend-module.md#release) refuses this setup, delivery does not check it.
 
 ## Toolbar item
 

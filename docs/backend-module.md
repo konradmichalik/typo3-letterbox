@@ -17,13 +17,57 @@ The module is under System › Letterbox and is available to administrators only
   * Headers: the main headers, with an "All headers" link
   * Source: the raw message, which can be downloaded
   * Links: every link in the mail with copy and open buttons. Password reset links are flagged.
-  * Checks: rule based findings, sorted error, warning, info, each with a short excerpt. The tab counts errors and warnings. Rules: HTML part over 102 KB (Gmail clips it), no plain-text part, images without `alt`, no `lang` on the `html` element, `http:` links, remote images (with possible tracking pixels), `script`, `form`, `iframe`, `object` or `embed` in the HTML part, and a From domain that is not a domain of any TYPO3 site (skipped when no site exists; subdomains of a site host match). Nothing is fetched from the network. A HTML part over the parser limits only gets the size and text based rules.
+  * Checks: rule based findings with a short excerpt, sorted error, warning, info. The tab counts errors and warnings. See [Checks](#checks).
   * Attachments: each attachment can be downloaded
 * The meta line above the list shows the mbox file, the number and size of the mails and the [retention limits](operations.md#retention).
 * The preview width can be switched between desktop (full width), tablet (520px) and mobile (360px).
 * The HTML preview runs in a sandboxed frame and remote images are blocked. "Load remote images" allows them for the current mail only. They are loaded over https and nothing else, and the preview comes from its own route (`system_letterbox.preview`) with a restrictive content security policy. Images that point to a missing `cid:` part are reported above the preview.
+* Header actions are icon buttons: release, download `.eml` and delete. See [Release](#release).
 * Deleting a single mail and clearing all mails ask for confirmation first, and a message confirms the result. After a delete the list keeps its search and filter. Opening a mail that no longer exists, for example through the browser history, returns to the list with a message.
 * Without caught mails the module shows an empty state. When `debugMode` is already enabled in the [extension settings](configuration.md#extension-settings), it also shows the command that sends test mails.
+
+## Checks
+
+The Checks tab runs fixed rules over the stored mail. Nothing is fetched from the network, links and images are only read. Findings show a badge with the severity word, a message and, where there is something to point at, an excerpt of the offending HTML (at most 120 characters, whitespace collapsed). There are no line numbers. The tab label counts errors and warnings, and shows no number at 0. A mail without findings shows "No findings."
+
+| Rule | Severity | Triggers when |
+|------|----------|---------------|
+| `script_or_form` | Error | The HTML part contains `script`, `form`, `iframe`, `object` or `embed`. One finding per element type, with the first such tag as excerpt. |
+| `html_size` | Warning | The HTML part is larger than 102 KB (104448 bytes), which Gmail clips. |
+| `missing_text` | Warning | The mail has no plain-text part, or it is blank. |
+| `img_alt` | Warning | An `img` has no `alt` attribute. An empty `alt` counts as set. One finding with the count. |
+| `http_link` | Warning | A link starts with `http:`. One finding with the count and the first URL. |
+| `from_not_site_domain` | Warning | The domain of the From address is neither a host of a TYPO3 site (including language and base variants) nor a subdomain of one. Skipped when no site exists. |
+| `missing_lang` | Info | The HTML part has an `html` element without a `lang` attribute. A fragment without `html` is not flagged. |
+| `remote_image` | Info | An `img` loads from `http:` or `https:`. The message says when it looks like a tracking pixel: `width` and `height` attributes, or CSS `width` and `height`, both 0 or 1 (with or without `px`). |
+
+An HTML part over the parser limits (see HTML above) still gets `html_size` and the rules that read only the text, links and From address; the rules that read the HTML structure are skipped.
+
+## Release
+
+Release sends a caught mail on to one real address, for example to show a client how the mail looks in their inbox. It is off until `MAIL/transport_letterbox_release` lists addresses, see [configuration](configuration.md#release). Without such a list the button does not appear.
+
+Click "Release to a real address" in the mail header (admins only). The dialog repeats Subject, From and the current recipients, and asks for the address to release to. It is pre-filled with the first To recipient that matches the release list. An address outside the list is refused in the dialog and again on the server. Release needs JavaScript, like the delete confirmation.
+
+What is sent:
+
+* The stored message unchanged, except that the `X-Letterbox-Envelope-To` header is removed, with CRLF line endings. To and Cc still show the original recipients.
+* Only to the chosen address, as the envelope recipient. Nobody else gets it.
+* The envelope sender is the From address of the mail, else `MAIL/defaultMailFromAddress`.
+* Through `MAIL/transport_letterbox_delivery`, never through Letterbox itself. A configured `transport_spool_type` is ignored for the release, because the spool would be flushed back into Letterbox.
+
+The copy in Letterbox stays. TYPO3 logs `Released mail <id> to a recipient at <domain> by backend user <uid>` at info level (the domain only, not the address). A failing transport shows an error message and no log entry from Letterbox.
+
+When release is configured but cannot work, the button still opens the dialog, which then names the setting to change and has only a Close button:
+
+| Reason | Cause | Change |
+|--------|-------|--------|
+| `release_invalid` | An entry of `transport_letterbox_release` is not an address or `*@domain` pattern. | Fix the entry. One bad entry switches release off. |
+| `delivery_missing` | `transport_letterbox_delivery` is empty. | Set it to a real transport such as `smtp`. |
+| `delivery_loops` | The delivery would hand the mail back to Letterbox, see below. | Point delivery at a real mail server. |
+| `sender_missing` | The mail has no usable From address and `defaultMailFromAddress` is empty or invalid. | Set `MAIL/defaultMailFromAddress`. |
+
+Loops that are detected: delivery is the Letterbox transport, delivery `mbox` (core's mbox transport writes into the Letterbox file), delivery `sendmail` while the sendmail command (`transport_sendmail_command`, else `sendmail_path`) runs `letterbox:receive`, and a DSN (`dsn` delivery, or a class name while `MAIL/dsn` is set) that contains `letterbox:receive` or uses `native://` while `sendmail_path` runs it. Not detectable: an external sendmail binary or SMTP server that forwards mail back into `letterbox:receive` on its own. Check such a setup by hand.
 
 ## External access page
 

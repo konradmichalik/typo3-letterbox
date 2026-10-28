@@ -13,6 +13,7 @@ $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = getenv('LETTERBOX_M
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_mode'] = 'listed';
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_catch'] = ['*@letterbox.invalid', 'qa@example.com'];
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_delivery'] = 'smtp';
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_release'] = ['*@example.org', 'qa@example.com'];
 ```
 
 > [!WARNING]
@@ -26,8 +27,17 @@ The `transport_letterbox_*` keys cannot be set with `configuration:set` or in th
 | `transport_letterbox_mode` | No | `all`, `listed` or `off`. Default: `listed` in the exact root context `Production`, `all` otherwise (`Production/Staging` gets `all`). |
 | `transport_letterbox_catch` | In mode `listed` | Array or comma separated string of addresses and `*@domain` patterns. |
 | `transport_letterbox_delivery` | When mails are delivered | Transport for non-caught recipients, for example `smtp`. It must not be the Letterbox transport. Its own `transport_*` settings are used as usual. |
+| `transport_letterbox_release` | To release mails | Array or comma separated string of addresses and `*@domain` patterns that a caught mail may be [released](#release) to. Empty or unset switches release off. |
 
 Details on the modes are in [delivery modes](delivery-modes.md).
+
+## Release
+
+`transport_letterbox_release` is the allowlist for [releasing a caught mail](backend-module.md#release) to a real address. It uses the same patterns as the catch list: full addresses and `*@domain`, case insensitive.
+
+* Release is opt-in. An empty or missing list hides the button.
+* One invalid entry switches release off for everybody, so a typo cannot widen the list.
+* Release sends through `transport_letterbox_delivery`, so that key must be set, and must not lead back into Letterbox. See the [refusals](backend-module.md#release).
 
 ## Extension settings
 
