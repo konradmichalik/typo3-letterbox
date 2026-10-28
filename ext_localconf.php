@@ -19,6 +19,7 @@ defined('TYPO3') || exit;
 $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['typo3_letterbox_index'] ??= [
     'frontend' => VariableFrontend::class,
     'backend' => SimpleFileBackend::class,
+    'groups' => ['system'],
 ];
 
 // FileBackend honours lifetimes, so the scheduler garbage collection removes expired limiter states.

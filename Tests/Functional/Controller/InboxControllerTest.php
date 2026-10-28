@@ -479,6 +479,30 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function metaLineShowsRetention(): void
+    {
+        $this->append('Only one');
+        $meta = function (?int $maxMessages, ?int $maxAgeDays): string {
+            unset($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxMessages'], $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxAgeDays']);
+            if (null !== $maxMessages) {
+                $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxMessages'] = (string) $maxMessages;
+            }
+            if (null !== $maxAgeDays) {
+                $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxAgeDays'] = (string) $maxAgeDays;
+            }
+            $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+            preg_match('/<p class="text-variant letterbox-meta">(.*?)<\/p>/s', $body, $match);
+
+            return (string) preg_replace('/\s+/', ' ', $match[1] ?? '');
+        };
+
+        self::assertStringEndsWith(' · keeps 500 mails or 30 days ', $meta(null, null));
+        self::assertStringEndsWith(' · keeps 20 mails ', $meta(20, 0));
+        self::assertStringEndsWith(' · keeps mails for 7 days ', $meta(0, 7));
+        self::assertStringNotContainsString('keeps', $meta(0, 0));
+    }
+
+    #[Test]
     public function textOnlyMailHasNoHtmlTab(): void
     {
         $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Plain\n\nJust text.\n");

@@ -331,11 +331,11 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         self::assertSame(1, $this->json($this->send($api, '/_letterbox/api/v1/messages'))['total']);
         // A stale index stands in for another process that rewrote the file between indexing and deleting.
         $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
-        $key = 'v4_'.hash('sha256', $this->path);
+        $key = 'v5_'.hash('sha256', $this->path);
         $cached = $cache->get($key);
         self::assertIsArray($cached);
         $cached['entries'] = array_map(
-            static fn (MessageIndexEntry $entry): MessageIndexEntry => new MessageIndexEntry($entry->span, str_repeat('f', 32), $entry->date, $entry->sender, $entry->fromName, $entry->recipients, $entry->recipientLabels, $entry->scopeRecipients, $entry->subject, $entry->attachmentCount),
+            static fn (MessageIndexEntry $entry): MessageIndexEntry => new MessageIndexEntry($entry->span, str_repeat('f', 32), $entry->date, $entry->sender, $entry->fromName, $entry->recipients, $entry->recipientLabels, $entry->scopeRecipients, $entry->subject, $entry->attachmentCount, $entry->received),
             $cached['entries'],
         );
         $cache->set($key, $cached);

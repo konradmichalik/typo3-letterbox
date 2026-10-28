@@ -64,7 +64,7 @@ final readonly class MessageParser
         );
     }
 
-    public function summarize(string $raw, MessageSpan $span): MessageIndexEntry
+    public function summarize(string $raw, MessageSpan $span, ?DateTimeImmutable $received = null): MessageIndexEntry
     {
         $message = $this->message($raw);
 
@@ -101,6 +101,7 @@ final readonly class MessageParser
             array_map(strval(...), array_keys($scope)),
             $message->getSubject() ?? '',
             $message->getAttachmentCount(),
+            $received,
         );
     }
 

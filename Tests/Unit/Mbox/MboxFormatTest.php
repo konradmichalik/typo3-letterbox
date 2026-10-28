@@ -125,6 +125,27 @@ not From
         self::assertTrue($f->isSeparator(rtrim($line, "\n")));
     }
 
+    #[Test]
+    #[DataProvider('separatorDates')]
+    public function receivedReadsTheSeparatorDateAsUtc(string $line, ?string $expected): void
+    {
+        self::assertSame($expected, (new MboxFormat())->received($line)?->format('Y-m-d H:i:s e'));
+    }
+
+    /**
+     * @return array<string, array{string, ?string}>
+     */
+    public static function separatorDates(): array
+    {
+        return [
+            'padded day' => ["From a@example.org Wed Oct  7 10:42:00 2026\n", '2026-10-07 10:42:00 UTC'],
+            'unpadded day of EXT:mbox' => ['From a@example.org Sun Nov 1 10:00:00 2026', '2026-11-01 10:00:00 UTC'],
+            'two digit day' => ["From a@example.org Tue Oct 27 23:59:59 2026\n", '2026-10-27 23:59:59 UTC'],
+            'impossible date' => ["From a@example.org Mon Feb 31 10:00:00 2026\n", null],
+            'no separator' => ['Subject: Wed Oct  7 10:42:00 2026', null],
+        ];
+    }
+
     /**
      * @return array<string, array{string}>
      */

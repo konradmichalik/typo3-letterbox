@@ -15,6 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Mail;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
+use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
@@ -22,8 +23,11 @@ use RuntimeException;
 use Stringable;
 use Symfony\Component\Mailer\{Envelope, SentMessage};
 use Symfony\Component\Mailer\Transport\AbstractTransport;
+use Throwable;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Locking\LockFactory;
+use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Mail\TransportFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -46,7 +50,8 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         ?EventDispatcherInterface $dispatcher = null,
         ?LoggerInterface $logger = null,
     ) {
-        parent::__construct($dispatcher, $logger);
+        // TransportFactory passes no logger to custom transports.
+        parent::__construct($dispatcher, $logger ?? GeneralUtility::makeInstance(LogManager::class)->getLogger(self::class));
 
         $this->settings = LetterboxSettings::fromMailSettings($mailSettings, (string) Environment::getContext());
         if ('' === $this->settings->mboxFile) {
@@ -82,6 +87,8 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
                 new DateTimeImmutable(),
                 'X-Letterbox-Envelope-To: '.implode(', ', $caught)."\r\n".$message->toString(),
             );
+            // After append() released the lock: the lock is not re-entrant, prune takes it again.
+            $this->prune();
         }
 
         if ([] !== $delivered) {
@@ -106,6 +113,25 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         }
 
         return false;
+    }
+
+    private function prune(): void
+    {
+        try {
+            $retention = RetentionSettings::fromExtensionConfiguration(GeneralUtility::makeInstance(ExtensionConfiguration::class));
+            if (!$retention->isActive()) {
+                return;
+            }
+
+            $repository = GeneralUtility::makeInstance(MailRepositoryFactory::class)->forPath($this->settings->mboxFile);
+            $now = new DateTimeImmutable();
+            if ($repository->needsPruning($retention->maxMessages, $retention->maxAgeDays, $now)) {
+                $repository->prune($retention->maxMessages, $retention->maxAgeDays, $now);
+            }
+        } catch (Throwable $e) {
+            // The mail is already caught, so a failed cleanup must not fail the send.
+            $this->getLogger()->warning('Letterbox could not apply the retention limits: {reason}', ['reason' => $e->getMessage()]);
+        }
     }
 
     private function writer(): MailboxWriter

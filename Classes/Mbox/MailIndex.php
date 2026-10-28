@@ -25,7 +25,7 @@ use function is_string;
  */
 final readonly class MailIndex
 {
-    private const CACHE_VERSION = 'v4_';
+    private const CACHE_VERSION = 'v5_';
 
     public function __construct(
         private Mailbox $mailbox,
@@ -113,7 +113,7 @@ final readonly class MailIndex
             if ($span->offset >= $untilOffset) {
                 break;
             }
-            $entries[] = $this->parser->summarize($this->mailbox->read($span), $span);
+            $entries[] = $this->parser->summarize($this->mailbox->read($span), $span, $this->mailbox->received($span));
         }
 
         return $entries;

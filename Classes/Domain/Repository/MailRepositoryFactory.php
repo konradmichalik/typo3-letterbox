@@ -33,8 +33,12 @@ final readonly class MailRepositoryFactory
     public function create(): MailRepository
     {
         $configured = $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] ?? '';
-        $path = is_string($configured) ? $configured : '';
 
+        return $this->forPath(is_string($configured) ? $configured : '');
+    }
+
+    public function forPath(string $path): MailRepository
+    {
         $format = new MboxFormat();
         $mailbox = new Mailbox($path, $format);
         $parser = new MessageParser();

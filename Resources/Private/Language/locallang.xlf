@@ -21,6 +21,15 @@
 			<trans-unit id="inbox.count.one" resname="inbox.count.one">
 				<source>1 mail</source>
 			</trans-unit>
+			<trans-unit id="inbox.retention" resname="inbox.retention">
+				<source>keeps %1$s mails or %2$s days</source>
+			</trans-unit>
+			<trans-unit id="inbox.retention.messages" resname="inbox.retention.messages">
+				<source>keeps %s mails</source>
+			</trans-unit>
+			<trans-unit id="inbox.retention.age" resname="inbox.retention.age">
+				<source>keeps mails for %s days</source>
+			</trans-unit>
 			<trans-unit id="inbox.mailList" resname="inbox.mailList">
 				<source>Mails</source>
 			</trans-unit>

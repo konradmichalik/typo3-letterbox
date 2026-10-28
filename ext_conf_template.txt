@@ -7,5 +7,11 @@ enableBackendModule = 1
 # cat=basic; type=int+; label=Mails per page
 mailsPerPage = 10
 
+# cat=basic; type=int+; label=Keep at most this many mails, the oldest are removed after a new mail arrives (0 = no limit)
+maxMessages = 500
+
+# cat=basic; type=int+; label=Remove mails older than this many days after a new mail arrives (0 = no limit)
+maxAgeDays = 30
+
 # cat=basic; type=string; label=Recipients never visible from outside: comma separated addresses or *@domain patterns, matched against every recipient including Bcc. One invalid entry disables external access.
 externalExcludedRecipients =

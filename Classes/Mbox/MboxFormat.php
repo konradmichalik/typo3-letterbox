@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Mbox;
 
 use DateTimeImmutable;
+use DateTimeZone;
 
 use function sprintf;
 
@@ -25,6 +26,7 @@ use function sprintf;
 final class MboxFormat
 {
     private const SEPARATOR_PATTERN = '/^From \S+ (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (?: \d|\d{1,2}) \d{2}:\d{2}:\d{2} \d{4}\n?$/';
+    private const SEPARATOR_DATE_PATTERN = '/ ((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)) +(\d{1,2}) (\d{2}:\d{2}:\d{2} \d{4})\n?$/';
 
     public function separatorLine(string $sender, DateTimeImmutable $date): string
     {
@@ -38,6 +40,22 @@ final class MboxFormat
             (int) gmdate('j', $timestamp),
             gmdate(' H:i:s Y', $timestamp),
         );
+    }
+
+    /**
+     * The arrival time from a separator line, read as UTC. EXT:mbox wrote local time, which this reads as UTC as well.
+     */
+    public function received(string $separatorLine): ?DateTimeImmutable
+    {
+        if (!$this->isSeparator($separatorLine) || 1 !== preg_match(self::SEPARATOR_DATE_PATTERN, $separatorLine, $match)) {
+            return null;
+        }
+
+        $value = sprintf('%s %d %s', $match[1], (int) $match[2], $match[3]);
+        $date = DateTimeImmutable::createFromFormat('!M j H:i:s Y', $value, new DateTimeZone('UTC'));
+
+        // createFromFormat() rolls an impossible day such as Feb 31 over into the next month.
+        return false !== $date && $date->format('M j H:i:s Y') === $value ? $date : null;
     }
 
     public function encode(string $rfc822): string

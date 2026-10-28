@@ -19,6 +19,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
+use KonradMichalik\Typo3Letterbox\Mail\RetentionSettings;
 use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, TextSegments};
 use KonradMichalik\Typo3Letterbox\Pagination\MailPaginator;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
@@ -220,6 +221,7 @@ final readonly class InboxController
             'path' => $this->repository->path(),
             'size' => $this->repository->sizeInBytes(),
             'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
+            'retention' => RetentionSettings::fromExtensionConfiguration($this->extensionConfiguration),
         ]);
 
         // The same URL answers with a fragment or the full page, depending on the request header.

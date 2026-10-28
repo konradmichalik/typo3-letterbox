@@ -23,9 +23,10 @@ use DateTimeImmutable;
 final readonly class MessageIndexEntry
 {
     /**
-     * @param list<string> $recipients      lowercase addresses from To, Cc, Bcc and the envelope
-     * @param list<string> $recipientLabels per recipient, its display name or else its address
-     * @param list<string> $scopeRecipients lowercase addresses from To, Cc and the envelope, never from the Bcc header
+     * @param list<string>       $recipients      lowercase addresses from To, Cc, Bcc and the envelope
+     * @param list<string>       $recipientLabels per recipient, its display name or else its address
+     * @param list<string>       $scopeRecipients lowercase addresses from To, Cc and the envelope, never from the Bcc header
+     * @param ?DateTimeImmutable $received        arrival time from the separator line, unlike $date not set by the sender
      */
     public function __construct(
         public MessageSpan $span,
@@ -38,5 +39,6 @@ final readonly class MessageIndexEntry
         public array $scopeRecipients,
         public string $subject,
         public int $attachmentCount,
+        public ?DateTimeImmutable $received = null,
     ) {}
 }

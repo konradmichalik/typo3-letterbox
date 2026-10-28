@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Domain\Repository;
 
+use DateInterval;
+use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxWriter, MessageIndexEntry, MessageParser, MessageSpan};
 use RuntimeException;
@@ -135,21 +137,26 @@ final readonly class MailRepository
      */
     public function deleteMatching(MailFilter $filter): int
     {
-        $entries = $this->matching($filter);
-        $removed = $this->writer->remove(
-            array_map(static fn (MessageIndexEntry $entry): MessageSpan => $entry->span, $entries),
-            function () use ($entries): bool {
-                foreach ($entries as $entry) {
-                    if (!$this->isCurrent($entry)) {
-                        return false;
-                    }
-                }
+        return $this->remove($this->matching($filter));
+    }
 
-                return true;
-            },
-        );
+    /**
+     * Removes the oldest mails beyond $maxMessages and every mail that arrived more than $maxAgeDays ago.
+     * A limit of 0 is off. Mails without a readable arrival time count for $maxMessages but never expire.
+     *
+     * @return int the number of removed mails
+     */
+    public function prune(int $maxMessages, int $maxAgeDays, DateTimeImmutable $now): int
+    {
+        return $this->remove($this->expired($maxMessages, $maxAgeDays, $now));
+    }
 
-        return $removed ? count($entries) : 0;
+    /**
+     * Decides from the index alone, without reading a mail.
+     */
+    public function needsPruning(int $maxMessages, int $maxAgeDays, DateTimeImmutable $now): bool
+    {
+        return [] !== $this->expired($maxMessages, $maxAgeDays, $now);
     }
 
     public function latest(MailFilter $filter): ?Mail
@@ -183,6 +190,48 @@ final readonly class MailRepository
     private function matching(MailFilter $filter): array
     {
         return array_values(array_filter($this->index->entries(), $filter->matches(...)));
+    }
+
+    /**
+     * @return list<MessageIndexEntry>
+     */
+    private function expired(int $maxMessages, int $maxAgeDays, DateTimeImmutable $now): array
+    {
+        $cutoff = $maxAgeDays > 0 ? $now->sub(new DateInterval('P'.$maxAgeDays.'D')) : null;
+        $expired = [];
+        foreach ($this->index->entries() as $position => $entry) {
+            $beyondCount = $maxMessages > 0 && $position >= $maxMessages;
+            $tooOld = null !== $cutoff && null !== $entry->received && $entry->received < $cutoff;
+            if ($beyondCount || $tooOld) {
+                $expired[] = $entry;
+            }
+        }
+
+        return $expired;
+    }
+
+    /**
+     * Removes all entries in one rewrite, or none when the file changed since the index was read.
+     * Mails appended after that stay, because only the given spans are cut out.
+     *
+     * @param list<MessageIndexEntry> $entries
+     */
+    private function remove(array $entries): int
+    {
+        $removed = $this->writer->remove(
+            array_map(static fn (MessageIndexEntry $entry): MessageSpan => $entry->span, $entries),
+            function () use ($entries): bool {
+                foreach ($entries as $entry) {
+                    if (!$this->isCurrent($entry)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+        );
+
+        return $removed ? count($entries) : 0;
     }
 
     private function load(MessageIndexEntry $entry): ?Mail

@@ -6,7 +6,7 @@
 <div class="letterbox-titlebar">
     <h1><f:translate key="inbox.heading" extensionName="Typo3Letterbox" /></h1>
     <p class="text-variant letterbox-meta">
-        <f:translate key="inbox.meta" extensionName="Typo3Letterbox" /><f:if condition="{configured}"> · <code>{path}</code> · <f:if condition="{total} == 1"><f:then><f:translate key="inbox.count.one" extensionName="Typo3Letterbox" /></f:then><f:else><f:translate key="inbox.count" extensionName="Typo3Letterbox" arguments="{0: total}" /></f:else></f:if> · <f:format.bytes value="{size}" /></f:if>
+        <f:translate key="inbox.meta" extensionName="Typo3Letterbox" /><f:if condition="{configured}"> · <code>{path}</code> · <f:if condition="{total} == 1"><f:then><f:translate key="inbox.count.one" extensionName="Typo3Letterbox" /></f:then><f:else><f:translate key="inbox.count" extensionName="Typo3Letterbox" arguments="{0: total}" /></f:else></f:if> · <f:format.bytes value="{size}" /><f:if condition="{retention.maxMessages} && {retention.maxAgeDays}"><f:then> · <f:translate key="inbox.retention" extensionName="Typo3Letterbox" arguments="{0: retention.maxMessages, 1: retention.maxAgeDays}" /></f:then><f:else if="{retention.maxMessages}"> · <f:translate key="inbox.retention.messages" extensionName="Typo3Letterbox" arguments="{0: retention.maxMessages}" /></f:else><f:else if="{retention.maxAgeDays}"> · <f:translate key="inbox.retention.age" extensionName="Typo3Letterbox" arguments="{0: retention.maxAgeDays}" /></f:else></f:if></f:if>
     </p>
 </div>
 

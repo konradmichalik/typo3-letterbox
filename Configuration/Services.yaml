@@ -23,6 +23,8 @@ services:
       $cache: '@cache.typo3_letterbox_ratelimit'
 
   KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory:
+    # Public for LetterboxTransport, which TYPO3 instantiates without dependency injection.
+    public: true
     arguments:
       $cache: '@cache.typo3_letterbox_index'
 

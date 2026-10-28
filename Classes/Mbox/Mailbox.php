@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Mbox;
 
+use DateTimeImmutable;
 use Generator;
 use RuntimeException;
 
@@ -83,6 +84,23 @@ final readonly class Mailbox
         $separatorEnd = strpos($bytes, "\n");
 
         return $this->format->decode(false === $separatorEnd ? '' : substr($bytes, $separatorEnd + 1));
+    }
+
+    public function received(MessageSpan $span): ?DateTimeImmutable
+    {
+        $handle = $this->isReadable() ? fopen($this->path, 'r') : false;
+        if (false === $handle) {
+            return null;
+        }
+
+        try {
+            fseek($handle, $span->offset);
+            $separator = fgets($handle);
+        } finally {
+            fclose($handle);
+        }
+
+        return false === $separator ? null : $this->format->received($separator);
     }
 
     public function fingerprint(): string

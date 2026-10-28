@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Domain\Repository;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
@@ -22,7 +23,7 @@ use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\Locking\LockFactory;
+use TYPO3\CMS\Core\Locking\{LockFactory, LockingStrategyInterface};
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
@@ -55,13 +56,9 @@ final class MailRepositoryTest extends FunctionalTestCase
             unlink($this->path);
         }
 
-        $format = new MboxFormat();
-        $mailbox = new Mailbox($this->path, $format);
-        $parser = new MessageParser();
-        $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
-        $cache->flush();
-        $this->writer = new MailboxWriter($this->path, $format, new MailboxLock($this->get(LockFactory::class)));
-        $this->repository = new MailRepository(new MailIndex($mailbox, $parser, $cache), $mailbox, $parser, $this->writer);
+        $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();
+        $this->writer = new MailboxWriter($this->path, new MboxFormat(), new MailboxLock($this->get(LockFactory::class)));
+        $this->repository = $this->repositoryWith($this->writer);
     }
 
     #[Test]
@@ -295,6 +292,117 @@ final class MailRepositoryTest extends FunctionalTestCase
         self::assertSame('old', $this->repository->latest($scope)?->subject);
         self::assertSame('newest other', $this->repository->latest(MailFilter::all())?->subject);
         self::assertNull($this->repository->latest(MailFilter::all()->withRecipient('nobody@example.org')));
+    }
+
+    #[Test]
+    public function pruneKeepsNewestMaxMessages(): void
+    {
+        foreach (['one', 'two', 'three', 'four', 'five'] as $subject) {
+            $this->appendReceived($subject, self::now());
+        }
+
+        self::assertTrue($this->repository->needsPruning(2, 0, self::now()));
+        self::assertSame(3, $this->repository->prune(2, 0, self::now()));
+
+        self::assertSame(['five', 'four'], $this->entrySubjects());
+        self::assertFalse($this->repository->needsPruning(2, 0, self::now()));
+        self::assertSame(0, $this->repository->prune(2, 0, self::now()));
+    }
+
+    #[Test]
+    public function pruneRemovesOlderThanMaxAgeDays(): void
+    {
+        $this->appendReceived('old', self::now()->modify('-31 days'));
+        $this->appendReceived('almost old', self::now()->modify('-29 days'));
+        $this->appendReceived('new', self::now());
+
+        self::assertTrue($this->repository->needsPruning(0, 30, self::now()));
+        self::assertSame(1, $this->repository->prune(0, 30, self::now()));
+
+        self::assertSame(['new', 'almost old'], $this->entrySubjects());
+        self::assertFalse($this->repository->needsPruning(0, 30, self::now()));
+    }
+
+    #[Test]
+    public function zeroDisablesEachLimit(): void
+    {
+        foreach (['one', 'two', 'three'] as $subject) {
+            $this->appendReceived($subject, self::now()->modify('-100 days'));
+        }
+
+        self::assertFalse($this->repository->needsPruning(0, 0, self::now()));
+        self::assertSame(0, $this->repository->prune(0, 0, self::now()));
+        self::assertSame(0, $this->repository->prune(3, 0, self::now()));
+        self::assertSame(['three', 'two', 'one'], $this->entrySubjects());
+
+        self::assertSame(2, $this->repository->prune(1, 0, self::now()));
+        self::assertSame(1, $this->repository->prune(0, 30, self::now()));
+        self::assertSame([], $this->entrySubjects());
+    }
+
+    #[Test]
+    public function mailWithoutReceivedIsOnlyCountedNotAged(): void
+    {
+        file_put_contents($this->path, "From old@example.org Mon Feb 31 10:00:00 2016\nFrom: old@example.org\nSubject: undated\n\nbody\n\n");
+        $this->appendReceived('recent', self::now());
+        self::assertNull($this->repository->findEntries(MailFilter::all(), 1, 1)[0]->received);
+
+        self::assertFalse($this->repository->needsPruning(0, 30, self::now()));
+        self::assertSame(0, $this->repository->prune(0, 30, self::now()));
+        self::assertSame(['recent', 'undated'], $this->entrySubjects());
+
+        self::assertSame(1, $this->repository->prune(1, 30, self::now()));
+        self::assertSame(['recent'], $this->entrySubjects());
+    }
+
+    #[Test]
+    public function pruneLeavesConcurrentlyAppendedMailAlone(): void
+    {
+        foreach (['one', 'two', 'three'] as $subject) {
+            $this->appendReceived($subject, self::now());
+        }
+        $format = new MboxFormat();
+        // Another process appends after the prune decision, right before this process gets the lock.
+        $locker = $this->createMock(LockingStrategyInterface::class);
+        $locker->expects(self::once())->method('acquire')->willReturnCallback(function () use ($format): bool {
+            file_put_contents($this->path, $format->separatorLine('s@example.org', self::now()).$format->encode("From: s@example.org\nSubject: four\n\nbody\n"), \FILE_APPEND);
+
+            return true;
+        });
+        $locker->method('release')->willReturn(true);
+        $lockFactory = $this->createMock(LockFactory::class);
+        $lockFactory->method('createLocker')->willReturn($locker);
+        $repository = $this->repositoryWith(new MailboxWriter($this->path, $format, new MailboxLock($lockFactory)));
+
+        self::assertSame(2, $repository->prune(1, 0, self::now()));
+
+        self::assertSame(['four', 'three'], $this->entrySubjects());
+    }
+
+    private function repositoryWith(MailboxWriter $writer): MailRepository
+    {
+        $mailbox = new Mailbox($this->path, new MboxFormat());
+        $parser = new MessageParser();
+
+        return new MailRepository(new MailIndex($mailbox, $parser, $this->get(CacheManager::class)->getCache('typo3_letterbox_index')), $mailbox, $parser, $writer);
+    }
+
+    private static function now(): DateTimeImmutable
+    {
+        return new DateTimeImmutable('2026-10-28 12:00:00', new DateTimeZone('UTC'));
+    }
+
+    private function appendReceived(string $subject, DateTimeImmutable $received): void
+    {
+        $this->writer->append('s@example.org', $received, "From: s@example.org\nTo: r@example.org\nSubject: {$subject}\n\nbody\n");
+    }
+
+    /**
+     * @return list<string> newest first
+     */
+    private function entrySubjects(): array
+    {
+        return array_map(static fn (MessageIndexEntry $entry): string => $entry->subject, $this->repository->findEntries(MailFilter::all(), 0, 100));
     }
 
     private function appendTo(string $subject, string $to): void

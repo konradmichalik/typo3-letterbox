@@ -13,12 +13,18 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Mail;
 
+use DateTimeImmutable;
+use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
+use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
+use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Tests\Functional\Mail\Fixtures\RecordingTransport;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Symfony\Component\Mime\Email;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Mail\Mailer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -48,6 +54,7 @@ final class LetterboxTransportTest extends FunctionalTestCase
             unlink($this->path);
         }
         RecordingTransport::reset();
+        $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();
     }
 
     #[Test]
@@ -136,6 +143,91 @@ final class LetterboxTransportTest extends FunctionalTestCase
         $this->send($email, 'system@example.org');
 
         self::assertStringContainsString('From system@example.org ', $this->mbox());
+    }
+
+    #[Test]
+    public function transportPrunesAfterAppendWhenThresholdCrossed(): void
+    {
+        $this->configure(['transport_letterbox_mode' => 'all']);
+        $this->retention(2, 30);
+        $this->appendReceived('Expired', new DateTimeImmutable('-31 days'));
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('One')->text('Body'));
+        self::assertSame(['One'], $this->subjects());
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Two')->text('Body'));
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Three')->text('Body'));
+        self::assertSame(['Three', 'Two'], $this->subjects());
+    }
+
+    #[Test]
+    public function transportDoesNotPruneBelowThresholds(): void
+    {
+        $this->configure(['transport_letterbox_mode' => 'all']);
+        $this->retention(3, 30);
+        $this->appendReceived('Recent', new DateTimeImmutable('-29 days'));
+        $inode = fileinode($this->path);
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('One')->text('Body'));
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Two')->text('Body'));
+
+        self::assertSame(['Two', 'One', 'Recent'], $this->subjects());
+        clearstatcache(true, $this->path);
+        self::assertSame($inode, fileinode($this->path));
+    }
+
+    #[Test]
+    public function transportDoesNotPruneWhenNothingWasCaught(): void
+    {
+        $this->configure(['transport_letterbox_mode' => 'off', 'transport_letterbox_delivery' => RecordingTransport::class]);
+        $this->retention(1, 30);
+        $this->appendReceived('Expired', new DateTimeImmutable('-31 days'));
+        $this->appendReceived('Recent', new DateTimeImmutable());
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Delivered')->text('Body'));
+
+        self::assertSame(['Recent', 'Expired'], $this->subjects());
+    }
+
+    #[Test]
+    public function failedPruneDoesNotFailTheSend(): void
+    {
+        $this->configure(['transport_letterbox_mode' => 'all']);
+        $this->retention(1, 0);
+        $this->appendReceived('Old', new DateTimeImmutable());
+        // Appending to the file still works, the rewrite through a temporary file next to it does not.
+        chmod(dirname($this->path), 0o555);
+
+        try {
+            $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('New')->text('Body'));
+        } finally {
+            chmod(dirname($this->path), 0o775);
+        }
+
+        self::assertSame(['New', 'Old'], $this->subjects());
+    }
+
+    private function retention(int $maxMessages, int $maxAgeDays): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxMessages'] = (string) $maxMessages;
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxAgeDays'] = (string) $maxAgeDays;
+    }
+
+    private function appendReceived(string $subject, DateTimeImmutable $received): void
+    {
+        (new MailboxWriter($this->path, new MboxFormat(), new MailboxLock($this->get(LockFactory::class))))
+            ->append('s@example.org', $received, "From: s@example.org\nTo: r@example.org\nSubject: {$subject}\n\nbody\n");
+    }
+
+    /**
+     * @return list<string> newest first
+     */
+    private function subjects(): array
+    {
+        return array_map(
+            static fn ($entry): string => $entry->subject,
+            $this->get(MailRepository::class)->findEntries(MailFilter::all(), 0, 100),
+        );
     }
 
     /**
