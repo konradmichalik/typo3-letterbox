@@ -41,7 +41,7 @@ final readonly class ExternalResponses
     ) {}
 
     /**
-     * The one answer for inactive, unconfigured, unauthorised, throttled and unknown requests.
+     * The one answer for inactive, unconfigured, unauthorised and unknown requests.
      */
     public function notFound(bool $json): ResponseInterface
     {

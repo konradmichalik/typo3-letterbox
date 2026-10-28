@@ -3,9 +3,6 @@
 	<file source-language="en" datatype="plaintext" original="EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf" date="2026-01-01T00:00:00Z" product-name="typo3_letterbox">
 		<header/>
 		<body>
-			<trans-unit id="extension.title" resname="extension.title">
-				<source>Letterbox</source>
-			</trans-unit>
 			<trans-unit id="module.title" resname="module.title">
 				<source>Letterbox</source>
 			</trans-unit>
@@ -89,9 +86,6 @@
 			</trans-unit>
 			<trans-unit id="inbox.detail.cc" resname="inbox.detail.cc">
 				<source>Cc</source>
-			</trans-unit>
-			<trans-unit id="inbox.detail.attachments" resname="inbox.detail.attachments">
-				<source>Attachments</source>
 			</trans-unit>
 			<trans-unit id="inbox.downloadEml" resname="inbox.downloadEml">
 				<source>Download .eml: %s</source>
