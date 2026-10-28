@@ -63,9 +63,9 @@ final readonly class MailHtmlDocument
             foreach ($this->descendants($document) as $node) {
                 $this->sanitize($node);
             }
-            $this->inlineImages->replaceCidSources($this->descendants($document), $mail);
+            $imageStyles = $this->inlineImages->replaceCidSources($this->descendants($document), $mail);
 
-            return $this->shellPrefix($allowRemoteImages).$this->serializeContent($html5, $document).self::SHELL_SUFFIX;
+            return $this->shellPrefix($allowRemoteImages, $imageStyles).$this->serializeContent($html5, $document).self::SHELL_SUFFIX;
         } catch (Throwable) {
             return '';
         }
@@ -128,11 +128,12 @@ final readonly class MailHtmlDocument
         return $document->getElementsByTagName('*')->length > self::MAX_ELEMENTS ? null : [$html5, $document];
     }
 
-    private function shellPrefix(bool $allowRemoteImages): string
+    private function shellPrefix(bool $allowRemoteImages, string $imageStyles): string
     {
         $imgSrc = $allowRemoteImages ? self::IMG_SRC_REMOTE : self::IMG_SRC_BLOCKED;
+        $imageStyles = '' === $imageStyles ? '' : '<style>'.$imageStyles.'</style>';
 
-        return '<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src '.$imgSrc.'; style-src \'unsafe-inline\'"><meta name="referrer" content="no-referrer"><style>'.self::SHELL_STYLE.'</style></head><body>';
+        return '<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src '.$imgSrc.'; style-src \'unsafe-inline\'"><meta name="referrer" content="no-referrer"><style>'.self::SHELL_STYLE.'</style>'.$imageStyles.'</head><body>';
     }
 
     private function sanitize(DOMNode $node): void

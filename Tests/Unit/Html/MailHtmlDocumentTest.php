@@ -69,6 +69,43 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
+    public function repeatedInlineImageIsEmbeddedOnceAndKeepsItsSize(): void
+    {
+        // A transparent PNG of 2 x 3 pixels.
+        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGNgYGD4TyQeVAoAqY0t0zw9NLIAAAAASUVORK5CYII=', true);
+        $mail = $this->mailWithHtml('<img src="cid:logo" class="a" alt="Logo"><p>x</p><img src="cid:logo" width="20"><img src="cid:logo" style="background:red">', [
+            new Attachment(0, 'logo.png', '<logo>', 'image/png', 3, $png),
+        ]);
+
+        $doc = (new MailHtmlDocument())->build($mail);
+        $placeholder = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%222%22%20height%3D%223%22%2F%3E';
+
+        self::assertSame(2, substr_count($doc, base64_encode($png)), 'Once in the stylesheet, once for the image with its own background.');
+        self::assertSame(1, preg_match('#<style>img\.letterbox-cid-0\{background:url\("data:image/png;base64,[^"]+"\) no-repeat 0 0/100% 100% content-box!important\}</style>#', $doc));
+        self::assertStringContainsString('<img src="'.$placeholder.'" class="a letterbox-cid-0" alt="Logo">', $doc);
+        self::assertStringContainsString('<img src="'.$placeholder.'" width="20" class="letterbox-cid-0">', $doc);
+        self::assertStringContainsString('<img src="data:image/png;base64,'.base64_encode($png).'" style="background:red">', $doc);
+    }
+
+    #[Test]
+    public function repeatedSvgKeepsItsSizeAndARepeatedBrokenImageStaysBroken(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20" width="40" onload="x()"><rect width="40" height="20"/></svg>';
+        $mail = $this->mailWithHtml('<img src="cid:svg"><img src="cid:svg"><img src="cid:broken"><img src="cid:broken" alt="Broken">', [
+            new Attachment(0, 'a.svg', 'svg', 'image/svg+xml', 3, $svg),
+            new Attachment(1, 'b.png', 'broken', 'image/png', 3, 'abc'),
+        ]);
+
+        $doc = (new MailHtmlDocument())->build($mail);
+
+        self::assertSame(2, substr_count($doc, '<img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2020%22%20width%3D%2240%22%2F%3E" class="letterbox-cid-0">'));
+        self::assertSame(1, substr_count($doc, base64_encode($svg)));
+        self::assertStringContainsString('<img src="data:image/png;base64," alt="Broken">', $doc);
+        self::assertStringNotContainsString(base64_encode('abc'), $doc);
+        self::assertStringNotContainsString('letterbox-cid-1', $doc);
+    }
+
+    #[Test]
     public function remoteImagesOnlyWidenImgSrc(): void
     {
         $mail = $this->mailWithHtml('<p>Hi</p>');
