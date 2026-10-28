@@ -25,3 +25,4 @@ Back to [documentation overview](README.md).
 * EXT:mbox caught every mail. Letterbox does the same outside the `Production` context, but defaults to mode `listed` in `Production`, where an empty catch list delivers everything. Set `transport_letterbox_mode` explicitly if you rely on catching there.
 * Letterbox needs TYPO3 13.4 or 14 and PHP 8.2 or newer. TYPO3 12 stays on EXT:mbox.
 * The extension settings `debugMode`, `enableBackendModule` and `mailsPerPage` keep their meaning.
+* Letterbox keeps 500 mails or 30 days by default. The first caught mail removes older mails from the existing file, see [upgrading](operations.md#upgrading) to keep them.

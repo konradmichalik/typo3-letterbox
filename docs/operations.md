@@ -22,6 +22,15 @@ Two limits keep the file from growing without end. Both are [extension settings]
 
 The meta line of the [backend module](backend-module.md) shows the active limits, for example "keeps 500 mails or 30 days". It shows nothing when both are `0`.
 
+### Upgrading
+
+Installs from before retention, and installs that switch from EXT:mbox, get the defaults of 500 mails and 30 days. The first mail caught after the upgrade applies them to the existing file, including one written by EXT:mbox: mails older than 30 days are removed right away, and a file with more than 550 mails is cut to the newest 500. To keep every mail, set both limits to `0` before that first mail, in Admin Tools > Settings > Extension Configuration > `typo3_letterbox` or in `config/system/additional.php`:
+
+```php
+$GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxMessages'] = '0';
+$GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxAgeDays'] = '0';
+```
+
 ## Console commands
 
 Run them with `vendor/bin/typo3` (in DDEV `ddev exec vendor/bin/typo3`). Every command exits with `1` and an error message on stderr when `MAIL/transport_mbox_file` is empty.
