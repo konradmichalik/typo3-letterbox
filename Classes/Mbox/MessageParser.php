@@ -68,15 +68,19 @@ final readonly class MessageParser
     {
         $message = $this->message($raw);
 
-        $recipients = [];
-        foreach (['To', 'Cc', 'Bcc'] as $name) {
-            foreach ($this->addresses($message, $name) as $address) {
-                $recipients[] = strtolower($address->address);
+        // Lowercase address => display name, the first non-empty name wins.
+        $names = [];
+        foreach (['To', 'Cc', 'Bcc'] as $header) {
+            foreach ($this->addresses($message, $header) as $address) {
+                $key = strtolower($address->address);
+                $names[$key] = ($names[$key] ?? '') ?: trim($address->name);
             }
         }
         foreach (explode(',', $message->getHeaderValue(self::ENVELOPE_HEADER) ?? '') as $address) {
-            $recipients[] = strtolower(trim($address));
+            $names[strtolower(trim($address))] ??= '';
         }
+        unset($names['']);
+        $recipients = array_map(strval(...), array_keys($names));
 
         $from = $this->addresses($message, 'From')[0] ?? new Address('');
 
@@ -86,7 +90,8 @@ final readonly class MessageParser
             $this->date($message),
             $from->address,
             $from->name,
-            array_values(array_unique(array_filter($recipients, static fn (string $a): bool => '' !== $a))),
+            $recipients,
+            array_map(static fn (string $address, string $name): string => '' !== $name ? $name : $address, $recipients, array_values($names)),
             $message->getSubject() ?? '',
             $message->getAttachmentCount(),
         );

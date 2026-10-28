@@ -91,6 +91,18 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function listRowNamesSenderAndRecipientWithAddressFallback(): void
+    {
+        $this->appendRaw("From: Remote Test <remote@example.org>\nTo: Reader <reader@example.org>, Other <other@example.org>\nSubject: Named\nMessage-ID: <n@example.org>\nContent-Type: text/plain\n\nx\n");
+        $this->appendRaw("From: system@example.org\nTo: admin@example.org\nSubject: Unnamed\nMessage-ID: <u@example.org>\nContent-Type: text/plain\n\nx\n");
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertMatchesRegularExpression('/>\s*Remote Test\s+to\s+Reader\s*<\/small>/', $body);
+        self::assertMatchesRegularExpression('/>\s*system@example\.org\s+to\s+admin@example\.org\s*<\/small>/', $body);
+    }
+
+    #[Test]
     public function indexShowsEmptyStateWhenFileMissing(): void
     {
         $response = $this->controller()->indexAction($this->request('system_letterbox'));

@@ -38,6 +38,15 @@ final class MailFilterTest extends TestCase
     }
 
     #[Test]
+    public function queryMatchesRecipientNames(): void
+    {
+        $entry = $this->entry('Hello', 'a@example.com', '', ['b@example.com'], 'id', 0, ['Bea Reader']);
+
+        self::assertTrue(MailFilter::create('bea read', QuickFilter::All, [])->matches($entry));
+        self::assertTrue(MailFilter::create('b@example', QuickFilter::All, [])->matches($entry));
+    }
+
+    #[Test]
     public function emptyQueryMatchesEverything(): void
     {
         self::assertTrue(MailFilter::create('', QuickFilter::All, [])->matches($this->entry()));
@@ -92,6 +101,7 @@ final class MailFilterTest extends TestCase
 
     /**
      * @param list<string> $recipients
+     * @param list<string> $recipientLabels
      */
     private function entry(
         string $subject = 'Hello',
@@ -100,7 +110,8 @@ final class MailFilterTest extends TestCase
         array $recipients = ['b@example.com'],
         string $id = 'id',
         int $attachmentCount = 0,
+        array $recipientLabels = ['b@example.com'],
     ): MessageIndexEntry {
-        return new MessageIndexEntry(new MessageSpan(0, 10), $id, null, $sender, $fromName, $recipients, $subject, $attachmentCount);
+        return new MessageIndexEntry(new MessageSpan(0, 10), $id, null, $sender, $fromName, $recipients, $recipientLabels, $subject, $attachmentCount);
     }
 }

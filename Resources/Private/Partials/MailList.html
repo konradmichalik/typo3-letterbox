@@ -148,9 +148,9 @@
                 <f:then>{f:if(condition: mail.fromName, then: mail.fromName, else: mail.sender)}</f:then>
                 <f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else>
             </f:if>
-            <f:if condition="{mail.recipients.0}">
+            <f:if condition="{mail.recipientLabels.0}">
                 <f:translate key="inbox.to" extensionName="Typo3Letterbox" />
-                {mail.recipients.0}
+                {mail.recipientLabels.0}
             </f:if>
         </small>
         <f:if condition="{mail.attachmentCount}">

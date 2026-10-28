@@ -18,6 +18,7 @@ use KonradMichalik\Typo3Letterbox\Mbox\{MessageParser, MessageSpan};
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function count;
 use function strlen;
 
 /**
@@ -153,6 +154,15 @@ final class MessageParserTest extends TestCase
 
         self::assertSame('Sender Name', $entry->fromName);
         self::assertSame(2, $entry->attachmentCount);
+    }
+
+    #[Test]
+    public function summarizeLabelsEachRecipientWithItsNameOrAddress(): void
+    {
+        $entry = (new MessageParser())->summarize($this->fixture('html-with-attachment.eml'), new MessageSpan(0, 10));
+
+        self::assertSame(['Rec One', 'two@example.org', 'Carbon', 'hidden@example.org', 'envelope@example.org'], $entry->recipientLabels);
+        self::assertCount(count($entry->recipients), $entry->recipientLabels);
     }
 
     /**

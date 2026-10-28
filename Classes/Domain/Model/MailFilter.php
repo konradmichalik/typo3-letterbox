@@ -74,7 +74,7 @@ final readonly class MailFilter
 
     private function queryMatches(MessageIndexEntry $entry): bool
     {
-        foreach ([$entry->subject, $entry->sender, $entry->fromName, ...$entry->recipients] as $haystack) {
+        foreach ([$entry->subject, $entry->sender, $entry->fromName, ...$entry->recipients, ...$entry->recipientLabels] as $haystack) {
             if (false !== mb_stripos($haystack, $this->query)) {
                 return true;
             }
