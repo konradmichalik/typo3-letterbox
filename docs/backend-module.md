@@ -6,12 +6,12 @@ Back to [documentation overview](README.md).
 
 The module is under System › Letterbox and is available to administrators only. It reads the file set in `transport_mbox_file`, so existing mbox files stay readable.
 
-* The mail list shows caught mails with pagination. It can be collapsed to give the detail view the full width, and the state is stored per backend user.
+* The mail list shows caught mails with pagination. It ends at the bottom of the visible area and its rows scroll inside it. It can be collapsed to give the detail view the full width, and the state is stored per backend user.
 * Each row shows the subject and "sender to recipient", using names where the mail has them and addresses otherwise.
 * The search field finds mails by sender, recipient (name or address) and subject. The quick filters All, Unread and Attachments show their counts for the current search. Search, filter and page stay in every link, also while a mail is open.
 * Unread mails carry a dot. A mail counts as read once its detail view has been opened, separately for each backend user. With the Unread filter active, an opened mail stays in the list until the list is fetched again.
 * The detail view has these tabs:
-  * HTML: the sandboxed preview, with a Preview and Code switch. Code shows the HTML part as the sender sent it, escaped and unsanitised.
+  * HTML: the sandboxed preview, with a Preview and Code switch. Code shows the HTML part as the sender sent it, escaped and unsanitised. It is also shown, without the switch, when no preview can be built (HTML over 2 MiB, too many elements or a parse failure).
   * Text: the plain text part, with `http` and `https` URLs linked
   * Headers: the main headers, with an "All headers" link
   * Source: the raw message, which can be downloaded
@@ -24,11 +24,13 @@ The module is under System › Letterbox and is available to administrators only
 
 ## External access page
 
+See [external access](external-access.md) for what the page controls.
+
 The "External access" button in the doc header opens `system_letterbox.access`, also admin only. It shows:
 
 * Whether external access is on. When it is off, each reason says what to change, for example which value `LETTERBOX_EXTERNAL_ACCESS` needs.
-* The tester links with scope, permissions, expiry, last use, creator and state. "Revoke" asks for confirmation and takes effect immediately.
-* A form to create a tester link: label, recipient patterns (one per line, or "unrestricted"), permissions and a validity of 1, 7 or 30 days.
+* The tester links with scope, expiry, creator and state. "Revoke" asks for confirmation and takes effect immediately.
+* A form to create a tester link: a label and recipient patterns (one per line, at least one). Every link is read-only and valid for 7 days.
 * Whether the API token is configured (at least 32 characters), with a `curl` example. The token itself is never shown.
 
 The URL of a new link (`<site URL>_letterbox/inbox?t=<token>`) appears once, in the response to the create form, and is not stored or put in a flash message. Letterbox keeps only a hash of the token, so a lost link cannot be shown again and has to be revoked and replaced.

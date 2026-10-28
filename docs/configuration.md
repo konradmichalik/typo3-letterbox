@@ -38,5 +38,8 @@ Set in Admin Tools > Settings > Extension Configuration.
 | `debugMode` | boolean | `0` | Registers the `letterbox:testmails:send` command. |
 | `enableBackendModule` | boolean | `1` | Shows the backend module. |
 | `mailsPerPage` | integer | `10` | Mails per page in the list. |
+| `externalExcludedRecipients` | string | empty | Comma separated addresses or `*@domain` patterns. A mail with a matching recipient, Bcc included, is hidden from the API and the tester inbox. An invalid entry switches [external access](external-access.md#excluded-recipients) off. |
 
 Flush the caches after changing `debugMode` or `enableBackendModule`.
+
+The environment variables for [external access](external-access.md#activation) are set outside TYPO3.

@@ -28,6 +28,7 @@ Catches TYPO3 mails in an mbox file and shows them in the backend, for local, st
 * [Backend module](docs/backend-module.md) under System › Letterbox with search, quick filters, per-user unread state, detail tabs (HTML, text, headers, source, links, attachments) and delete
 * Sandboxed HTML preview with a width switch (desktop, tablet, mobile) that blocks remote images until you load them per mail
 * Collapsible mail list and navigation without page reload, with a full-page fallback when JavaScript is off
+* [External access](docs/external-access.md), off by default: a token-protected [JSON API](docs/api.md) for end-to-end tests and a read-only tester inbox opened through revocable links
 * [Test mail command](docs/test-mails.md) for development (`letterbox:testmails:send`, needs `debugMode`)
 * Works from Composer and from TER (parser libraries are bundled), see [configuration](docs/configuration.md)
 
@@ -76,6 +77,8 @@ Then open System › Letterbox as an administrator. Outside the exact root conte
 | [Configuration](docs/configuration.md) | Transport settings and extension settings |
 | [Delivery modes](docs/delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
 | [Backend module](docs/backend-module.md) | Search, filters, tabs, preview, navigation, delete and clear |
+| [External access](docs/external-access.md) | Activation, guard reasons, IP allowlist, throttle, tester links and the tester inbox |
+| [JSON API](docs/api.md) | Endpoints, authentication, response shape, Playwright example |
 | [Test mails](docs/test-mails.md) | Console command `letterbox:testmails:send` |
 | [Migration from EXT:mbox](docs/migration-from-mbox.md) | Switching from `t3/mbox` to Letterbox |
 | [Design rules](docs/design/rules.md) | Binding rules for every UI change |
