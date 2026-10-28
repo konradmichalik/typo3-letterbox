@@ -1021,7 +1021,7 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertMatchesRegularExpression('/id="letterbox-pane-checks" role="tabpanel"/', $body);
         $text = (string) preg_replace('/\s+/', ' ', strip_tags($body));
         self::assertStringContainsString('Rule based checks of this mail. Nothing is fetched from the network.', $text);
-        self::assertSame(1, preg_match_all('/<li class="card">\s*<div class="card-body[^"]*">\s*<span class="badge badge-danger">/', $body));
+        self::assertSame(1, preg_match_all('/<li class="card">\s*<div class="card-body[^"]*">\s*<span class="badge badge-danger[\s"]/', $body));
         self::assertLessThan(strpos($text, 'Warning'), strpos($text, 'Error'));
         self::assertLessThan(strpos($text, 'Info'), strpos($text, 'Warning'));
         foreach (['The HTML part contains a form.', '1 image has no alt text.', 'The mail has no plain-text part.', '1 link uses http instead of https.', 'The html element has no lang attribute.'] as $message) {
