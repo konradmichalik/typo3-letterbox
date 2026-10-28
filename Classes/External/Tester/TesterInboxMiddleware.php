@@ -104,18 +104,17 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         if (1 !== preg_match(self::ID_PATTERN, $id)) {
             return $this->view->notFound($request);
         }
-        $filter = MailFilter::all();
 
         return match (true) {
-            1 === count($segments) => $this->show($request, $filter, $id, $basePath),
-            3 === count($segments) && 'attachments' === $segments[1] => $this->attachment($request, $filter, $id, $segments[2]),
+            1 === count($segments) => $this->show($request, $id, $basePath),
+            3 === count($segments) && 'attachments' === $segments[1] => $this->attachment($request, $id, $segments[2]),
             default => $this->view->notFound($request),
         };
     }
 
-    private function show(ServerRequestInterface $request, MailFilter $filter, string $id, string $basePath): ResponseInterface
+    private function show(ServerRequestInterface $request, string $id, string $basePath): ResponseInterface
     {
-        $mail = $this->repository->findById($id, $filter);
+        $mail = $this->repository->findById($id);
         if (null === $mail) {
             return $this->view->notFound($request);
         }
@@ -124,9 +123,9 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         return $this->view->show($request, $mail, $basePath, $textView);
     }
 
-    private function attachment(ServerRequestInterface $request, MailFilter $filter, string $id, string $index): ResponseInterface
+    private function attachment(ServerRequestInterface $request, string $id, string $index): ResponseInterface
     {
-        $attachment = 1 === preg_match(self::INDEX_PATTERN, $index) ? $this->repository->attachment($id, (int) $index, $filter) : null;
+        $attachment = 1 === preg_match(self::INDEX_PATTERN, $index) ? $this->repository->attachment($id, (int) $index) : null;
 
         return null === $attachment ? $this->view->notFound($request) : $this->downloads->attachment($attachment);
     }

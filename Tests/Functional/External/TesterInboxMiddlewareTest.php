@@ -442,7 +442,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
             self::assertSame(404, $response->getStatusCode(), $method);
             self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
         }
-        self::assertNotNull($this->get(MailRepository::class)->findById($id, MailFilter::all()));
+        self::assertNotNull($this->get(MailRepository::class)->findById($id));
         self::assertStringNotContainsString('/delete', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody());
         self::assertStringNotContainsString('<form method="post"', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody());
     }

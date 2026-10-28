@@ -15,7 +15,6 @@ namespace KonradMichalik\Typo3Letterbox\Controller;
 
 use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Backend\{InboxQuery, MailListView};
-use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\MailRelease;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
@@ -69,7 +68,7 @@ final readonly class ReleaseController
 
         $body = (array) $request->getParsedBody();
         $id = $body['id'] ?? null;
-        $mail = InboxQuery::isMailId($id) ? $this->repository->findById($id, MailFilter::all()) : null;
+        $mail = InboxQuery::isMailId($id) ? $this->repository->findById($id) : null;
         if (null === $mail) {
             return $this->error(404, 'Mail not found.');
         }

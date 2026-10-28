@@ -94,9 +94,9 @@ final readonly class MailRepository
         return array_slice($this->matching($filter), max(0, $offset), max(0, $limit));
     }
 
-    public function findById(string $id, MailFilter $filter): ?Mail
+    public function findById(string $id): ?Mail
     {
-        foreach ($this->matching($filter) as $entry) {
+        foreach ($this->index->entries() as $entry) {
             if ($entry->id === $id) {
                 return $this->load($entry);
             }
@@ -105,9 +105,9 @@ final readonly class MailRepository
         return null;
     }
 
-    public function attachment(string $id, int $index, MailFilter $filter): ?Attachment
+    public function attachment(string $id, int $index): ?Attachment
     {
-        $mail = $this->findById($id, $filter);
+        $mail = $this->findById($id);
         if (null === $mail) {
             return null;
         }
@@ -121,9 +121,9 @@ final readonly class MailRepository
         return null;
     }
 
-    public function delete(string $id, MailFilter $filter): bool
+    public function delete(string $id): bool
     {
-        foreach ($this->matching($filter) as $entry) {
+        foreach ($this->index->entries() as $entry) {
             if ($entry->id === $id) {
                 return $this->writer->remove([$entry->span], fn (): bool => $this->isCurrent($entry));
             }

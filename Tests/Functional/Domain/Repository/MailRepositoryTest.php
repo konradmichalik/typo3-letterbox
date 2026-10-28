@@ -65,7 +65,7 @@ final class MailRepositoryTest extends FunctionalTestCase
     {
         self::assertSame(0, $this->repository->count(MailFilter::all()));
         self::assertSame([], $this->repository->find(MailFilter::all(), 0, 10));
-        self::assertNull($this->repository->findById('0123456789abcdef0123456789abcdef', MailFilter::all()));
+        self::assertNull($this->repository->findById('0123456789abcdef0123456789abcdef'));
         self::assertSame(0, $this->repository->sizeInBytes());
         self::assertSame($this->path, $this->repository->path());
     }
@@ -135,9 +135,9 @@ final class MailRepositoryTest extends FunctionalTestCase
         $this->append('one');
         $mail = $this->repository->find(MailFilter::all(), 0, 1)[0];
 
-        self::assertSame('one', $this->repository->findById($mail->id, MailFilter::all())?->subject);
-        self::assertSame('a.txt', $this->repository->attachment($mail->id, 0, MailFilter::all())?->filename);
-        self::assertNull($this->repository->attachment($mail->id, 5, MailFilter::all()));
+        self::assertSame('one', $this->repository->findById($mail->id)?->subject);
+        self::assertSame('a.txt', $this->repository->attachment($mail->id, 0)?->filename);
+        self::assertNull($this->repository->attachment($mail->id, 5));
     }
 
     #[Test]
@@ -145,7 +145,7 @@ final class MailRepositoryTest extends FunctionalTestCase
     {
         $this->append('one');
 
-        self::assertNull($this->repository->findById('0123456789abcdef0123456789abcdef', MailFilter::all()));
+        self::assertNull($this->repository->findById('0123456789abcdef0123456789abcdef'));
     }
 
     #[Test]
@@ -156,10 +156,10 @@ final class MailRepositoryTest extends FunctionalTestCase
         }
         $two = $this->repository->find(MailFilter::all(), 1, 1)[0];
 
-        self::assertTrue($this->repository->delete($two->id, MailFilter::all()));
+        self::assertTrue($this->repository->delete($two->id));
 
         self::assertSame(['three', 'one'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
-        self::assertFalse($this->repository->delete($two->id, MailFilter::all()));
+        self::assertFalse($this->repository->delete($two->id));
     }
 
     #[Test]
@@ -169,7 +169,7 @@ final class MailRepositoryTest extends FunctionalTestCase
         self::assertSame(['Third', 'Second', 'First'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
         $second = $this->repository->find(MailFilter::all(), 1, 1)[0];
 
-        self::assertTrue($this->repository->delete($second->id, MailFilter::all()));
+        self::assertTrue($this->repository->delete($second->id));
 
         self::assertSame(['Third', 'First'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
     }
@@ -216,7 +216,7 @@ final class MailRepositoryTest extends FunctionalTestCase
         self::assertSame($sizeBefore, $this->repository->sizeInBytes());
         $mails = $this->repository->find(MailFilter::all(), 0, 10);
         self::assertSame(['BBBB'], $this->subjects($mails));
-        self::assertSame('BBBB', $this->repository->findById($mails[0]->id, MailFilter::all())?->subject);
+        self::assertSame('BBBB', $this->repository->findById($mails[0]->id)?->subject);
     }
 
     #[Test]
@@ -250,21 +250,6 @@ final class MailRepositoryTest extends FunctionalTestCase
         $counts = $this->repository->quickFilterCounts(MailFilter::create('reset', QuickFilter::Unread, [$readId]));
 
         self::assertSame(['all' => 3, 'unread' => 2, 'attachments' => 2], $counts);
-    }
-
-    #[Test]
-    public function deleteRespectsFilter(): void
-    {
-        $this->appendTo('inside', 'anna@customer.example');
-        $this->appendTo('outside', 'bob@other.example');
-        $anna = MailFilter::all()->withRecipient('anna@customer.example');
-        $outside = $this->repository->find(MailFilter::all(), 0, 1)[0];
-        $before = file_get_contents($this->path);
-
-        self::assertFalse($this->repository->delete($outside->id, $anna));
-        self::assertSame($before, file_get_contents($this->path));
-        self::assertTrue($this->repository->delete($this->repository->find($anna, 0, 1)[0]->id, $anna));
-        self::assertSame(['outside'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
     }
 
     #[Test]

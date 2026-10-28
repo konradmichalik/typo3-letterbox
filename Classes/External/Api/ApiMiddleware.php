@@ -145,7 +145,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
             ['messages'] === $segments && 'GET' === $method => $this->list($request, $filter),
             ['messages'] === $segments && 'DELETE' === $method => $this->deleteAll(),
             ['messages', 'latest'] === $segments && 'GET' === $method => $this->latest($request, $filter),
-            'messages' === ($segments[0] ?? null) && 1 === preg_match(self::ID_PATTERN, $segments[1] ?? '') => $this->message($method, $segments[1], array_slice($segments, 2), $filter),
+            'messages' === ($segments[0] ?? null) && 1 === preg_match(self::ID_PATTERN, $segments[1] ?? '') => $this->message($method, $segments[1], array_slice($segments, 2)),
             default => null,
         };
     }
@@ -153,13 +153,13 @@ final readonly class ApiMiddleware implements MiddlewareInterface
     /**
      * @param list<string> $action the segments after the id
      */
-    private function message(string $method, string $id, array $action, MailFilter $filter): ?ResponseInterface
+    private function message(string $method, string $id, array $action): ?ResponseInterface
     {
         return match (true) {
-            [] === $action && 'GET' === $method => $this->detail($id, $filter),
-            [] === $action && 'DELETE' === $method => $this->delete($id, $filter),
-            ['source'] === $action && 'GET' === $method => $this->source($id, $filter),
-            2 === count($action) && 'attachments' === $action[0] && 'GET' === $method => $this->attachment($id, $action[1], $filter),
+            [] === $action && 'GET' === $method => $this->detail($id),
+            [] === $action && 'DELETE' === $method => $this->delete($id),
+            ['source'] === $action && 'GET' === $method => $this->source($id),
+            2 === count($action) && 'attachments' === $action[0] && 'GET' === $method => $this->attachment($id, $action[1]),
             default => null,
         };
     }
@@ -189,34 +189,34 @@ final readonly class ApiMiddleware implements MiddlewareInterface
         return null === $mail ? null : $this->responses->json($this->mailJson->summary($mail));
     }
 
-    private function detail(string $id, MailFilter $filter): ?ResponseInterface
+    private function detail(string $id): ?ResponseInterface
     {
-        $mail = $this->repository->findById($id, $filter);
+        $mail = $this->repository->findById($id);
 
         return null === $mail ? null : $this->responses->json($this->mailJson->detail($mail));
     }
 
-    private function source(string $id, MailFilter $filter): ?ResponseInterface
+    private function source(string $id): ?ResponseInterface
     {
-        $mail = $this->repository->findById($id, $filter);
+        $mail = $this->repository->findById($id);
 
         return null === $mail ? null : $this->downloads->source($mail);
     }
 
-    private function attachment(string $id, string $index, MailFilter $filter): ?ResponseInterface
+    private function attachment(string $id, string $index): ?ResponseInterface
     {
         if (1 !== preg_match('/^\d{1,4}$/', $index)) {
             return null;
         }
-        $attachment = $this->repository->attachment($id, (int) $index, $filter);
+        $attachment = $this->repository->attachment($id, (int) $index);
 
         return null === $attachment ? null : $this->downloads->attachment($attachment);
     }
 
-    private function delete(string $id, MailFilter $filter): ?ResponseInterface
+    private function delete(string $id): ?ResponseInterface
     {
         try {
-            return $this->repository->delete($id, $filter) ? $this->noContent() : null;
+            return $this->repository->delete($id) ? $this->noContent() : null;
         } catch (RuntimeException $e) {
             return $this->writeFailed($e);
         }

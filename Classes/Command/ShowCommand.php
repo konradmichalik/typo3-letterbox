@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Command;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail};
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\{InputArgument, InputInterface, InputOption};
@@ -49,7 +49,7 @@ final class ShowCommand extends AbstractMailboxCommand
         }
 
         $id = $input->getArgument('id');
-        $mail = is_string($id) && 1 === preg_match('/^[0-9a-f]{32}$/D', $id) ? $this->mails->findById($id, MailFilter::all()) : null;
+        $mail = is_string($id) && 1 === preg_match('/^[0-9a-f]{32}$/D', $id) ? $this->mails->findById($id) : null;
         if (!$mail instanceof Mail) {
             return $this->fail($io, 'Mail not found.');
         }

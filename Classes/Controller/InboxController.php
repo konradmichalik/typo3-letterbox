@@ -110,7 +110,7 @@ final readonly class InboxController
         }
 
         // The selected mail opens even when it does not match the current search or quick filter.
-        $mail = null === $query->id ? null : $this->repository->findById($query->id, MailFilter::all());
+        $mail = null === $query->id ? null : $this->repository->findById($query->id);
         if (null === $mail) {
             return $this->mailNotFound($query, $fragment);
         }
@@ -161,7 +161,7 @@ final readonly class InboxController
             return $this->error(404, 'Attachment not found.');
         }
 
-        $attachment = $this->repository->attachment($id, (int) $index, MailFilter::all());
+        $attachment = $this->repository->attachment($id, (int) $index);
 
         return null === $attachment ? $this->error(404, 'Attachment not found.') : $this->downloadResponseFactory->attachment($attachment);
     }
@@ -181,7 +181,7 @@ final readonly class InboxController
 
         $listUrl = $this->mailListView->url(InboxQuery::fromRequest($request), ['id' => null, 'tab' => null]);
         try {
-            $deleted = $this->repository->delete($id, MailFilter::all());
+            $deleted = $this->repository->delete($id);
         } catch (RuntimeException) {
             return $this->redirectWithFlash('flash.deleteFailed', ContextualFeedbackSeverity::ERROR, $listUrl);
         }
@@ -441,7 +441,7 @@ final readonly class InboxController
     {
         $id = InboxQuery::fromRequest($request)->id;
 
-        return null === $id ? null : $this->repository->findById($id, MailFilter::all());
+        return null === $id ? null : $this->repository->findById($id);
     }
 
     /**

@@ -54,7 +54,7 @@ final class ReceiveCommandTest extends MailboxCommandTestCase
         self::assertStringStartsWith('From bounce@example.org ', $mbox);
         self::assertStringContainsString("\nX-Letterbox-Envelope-To: Anna@example.org\nFrom: Shop <shop@example.org>\n", $mbox);
         self::assertStringNotContainsString("\r", $mbox);
-        $mail = $this->get(MailRepository::class)->findById($this->firstId(), MailFilter::all());
+        $mail = $this->get(MailRepository::class)->findById($this->firstId());
         self::assertNotNull($mail);
         self::assertSame('Receipt', $mail->subject);
     }
