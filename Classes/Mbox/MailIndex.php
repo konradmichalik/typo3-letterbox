@@ -108,12 +108,8 @@ final readonly class MailIndex
     private function scan(int $fromOffset, int $untilOffset): array
     {
         $entries = [];
-        foreach ($this->mailbox->spans($fromOffset) as $span) {
-            // A message appended while scanning belongs to the next run, so it is not indexed twice.
-            if ($span->offset >= $untilOffset) {
-                break;
-            }
-            [$message, $received] = $this->mailbox->readWithReceived($span);
+        // A message appended while scanning belongs to the next run, so it is not indexed twice.
+        foreach ($this->mailbox->messages($fromOffset, $untilOffset) as [$span, $message, $received]) {
             $entries[] = $this->parser->summarize($message, $span, $received);
         }
 

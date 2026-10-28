@@ -84,24 +84,34 @@ final readonly class Mailbox
         }
 
         try {
-            fseek($handle, $span->offset);
-            $separator = $span->length > 0 ? (string) fgets($handle, $span->length + 1) : '';
-            if (!str_ends_with($separator, "\n")) {
-                return [$this->format->decode(''), null];
-            }
-
-            // Leaving the final newline of a stored message unread is what decode() would cut, without copying the mail.
-            $length = $span->length - strlen($separator);
-            if ($length >= 2 && 0 === fseek($handle, $span->offset + $span->length - 2) && "\n\n" === fread($handle, 2)) {
-                --$length;
-            }
-            fseek($handle, $span->offset + strlen($separator));
-            $stored = $length > 0 ? (string) fread($handle, $length) : '';
+            return $this->readAt($handle, $span);
         } finally {
             fclose($handle);
         }
+    }
 
-        return [$this->format->unescape($stored), $this->format->received($separator)];
+    /**
+     * Every message that starts in [$fromOffset, $untilOffset), read through one file handle.
+     *
+     * @return Generator<array{MessageSpan, string, ?DateTimeImmutable}> span, message and arrival time
+     */
+    public function messages(int $fromOffset, int $untilOffset): Generator
+    {
+        $handle = $this->isReadable() ? fopen($this->path, 'r') : false;
+        if (false === $handle) {
+            return;
+        }
+
+        try {
+            foreach ($this->spans($fromOffset) as $span) {
+                if ($span->offset >= $untilOffset) {
+                    return;
+                }
+                yield [$span, ...$this->readAt($handle, $span)];
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 
     public function fingerprint(): string
@@ -120,6 +130,30 @@ final readonly class Mailbox
 
         // The tail covers a file rewritten to the same size within the same second, which size and mtime cannot tell apart.
         return sprintf('%d|%d|%d|%s|%s', $stat['size'], $stat['mtime'], $stat['ino'], hash('sha256', $firstLine), hash('sha256', $tail));
+    }
+
+    /**
+     * @param resource $handle
+     *
+     * @return array{0: string, 1: ?DateTimeImmutable}
+     */
+    private function readAt($handle, MessageSpan $span): array
+    {
+        fseek($handle, $span->offset);
+        $separator = $span->length > 0 ? (string) fgets($handle, $span->length + 1) : '';
+        if (!str_ends_with($separator, "\n")) {
+            return [$this->format->decode(''), null];
+        }
+
+        // Leaving the final newline of a stored message unread is what decode() would cut, without copying the mail.
+        $length = $span->length - strlen($separator);
+        if ($length >= 2 && 0 === fseek($handle, $span->offset + $span->length - 2) && "\n\n" === fread($handle, 2)) {
+            --$length;
+        }
+        fseek($handle, $span->offset + strlen($separator));
+        $stored = $length > 0 ? (string) fread($handle, $length) : '';
+
+        return [$this->format->unescape($stored), $this->format->received($separator)];
     }
 
     private function isReadable(): bool

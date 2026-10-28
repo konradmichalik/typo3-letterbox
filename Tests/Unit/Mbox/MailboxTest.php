@@ -180,6 +180,23 @@ final class MailboxTest extends TestCase
     }
 
     #[Test]
+    public function messagesReadLikeReadWithReceivedAndStopAtTheGivenOffset(): void
+    {
+        $path = $this->tempPath();
+        foreach (["Subject: one\n\n>From quoted\n\n\n", "Subject: two\n\nbody", "Subject: three\n\nbody\n"] as $raw) {
+            $this->writer($path)->append('a@example.org', new DateTimeImmutable('2026-10-27 10:00:05'), $raw);
+        }
+        $box = new Mailbox($path, new MboxFormat());
+        $spans = iterator_to_array($box->spans(), false);
+
+        $messages = iterator_to_array($box->messages($spans[1]->offset, $spans[2]->offset), false);
+        $all = iterator_to_array($box->messages(0, \PHP_INT_MAX), false);
+
+        self::assertEquals([[$spans[1], ...$box->readWithReceived($spans[1])]], $messages);
+        self::assertEquals(array_map(static fn (MessageSpan $span): array => [$span, ...$box->readWithReceived($span)], $spans), $all);
+    }
+
+    #[Test]
     public function appendAcquiresAndReleasesLock(): void
     {
         $this->writer($this->tempPath())->append('a@example.org', new DateTimeImmutable(), "Subject: x\n\nb\n");
