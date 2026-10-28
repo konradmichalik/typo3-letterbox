@@ -100,7 +100,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 ## Toolbar, widget, reports
 
 - Toolbar item: core toolbar button with an envelope icon and a count badge, accessible name "Mail catcher active, N mails caught". Admins only, can be switched off with `showToolbarItem`.
-- Dropdown: one sentence on what happens to mails, the latest three subjects, a link to the module.
+- Dropdown: one sentence on what happens to mails, the latest five subjects (each linking to the mail, cropped to 60 characters), a link to the module and the mbox path. The badge is Warning for mode `all` and Info for `listed`.
 - Dashboard widget "Recent mails": core widget markup, admin only, subject, recipient and time.
 - Reports: core status provider with core severities; no own markup.
 

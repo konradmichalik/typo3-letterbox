@@ -477,6 +477,45 @@
 			<trans-unit id="flash.access.revoked" resname="flash.access.revoked">
 				<source>Tester link revoked.</source>
 			</trans-unit>
+			<trans-unit id="toolbar.active" resname="toolbar.active">
+				<source>Mail catcher active</source>
+			</trans-unit>
+			<trans-unit id="toolbar.catching.one" resname="toolbar.catching.one">
+				<source>Catching %d address</source>
+			</trans-unit>
+			<trans-unit id="toolbar.catching.other" resname="toolbar.catching.other">
+				<source>Catching %d addresses</source>
+			</trans-unit>
+			<trans-unit id="toolbar.caught.one" resname="toolbar.caught.one">
+				<source>%s, %d mail caught</source>
+			</trans-unit>
+			<trans-unit id="toolbar.caught.other" resname="toolbar.caught.other">
+				<source>%s, %d mails caught</source>
+			</trans-unit>
+			<trans-unit id="toolbar.heading" resname="toolbar.heading">
+				<source>Letterbox</source>
+			</trans-unit>
+			<trans-unit id="toolbar.intro" resname="toolbar.intro">
+				<source>Outgoing mails are written to the mbox file and not delivered to their recipients.</source>
+			</trans-unit>
+			<trans-unit id="toolbar.introListed" resname="toolbar.introListed">
+				<source>Mails to the listed addresses are written to the mbox file and not delivered to their recipients.</source>
+			</trans-unit>
+			<trans-unit id="toolbar.notConfigured" resname="toolbar.notConfigured">
+				<source>Letterbox is active but no mbox file is configured.</source>
+			</trans-unit>
+			<trans-unit id="toolbar.empty" resname="toolbar.empty">
+				<source>No mails caught yet.</source>
+			</trans-unit>
+			<trans-unit id="toolbar.latest" resname="toolbar.latest">
+				<source>Latest mails</source>
+			</trans-unit>
+			<trans-unit id="toolbar.open" resname="toolbar.open">
+				<source>Open Letterbox</source>
+			</trans-unit>
+			<trans-unit id="toolbar.file" resname="toolbar.file">
+				<source>Mbox file</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

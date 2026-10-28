@@ -1,0 +1,58 @@
+<html
+    xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<p class="dropdown-headline"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.heading" /></p>
+<f:if condition="{configured}">
+    <f:then>
+        <p class="dropdown-item-text"><f:if condition="{listed}"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.introListed" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.intro" /></f:else></f:if></p>
+        <f:if condition="{mails}">
+            <f:then>
+                <ul class="dropdown-list" aria-label="{f:translate(key: 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.latest')}">
+                    <f:for each="{mails}" as="mail">
+                        <li>
+                            <f:if condition="{mail.url}">
+                                <f:then>
+                                    <a class="dropdown-item" href="{mail.url}">
+                                        <f:render section="Mail" arguments="{mail: mail}" />
+                                    </a>
+                                </f:then>
+                                <f:else>
+                                    <span class="dropdown-item-text">
+                                        <f:render section="Mail" arguments="{mail: mail}" />
+                                    </span>
+                                </f:else>
+                            </f:if>
+                        </li>
+                    </f:for>
+                </ul>
+            </f:then>
+            <f:else>
+                <p class="dropdown-item-text"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.empty" /></p>
+            </f:else>
+        </f:if>
+        <f:if condition="{openUrl}">
+            <hr class="dropdown-divider">
+            <ul class="dropdown-list">
+                <li>
+                    <a class="dropdown-item" href="{openUrl}"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.open" /></a>
+                </li>
+            </ul>
+        </f:if>
+        <p class="dropdown-item-text text-variant"><small><span class="visually-hidden"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.file" />: </span>{path}</small></p>
+    </f:then>
+    <f:else>
+        <p class="dropdown-item-text"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.notConfigured" /></p>
+    </f:else>
+</f:if>
+
+<f:section name="Mail">
+    <span class="dropdown-item-columns">
+        <span class="dropdown-item-column dropdown-item-column-text">
+            <f:if condition="{mail.subject}"><f:then><f:format.crop maxCharacters="60" append="…">{mail.subject}</f:format.crop></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:inbox.noSubject" /></f:else></f:if>
+            <f:if condition="{mail.time}"><br><small class="text-variant"><f:format.date format="Y-m-d H:i">{mail.time}</f:format.date></small></f:if>
+        </span>
+    </span>
+</f:section>
+</html>

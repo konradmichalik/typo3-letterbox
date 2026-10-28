@@ -71,7 +71,7 @@ final readonly class ExternalAccessGuard
 
         $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
         $mail = is_array($mail) ? $mail : [];
-        if (0 !== strcasecmp(ltrim((string) ($mail['transport'] ?? ''), '\\'), LetterboxTransport::class)) {
+        if (!LetterboxTransport::isSelectedIn($mail)) {
             $reasons[] = ExternalAccessState::TRANSPORT_NOT_LETTERBOX;
         }
 

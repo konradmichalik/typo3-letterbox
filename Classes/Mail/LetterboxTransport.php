@@ -64,6 +64,14 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         return 'letterbox://'.$this->settings->mode->value;
     }
 
+    /**
+     * @param array<string, mixed> $mailSettings the MAIL section of TYPO3_CONF_VARS
+     */
+    public static function isSelectedIn(array $mailSettings): bool
+    {
+        return 0 === strcasecmp(ltrim((string) ($mailSettings['transport'] ?? ''), '\\'), self::class);
+    }
+
     protected function doSend(SentMessage $message): void
     {
         $envelope = $message->getEnvelope();
