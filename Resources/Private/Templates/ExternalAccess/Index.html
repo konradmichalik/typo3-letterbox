@@ -22,39 +22,14 @@
             </div>
         </div>
 
-        <f:if condition="{created}">
-            <div class="callout callout-success" role="status">
-                <div class="callout-icon" aria-hidden="true">
-                    <span class="icon-emphasized"><core:icon identifier="actions-check" /></span>
-                </div>
-                <div class="callout-content">
-                    <div class="callout-title"><f:translate key="access.create.success.title" extensionName="Typo3Letterbox" /></div>
-                    <div class="callout-body">
-                        <p><f:translate key="access.create.success.body" extensionName="Typo3Letterbox" /></p>
-                        <div class="d-flex align-items-center gap-2">
-                            <code class="text-break" id="letterbox-access-url">{created.url}</code>
-                            <f:variable name="copyLabel"><f:translate key="access.create.copy" extensionName="Typo3Letterbox" /></f:variable>
-                            <typo3-copy-to-clipboard class="btn btn-sm btn-default" text="{created.url}" title="{copyLabel}" aria-label="{copyLabel}">
-                                <span aria-hidden="true"><core:icon identifier="actions-clipboard" /></span>
-                            </typo3-copy-to-clipboard>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </f:if>
-
-        <div class="row g-3 mb-3">
+        <div class="row g-3">
             <div class="col-xl-6">
                 <f:render section="Status" arguments="{_all}" />
             </div>
             <div class="col-xl-6">
-                <f:render section="CreateForm" arguments="{_all}" />
+                <f:render section="Connect" arguments="{_all}" />
             </div>
         </div>
-
-        <f:render section="Links" arguments="{_all}" />
-
-        <f:render section="Api" arguments="{_all}" />
     </main>
 </f:section>
 
@@ -79,136 +54,26 @@
                 <dd class="col-sm-8"><code>{context}</code></dd>
                 <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.status.switch" extensionName="Typo3Letterbox" /></dt>
                 <dd class="col-sm-8"><code class="text-break">LETTERBOX_EXTERNAL_ACCESS={context}</code></dd>
-                <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.status.inbox" extensionName="Typo3Letterbox" /></dt>
-                <dd class="col-sm-8"><code class="text-break">{inboxUrl}</code></dd>
-                <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.status.api" extensionName="Typo3Letterbox" /></dt>
-                <dd class="col-sm-8 mb-0"><code class="text-break">{apiUrl}</code></dd>
+                <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.token" extensionName="Typo3Letterbox" /></dt>
+                <dd class="col-sm-8 mb-0"><f:if condition="{tokenConfigured}"><f:then><f:translate key="access.token.configured" extensionName="Typo3Letterbox" /></f:then><f:else><f:translate key="access.token.missing" extensionName="Typo3Letterbox" /></f:else></f:if></dd>
             </dl>
         </div>
     </section>
 </f:section>
 
-<f:section name="CreateForm">
-    <f:variable name="scopeDescribedBy" value="letterbox-access-scope-help{f:if(condition: errors, then: ' letterbox-access-errors')}" />
-    <section class="card h-100" aria-labelledby="letterbox-access-create-title">
-        <div class="card-header"><h2 class="h5 mb-0" id="letterbox-access-create-title"><f:translate key="access.create.heading" extensionName="Typo3Letterbox" /></h2></div>
-        <div class="card-body">
-            <f:if condition="{errors}">
-                <div class="callout callout-danger" id="letterbox-access-errors" role="alert">
-                    <div class="callout-icon" aria-hidden="true">
-                        <span class="icon-emphasized"><core:icon identifier="actions-exclamation" /></span>
-                    </div>
-                    <div class="callout-content">
-                        <div class="callout-title"><f:translate key="access.create.errors.title" extensionName="Typo3Letterbox" /></div>
-                        <div class="callout-body">
-                            <ul class="mb-0">
-                                <f:for each="{errors}" as="error"><li>{error.text}</li></f:for>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </f:if>
-            <form method="post" action="{f:be.uri(route: 'system_letterbox.access_create')}">
-                <input type="hidden" name="letterboxToken" value="{token}" />
-
-                <div class="mb-3">
-                    <label class="form-label" for="letterbox-access-label"><f:translate key="access.create.label" extensionName="Typo3Letterbox" /></label>
-                    <input type="text" class="form-control" id="letterbox-access-label" name="label" value="{form.label}" maxlength="255" required
-                        {f:if(condition: errors, then: ' aria-describedby="letterbox-access-errors"')}{f:if(condition: errorFields.label, then: ' aria-invalid="true"')} />
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="letterbox-access-scope"><f:translate key="access.create.scope" extensionName="Typo3Letterbox" /></label>
-                    <textarea class="form-control" id="letterbox-access-scope" name="scope" rows="4" spellcheck="false" autocomplete="off" aria-describedby="{scopeDescribedBy}"{f:if(condition: errorFields.scope, then: ' aria-invalid="true"')}>{form.scope}</textarea>
-                    <div class="form-text" id="letterbox-access-scope-help"><f:translate key="access.create.scope.help" extensionName="Typo3Letterbox" /></div>
-                </div>
-
-                <p class="form-text"><f:translate key="access.create.lifetime" extensionName="Typo3Letterbox" arguments="{0: lifetimeDays}" /></p>
-
-                <button type="submit" class="btn btn-primary"><f:translate key="access.create.submit" extensionName="Typo3Letterbox" /></button>
-            </form>
-        </div>
-    </section>
-</f:section>
-
-<f:section name="Links">
-    <section class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h5 mb-0" id="letterbox-access-links-title"><f:translate key="access.links.heading" extensionName="Typo3Letterbox" /></h2>
-            <span class="text-variant"><f:if condition="{linkCount} == 1"><f:then><f:translate key="access.links.count.one" extensionName="Typo3Letterbox" /></f:then><f:else><f:translate key="access.links.count" extensionName="Typo3Letterbox" arguments="{0: linkCount}" /></f:else></f:if></span>
-        </div>
-        <f:if condition="{links}">
-            <f:then>
-                <div class="table-responsive" role="region" tabindex="0" aria-labelledby="letterbox-access-links-title">
-                    <table class="table table-striped table-hover mb-0">
-                        <caption class="visually-hidden"><f:translate key="access.links.caption" extensionName="Typo3Letterbox" /></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><f:translate key="access.links.col.label" extensionName="Typo3Letterbox" /></th>
-                                <th scope="col"><f:translate key="access.links.col.scope" extensionName="Typo3Letterbox" /></th>
-                                <th scope="col"><f:translate key="access.links.col.expires" extensionName="Typo3Letterbox" /></th>
-                                <th scope="col"><f:translate key="access.links.col.createdBy" extensionName="Typo3Letterbox" /></th>
-                                <th scope="col"><f:translate key="access.links.col.state" extensionName="Typo3Letterbox" /></th>
-                                <th scope="col"><span class="visually-hidden"><f:translate key="access.links.col.actions" extensionName="Typo3Letterbox" /></span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <f:for each="{links}" as="link">
-                                <tr>
-                                    <th scope="row" class="text-break">{link.label}</th>
-                                    <td class="text-break">
-                                        <f:if condition="{link.scope}">
-                                            <f:then><f:for each="{link.scope}" as="pattern" iteration="iterator"><code>{pattern}</code>{f:if(condition: '{iterator.isLast}', else: ', ')}</f:for></f:then>
-                                            <f:else><f:translate key="access.links.invalidScope" extensionName="Typo3Letterbox" /></f:else>
-                                        </f:if>
-                                    </td>
-                                    <td>{link.expires}</td>
-                                    <td><f:if condition="{link.createdBy}"><f:then>{link.createdBy}</f:then><f:else><f:translate key="access.links.unknownUser" extensionName="Typo3Letterbox" /></f:else></f:if></td>
-                                    <td><f:translate key="access.links.state.{link.state}" extensionName="Typo3Letterbox" /></td>
-                                    <td>
-                                        <f:if condition="{link.revocable}">
-                                            <form method="post" action="{f:be.uri(route: 'system_letterbox.access_revoke')}">
-                                                <input type="hidden" name="uid" value="{link.uid}" />
-                                                <input type="hidden" name="letterboxToken" value="{token}" />
-                                                <f:comment>Without JavaScript the button submits directly; with it, core's modal asks first and then submits this form.</f:comment>
-                                                <button
-                                                    type="submit"
-                                                    class="btn btn-sm btn-default t3js-modal-trigger"
-                                                    aria-label="{f:translate(key: 'access.links.revoke.label', extensionName: 'Typo3Letterbox', arguments: {0: link.label})}"
-                                                    data-severity="error"
-                                                    data-title="{f:translate(key: 'access.links.revoke.title', extensionName: 'Typo3Letterbox')}"
-                                                    data-content="{f:translate(key: 'access.links.revoke.content', extensionName: 'Typo3Letterbox', arguments: {0: link.label})}"
-                                                    data-button-close-text="{f:translate(key: 'inbox.cancel', extensionName: 'Typo3Letterbox')}"
-                                                    data-button-ok-text="{f:translate(key: 'access.links.revoke', extensionName: 'Typo3Letterbox')}"
-                                                ><f:translate key="access.links.revoke" extensionName="Typo3Letterbox" /></button>
-                                            </form>
-                                        </f:if>
-                                    </td>
-                                </tr>
-                            </f:for>
-                        </tbody>
-                    </table>
-                </div>
-            </f:then>
-            <f:else>
-                <div class="card-body"><p class="text-variant mb-0"><f:translate key="access.links.empty" extensionName="Typo3Letterbox" /></p></div>
-            </f:else>
-        </f:if>
-    </section>
-</f:section>
-
-<f:section name="Api">
-    <section class="card" aria-labelledby="letterbox-access-api-title">
-        <div class="card-header"><h2 class="h5 mb-0" id="letterbox-access-api-title"><f:translate key="access.api.heading" extensionName="Typo3Letterbox" /></h2></div>
+<f:section name="Connect">
+    <section class="card h-100" aria-labelledby="letterbox-access-connect-title">
+        <div class="card-header"><h2 class="h5 mb-0" id="letterbox-access-connect-title"><f:translate key="access.connect.heading" extensionName="Typo3Letterbox" /></h2></div>
         <div class="card-body">
             <dl class="row">
-                <dt class="col-sm-3 text-variant fw-normal"><f:translate key="access.api.baseUrl" extensionName="Typo3Letterbox" /></dt>
-                <dd class="col-sm-9"><code class="text-break">{apiUrl}</code></dd>
-                <dt class="col-sm-3 text-variant fw-normal"><f:translate key="access.api.token" extensionName="Typo3Letterbox" /></dt>
-                <dd class="col-sm-9 mb-0"><f:if condition="{apiTokenConfigured}"><f:then><f:translate key="access.api.token.configured" extensionName="Typo3Letterbox" /></f:then><f:else><f:translate key="access.api.token.missing" extensionName="Typo3Letterbox" /></f:else></f:if></dd>
+                <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.connect.inbox" extensionName="Typo3Letterbox" /></dt>
+                <dd class="col-sm-8"><code class="text-break">{inboxUrl}</code></dd>
+                <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.connect.api" extensionName="Typo3Letterbox" /></dt>
+                <dd class="col-sm-8 mb-0"><code class="text-break">{apiUrl}</code></dd>
             </dl>
-            <p class="text-variant mb-1"><f:translate key="access.api.example" extensionName="Typo3Letterbox" /></p>
-            <pre class="mb-0"><code>curl -H "X-Letterbox-Token: &lt;your API token&gt;" {apiUrl}/messages</code></pre>
+            <p><f:translate key="access.connect.share" extensionName="Typo3Letterbox" arguments="{0: inboxUrl}" /></p>
+            <p class="text-variant mb-1"><f:translate key="access.connect.example" extensionName="Typo3Letterbox" /></p>
+            <pre class="mb-0"><code>curl -H "X-Letterbox-Token: &lt;token&gt;" {apiUrl}/messages</code></pre>
         </div>
     </section>
 </f:section>

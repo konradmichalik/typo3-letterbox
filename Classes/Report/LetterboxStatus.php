@@ -79,7 +79,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         $statuses['mode'] = $this->mode($settings, self::ROOT_PRODUCTION === $context);
         $statuses['file'] = $this->file();
         $statuses['retention'] = $this->retention();
-        $statuses['external'] = $this->external(self::ROOT_PRODUCTION === $context);
+        $statuses['external'] = $this->external();
 
         return $statuses;
     }
@@ -146,15 +146,14 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         );
     }
 
-    private function external(bool $rootProduction): Status
+    /**
+     * The guard keeps root Production off, so an active state is always a test system.
+     */
+    private function external(): Status
     {
-        if (!$this->externalAccessGuard->status()->active) {
-            return $this->status('external', 'status.external.off', 'status.external.offMessage');
-        }
-
-        return $rootProduction
-            ? $this->status('external', 'status.external.on', 'status.external.onProductionMessage', ContextualFeedbackSeverity::WARNING)
-            : $this->status('external', 'status.external.on', 'status.external.onMessage', ContextualFeedbackSeverity::INFO);
+        return $this->externalAccessGuard->status()->active
+            ? $this->status('external', 'status.external.on', 'status.external.onMessage', ContextualFeedbackSeverity::INFO)
+            : $this->status('external', 'status.external.off', 'status.external.offMessage');
     }
 
     private function status(string $aspect, string $value, string $message, ContextualFeedbackSeverity $severity = ContextualFeedbackSeverity::OK): Status

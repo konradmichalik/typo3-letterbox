@@ -14,23 +14,21 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\External;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\External\{AuthenticationThrottle, EnvironmentVariables, ExternalAccessGuard, ExternalResponses, RateLimitStorage};
-use KonradMichalik\Typo3Letterbox\External\Tester\{IssuedLink, TesterInboxMiddleware, TesterInboxView, TesterLinkRepository, TesterSession};
+use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard, ExternalResponses};
+use KonradMichalik\Typo3Letterbox\External\Tester\{TesterInboxMiddleware, TesterInboxView, TesterSession};
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
-use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, RecipientPattern};
+use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Configuration\{ConfigurationManager};
+use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Core\{Environment, SystemEnvironmentBuilder};
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\{NormalizedParams, Response, ResponseFactory, ServerRequest, StreamFactory};
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Locking\LockFactory;
@@ -53,7 +51,9 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
 {
     private const PAGE_CSP = "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
 
-    private const ENV_NAMES = ['LETTERBOX_EXTERNAL_ACCESS', 'LETTERBOX_API_TOKEN', 'LETTERBOX_EXTERNAL_ALLOWED_IPS'];
+    private const ENV_NAMES = ['LETTERBOX_EXTERNAL_ACCESS', 'LETTERBOX_ACCESS_TOKEN'];
+
+    private const TOKEN = 'example-access-token-0123456789abcdef';
 
     protected array $testExtensionsToLoad = [
         'typo3_letterbox',
@@ -80,9 +80,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         $this->get(ConfigurationManager::class)->setLocalConfigurationValuesByPathValuePairs($mail);
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = LetterboxTransport::class;
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = $this->path;
-        $cacheManager = $this->get(CacheManager::class);
-        $cacheManager->getCache('typo3_letterbox_index')->flush();
-        $cacheManager->getCache('typo3_letterbox_ratelimit')->flush();
+        $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();
     }
 
     protected function tearDown(): void
@@ -100,34 +98,56 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     #[Test]
     public function tokenIsExchangedForCookieWith303(): void
     {
-        $issued = $this->issue();
         putenv('LETTERBOX_EXTERNAL_ACCESS=Testing');
+        putenv('LETTERBOX_ACCESS_TOKEN='.self::TOKEN);
 
-        $response = $this->executeFrontendSubRequest(new InternalRequest('https://stage.example.org/_letterbox/inbox?t='.$issued->token.'&p=2&q=x'));
+        $response = $this->executeFrontendSubRequest(new InternalRequest('https://stage.example.org/_letterbox/inbox?t='.self::TOKEN.'&p=2&q=x'));
 
         self::assertSame(303, $response->getStatusCode());
         self::assertSame('/_letterbox/inbox', $response->getHeaderLine('Location'));
-        self::assertStringStartsWith('letterbox_inbox='.$issued->token.';', $response->getHeaderLine('Set-Cookie'));
+        self::assertStringStartsWith('letterbox_inbox='.$this->sessionValue().';', $response->getHeaderLine('Set-Cookie'));
         self::assertSame('no-store, private', $response->getHeaderLine('Cache-Control'));
         self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
     }
 
     #[Test]
-    public function cookieAttributesAreLax(): void
+    public function inboxCookieIsDerivedFromTheToken(): void
     {
-        $issued = $this->issue();
-
-        $response = $this->send($this->middleware(), '/_letterbox/inbox?t='.$issued->token);
+        $response = $this->send($this->middleware(), '/_letterbox/inbox?t='.self::TOKEN);
 
         self::assertSame(303, $response->getStatusCode());
         $attributes = $this->cookieAttributes($response);
-        self::assertSame($issued->token, $attributes['letterbox_inbox']);
+        self::assertSame(hash_hmac('sha256', 'inbox', self::TOKEN), $attributes['letterbox_inbox']);
+        self::assertStringNotContainsString(self::TOKEN, $response->getHeaderLine('Set-Cookie'));
+        self::assertEqualsWithDelta(time() + 7 * 86400, strtotime($attributes['expires']), 5);
+        self::assertSame(200, $this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => $attributes['letterbox_inbox']])->getStatusCode());
+        self::assertSame(404, $this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => self::TOKEN])->getStatusCode(), 'the raw token is no cookie');
+    }
+
+    #[Test]
+    public function changedTokenInvalidatesCookie(): void
+    {
+        $this->append('In scope', 'anna@example.org');
+        $cookie = ['letterbox_inbox' => hash_hmac('sha256', 'inbox', self::TOKEN)];
+        $changed = $this->middleware(str_repeat('b', 40));
+
+        self::assertSame(200, $this->send($this->middleware(), '/_letterbox/inbox', $cookie)->getStatusCode());
+        $this->assertClearedCookie($this->send($changed, '/_letterbox/inbox', $cookie));
+        self::assertSame(404, $this->send($changed, '/_letterbox/inbox?t='.self::TOKEN)->getStatusCode());
+    }
+
+    #[Test]
+    public function cookieAttributesAreLax(): void
+    {
+        $response = $this->send($this->middleware(), '/_letterbox/inbox?t='.self::TOKEN);
+
+        self::assertSame(303, $response->getStatusCode());
+        $attributes = $this->cookieAttributes($response);
         self::assertSame('/_letterbox/inbox', $attributes['path']);
         self::assertArrayHasKey('secure', $attributes);
         self::assertArrayHasKey('httponly', $attributes);
         self::assertSame('lax', strtolower($attributes['samesite']), 'Lax, so the cookie survives the 303 after a click from another site');
         self::assertArrayNotHasKey('domain', $attributes);
-        self::assertSame($issued->link->expires, strtotime($attributes['expires']));
     }
 
     #[Test]
@@ -135,6 +155,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     {
         $this->append('In scope', 'anna@example.org');
         putenv('LETTERBOX_EXTERNAL_ACCESS=Testing');
+        putenv('LETTERBOX_ACCESS_TOKEN='.self::TOKEN);
 
         $response = $this->executeFrontendSubRequest(new InternalRequest('https://stage.example.org/_letterbox/inbox'));
 
@@ -145,46 +166,29 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertStringNotContainsString('In scope', (string) $response->getBody());
 
         $middleware = $this->middleware();
-        $cookie = ['letterbox_inbox' => $this->issue()->token];
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/', $cookie)->getStatusCode(), 'no trailing slash');
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox', $cookie, 'POST')->getStatusCode());
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t=nothex')->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/', $this->cookie())->getStatusCode(), 'no trailing slash');
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox', $this->cookie(), 'POST')->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t=wrong')->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t[]='.self::TOKEN)->getStatusCode());
         self::assertSame('1', $this->send($middleware, '/_letterbox/inboxes')->getHeaderLine('X-Passed-Through'));
         self::assertSame('1', $this->send($middleware, '/_letterbox')->getHeaderLine('X-Passed-Through'));
     }
 
     #[Test]
-    public function revokedLinkClearsCookie(): void
+    public function wrongCookieClearsCookie(): void
     {
         $this->append('In scope', 'anna@example.org');
-        $issued = $this->issue();
-        $this->repository()->revoke($issued->link->uid, time());
 
-        $response = $this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => $issued->token]);
-
-        $this->assertClearedCookie($response);
+        $this->assertClearedCookie($this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => str_repeat('a', 64)]));
     }
 
     #[Test]
-    public function expiredLinkClearsCookie(): void
+    public function listShowsAllMailsWithAllRecipients(): void
     {
-        $this->append('In scope', 'anna@example.org');
-        $issued = $this->repository()->issue('Old', [RecipientPattern::fromString('*@example.org')], 1, time() - 8 * 86400);
-
-        $middleware = $this->middleware();
-        $this->assertClearedCookie($this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => $issued->token]));
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t='.$issued->token)->getStatusCode());
-    }
-
-    #[Test]
-    public function listShowsOnlyScopedMailsWithMaskedRecipients(): void
-    {
-        $this->append('Welcome Anna', 'anna@example.org, "anna@example.org" <bob@other.test>');
+        $this->append('Welcome Anna', 'anna@example.org, "Bob" <bob@other.test>');
         $this->append('For Carl', 'carl@other.test');
-        $this->append('Display trick', '"anna@example.org" <eve@other.test>');
-        $issued = $this->issue('Login QA');
 
-        $response = $this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => $issued->token]);
+        $response = $this->send($this->middleware(), '/_letterbox/inbox', $this->cookie());
         $body = (string) $response->getBody();
 
         self::assertSame(200, $response->getStatusCode());
@@ -192,58 +196,54 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
         self::assertStringContainsString('<html lang="en"', $body);
         self::assertStringContainsString('<main', $body);
-        self::assertStringContainsString('Login QA', $body);
-        self::assertStringContainsString('*@example.org', $body);
+        self::assertStringContainsString('Caught mails', $body);
         self::assertStringContainsString('Welcome Anna', $body);
-        self::assertStringContainsString('anna@example.org', $body);
-        self::assertStringContainsString('and 1 more', $body);
-        self::assertStringNotContainsString('bob@other.test', $body);
-        self::assertStringNotContainsString('For Carl', $body);
-        self::assertStringNotContainsString('carl@other.test', $body);
-        self::assertStringNotContainsString('Display trick', $body);
-        self::assertStringNotContainsString('eve@other.test', $body);
-        self::assertStringNotContainsString($issued->token, $body);
-        self::assertSame(1, preg_match_all('#href="/_letterbox/inbox/[0-9a-f]{32}"#', $body));
+        self::assertStringContainsString('anna@example.org, bob@other.test', $body);
+        self::assertStringContainsString('For Carl', $body);
+        self::assertStringContainsString('carl@other.test', $body);
+        self::assertStringNotContainsString(self::TOKEN, $body);
+        self::assertStringNotContainsString($this->sessionValue(), $body);
+        self::assertSame(2, preg_match_all('#href="/_letterbox/inbox/[0-9a-f]{32}"#', $body));
         self::assertStringContainsString('typo3_letterbox/Resources/Public/Css/tester.css', $body);
     }
 
     #[Test]
-    public function searchAndPagingStayInScope(): void
+    public function searchAndPaging(): void
     {
         for ($i = 1; $i <= 25; ++$i) {
-            $this->append('Scoped '.$i, 'anna@example.org, bob@other.test');
+            $this->append('Numbered '.$i, 'anna@example.org, bob@other.test');
         }
-        $this->append('Hidden match', 'carl@other.test');
-        $cookie = ['letterbox_inbox' => $this->issue()->token];
+        $this->append('Other match', 'carl@other.test');
+        $cookie = $this->cookie();
         $middleware = $this->middleware();
 
         self::assertSame(20, $this->rows($this->send($middleware, '/_letterbox/inbox', $cookie)));
-        self::assertSame(5, $this->rows($this->send($middleware, '/_letterbox/inbox?p=2', $cookie)));
+        self::assertSame(6, $this->rows($this->send($middleware, '/_letterbox/inbox?p=2', $cookie)));
         self::assertSame(20, $this->rows($this->send($middleware, '/_letterbox/inbox?p=abc', $cookie)));
         self::assertSame(20, $this->rows($this->send($middleware, '/_letterbox/inbox?p[]=2', $cookie)));
-        self::assertSame(0, $this->rows($this->send($middleware, '/_letterbox/inbox?q=Hidden', $cookie)));
-        self::assertSame(0, $this->rows($this->send($middleware, '/_letterbox/inbox?q=bob%40other', $cookie)), 'a masked address is not searchable');
-        self::assertSame(1, $this->rows($this->send($middleware, '/_letterbox/inbox?q=Scoped+25', $cookie)));
-        self::assertSame(20, $this->rows($this->send($middleware, '/_letterbox/inbox?q[]=Hidden', $cookie)));
-        self::assertSame(0, $this->rows($this->send($middleware, '/_letterbox/inbox?q=Scoped+2'.str_repeat('x', 200), $cookie)), 'the query is capped, not dropped');
-        $paged = (string) $this->send($middleware, '/_letterbox/inbox?q=Scoped&p=1', $cookie)->getBody();
-        self::assertStringContainsString('href="/_letterbox/inbox?q=Scoped&amp;p=2"', $paged);
+        self::assertSame(1, $this->rows($this->send($middleware, '/_letterbox/inbox?q=match', $cookie)));
+        self::assertSame(1, $this->rows($this->send($middleware, '/_letterbox/inbox?q=carl%40other', $cookie)));
+        self::assertSame(20, $this->rows($this->send($middleware, '/_letterbox/inbox?q=bob%40other', $cookie)), 'every recipient is searchable');
+        self::assertSame(1, $this->rows($this->send($middleware, '/_letterbox/inbox?q=Numbered+25', $cookie)));
+        self::assertSame(20, $this->rows($this->send($middleware, '/_letterbox/inbox?q[]=match', $cookie)));
+        self::assertSame(0, $this->rows($this->send($middleware, '/_letterbox/inbox?q=Numbered+2'.str_repeat('x', 200), $cookie)), 'the query is capped, not dropped');
+        $paged = (string) $this->send($middleware, '/_letterbox/inbox?q=Numbered&p=1', $cookie)->getBody();
+        self::assertStringContainsString('href="/_letterbox/inbox?q=Numbered&amp;p=2"', $paged);
     }
 
     #[Test]
     public function subDirectoryCookiePath(): void
     {
-        $issued = $this->issue();
         $middleware = $this->middleware();
         $server = ['SCRIPT_NAME' => '/sub/index.php'];
 
-        $response = $this->send($middleware, '/sub/_letterbox/inbox?t='.$issued->token, [], 'GET', $server);
+        $response = $this->send($middleware, '/sub/_letterbox/inbox?t='.self::TOKEN, [], 'GET', $server);
 
         self::assertSame(303, $response->getStatusCode());
         self::assertSame('/sub/_letterbox/inbox', $response->getHeaderLine('Location'));
         self::assertSame('/sub/_letterbox/inbox', $this->cookieAttributes($response)['path']);
-        self::assertSame('1', $this->send($middleware, '/_letterbox/inbox?t='.$issued->token, [], 'GET', $server)->getHeaderLine('X-Passed-Through'));
-        $list = $this->send($middleware, '/sub/_letterbox/inbox', ['letterbox_inbox' => $issued->token], 'GET', $server);
+        self::assertSame('1', $this->send($middleware, '/_letterbox/inbox?t='.self::TOKEN, [], 'GET', $server)->getHeaderLine('X-Passed-Through'));
+        $list = $this->send($middleware, '/sub/_letterbox/inbox', $this->cookie(), 'GET', $server);
         self::assertSame(200, $list->getStatusCode());
         self::assertStringContainsString('action="/sub/_letterbox/inbox"', (string) $list->getBody());
     }
@@ -252,10 +252,10 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     public function inactiveSurfaceIs404EvenWithValidCookie(): void
     {
         $this->append('In scope', 'anna@example.org');
-        $issued = $this->issue();
+        putenv('LETTERBOX_ACCESS_TOKEN='.self::TOKEN);
 
         $response = $this->executeFrontendSubRequest(
-            (new InternalRequest('https://stage.example.org/_letterbox/inbox'))->withCookieParams(['letterbox_inbox' => $issued->token]),
+            (new InternalRequest('https://stage.example.org/_letterbox/inbox'))->withCookieParams($this->cookie()),
         );
 
         self::assertSame(404, $response->getStatusCode());
@@ -264,57 +264,32 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
 
         putenv('LETTERBOX_EXTERNAL_ACCESS=Testing');
         $active = $this->executeFrontendSubRequest(
-            (new InternalRequest('https://stage.example.org/_letterbox/inbox'))->withCookieParams(['letterbox_inbox' => $issued->token]),
+            (new InternalRequest('https://stage.example.org/_letterbox/inbox'))->withCookieParams($this->cookie()),
         );
         self::assertSame(200, $active->getStatusCode());
         self::assertStringContainsString('In scope', (string) $active->getBody());
     }
 
     #[Test]
-    public function throttledIpIs404(): void
+    public function invalidDetailPathsAre404(): void
     {
-        $this->append('In scope', 'anna@example.org');
-        $issued = $this->issue();
-        $middleware = $this->middleware();
-        $cookie = ['letterbox_inbox' => $issued->token];
-
-        self::assertSame(200, $this->send($middleware, '/_letterbox/inbox', $cookie)->getStatusCode());
-        for ($i = 0; $i < 5; ++$i) {
-            self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t='.str_repeat('0', 64))->getStatusCode());
-            self::assertSame(404, $this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => str_repeat('a', 64)])->getStatusCode());
-        }
-
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t='.$issued->token)->getStatusCode());
-        $blocked = $this->send($middleware, '/_letterbox/inbox', $cookie);
-        self::assertSame(404, $blocked->getStatusCode());
-        self::assertStringNotContainsString('In scope', (string) $blocked->getBody());
-        self::assertSame(200, $this->send($middleware, '/_letterbox/inbox', $cookie, 'GET', ['REMOTE_ADDR' => '192.0.2.99'])->getStatusCode());
-    }
-
-    #[Test]
-    public function detailOutsideScopeIs404(): void
-    {
-        $inScope = $this->append('In scope', 'anna@example.org');
-        $outside = $this->append('For Carl', 'carl@other.test');
-        $trick = $this->append('Display trick', '"anna@example.org" <eve@other.test>');
-        $cookie = ['letterbox_inbox' => $this->issue()->token];
+        $first = $this->append('First', 'anna@example.org');
+        $other = $this->append('For Carl', 'carl@other.test');
         $middleware = $this->middleware();
 
-        $detail = $this->send($middleware, '/_letterbox/inbox/'.$inScope, $cookie);
+        $detail = $this->send($middleware, '/_letterbox/inbox/'.$other, $this->cookie());
         self::assertSame(200, $detail->getStatusCode());
         self::assertSame(self::PAGE_CSP, $detail->getHeaderLine('Content-Security-Policy'));
-        self::assertStringContainsString('In scope', (string) $detail->getBody());
+        self::assertStringContainsString('For Carl', (string) $detail->getBody());
 
-        foreach ([$outside, $trick, str_repeat('0', 32), strtoupper($inScope), $inScope.'/', $inScope.'/extra', $inScope.'/attachments', $inScope.'/delete'] as $path) {
-            $response = $this->send($middleware, '/_letterbox/inbox/'.$path, $cookie);
+        foreach ([str_repeat('0', 32), strtoupper($first), $first.'/', $first.'/extra', $first.'/attachments', $first.'/delete'] as $path) {
+            $response = $this->send($middleware, '/_letterbox/inbox/'.$path, $this->cookie());
             self::assertSame(404, $response->getStatusCode(), $path);
             self::assertStringContainsString('Page not found', (string) $response->getBody());
-            self::assertStringNotContainsString('For Carl', (string) $response->getBody());
-            self::assertStringNotContainsString('Display trick', (string) $response->getBody());
         }
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$inScope, [])->getStatusCode());
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$inScope, $cookie, 'POST')->getStatusCode());
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$inScope, $cookie, 'DELETE')->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$first, [])->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$first, $this->cookie(), 'POST')->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$first, $this->cookie(), 'DELETE')->getStatusCode());
     }
 
     #[Test]
@@ -326,7 +301,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
             ."See https://example.org/about first.\nSet a new password: https://example.org/login?tx_felogin_login%5Baction%5D=showChangePassword&tx_felogin_login%5Bhash%5D=abc123\n",
         );
 
-        $body = (string) $this->send($this->middleware(), '/_letterbox/inbox/'.$id, ['letterbox_inbox' => $this->issue()->token])->getBody();
+        $body = (string) $this->send($this->middleware(), '/_letterbox/inbox/'.$id, $this->cookie())->getBody();
 
         $reset = 'href="https://example.org/login?tx_felogin_login%5Baction%5D=showChangePassword&amp;tx_felogin_login%5Bhash%5D=abc123"';
         self::assertStringContainsString($reset.' target="_blank" rel="noopener noreferrer"', $body);
@@ -345,10 +320,9 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
             ."Content-Type: multipart/alternative; boundary=\"b\"\n\n--b\nContent-Type: text/plain; charset=utf-8\n\nPlain part https://example.org/plain\n"
             ."--b\nContent-Type: text/html; charset=utf-8\n\n<p style=\"color:red\">Rich part</p><img src=\"https://tracker.example/pixel.png\"><script>alert(1)</script>\n--b--\n",
         );
-        $cookie = ['letterbox_inbox' => $this->issue()->token];
         $middleware = $this->middleware();
 
-        $body = (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $cookie)->getBody();
+        $body = (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody();
 
         self::assertSame(1, preg_match('/<iframe\b[^>]*>/', $body, $frame));
         $tag = $frame[0] ?? '';
@@ -364,12 +338,12 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertStringNotContainsString('<script', $body);
         self::assertStringNotContainsString('Plain part', $body, 'the HTML view is the default when there is HTML');
 
-        $text = (string) $this->send($middleware, '/_letterbox/inbox/'.$id.'?view=text', $cookie)->getBody();
+        $text = (string) $this->send($middleware, '/_letterbox/inbox/'.$id.'?view=text', $this->cookie())->getBody();
         self::assertStringNotContainsString('<iframe', $text);
         self::assertStringContainsString('Plain part <a href="https://example.org/plain" target="_blank" rel="noopener noreferrer">https://example.org/plain</a>', $text);
 
         $plainOnly = $this->append('Plain only', 'anna@example.org');
-        $plain = (string) $this->send($middleware, '/_letterbox/inbox/'.$plainOnly, $cookie)->getBody();
+        $plain = (string) $this->send($middleware, '/_letterbox/inbox/'.$plainOnly, $this->cookie())->getBody();
         self::assertStringNotContainsString('<iframe', $plain);
         self::assertStringContainsString('body', $plain);
     }
@@ -379,45 +353,38 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     {
         $id = $this->appendRaw(
             "X-Letterbox-Envelope-To: anna@example.org, hidden@other.test\nFrom: Sender <s@example.org>\n"
-            ."To: anna@example.org, bob@other.test\nCc: \"anna@example.org\" <cc@other.test>\nBcc: secret@other.test\nReply-To: reply@other.test\n"
+            ."To: anna@example.org, bob@other.test\nCc: \"Carbon\" <cc@other.test>\nBcc: secret@other.test\nReply-To: reply@other.test\n"
             ."Subject: Private parts\nMessage-ID: <unique-message-id@example.org>\nX-Custom-Header: custom-value\nMIME-Version: 1.0\n"
             ."Content-Type: text/plain; charset=utf-8\n\nbody\n",
         );
 
-        $response = $this->send($this->middleware(), '/_letterbox/inbox/'.$id, ['letterbox_inbox' => $this->issue()->token]);
+        $response = $this->send($this->middleware(), '/_letterbox/inbox/'.$id, $this->cookie());
         $body = (string) $response->getBody();
 
         self::assertSame(200, $response->getStatusCode());
         self::assertStringContainsString('Private parts', $body);
         self::assertStringContainsString('s@example.org', $body);
-        self::assertStringContainsString('anna@example.org', $body);
-        self::assertStringContainsString('and 1 more', $body);
-        foreach (['X-Letterbox-Envelope-To', 'hidden@other.test', 'bob@other.test', 'cc@other.test', 'secret@other.test', 'reply@other.test', 'unique-message-id', 'X-Custom-Header', 'custom-value', '.eml', '/source'] as $needle) {
+        self::assertStringContainsString('anna@example.org, bob@other.test', $body);
+        self::assertStringContainsString('cc@other.test', $body);
+        foreach (['X-Letterbox-Envelope-To', 'hidden@other.test', 'secret@other.test', 'reply@other.test', 'unique-message-id', 'X-Custom-Header', 'custom-value', '.eml', '/source'] as $needle) {
             self::assertStringNotContainsString($needle, $body, $needle);
         }
     }
 
     #[Test]
-    public function attachmentIsAvailableInScope(): void
+    public function attachmentIsAvailable(): void
     {
         $id = $this->appendRaw(
             "From: s@example.org\nTo: anna@example.org\nSubject: With file\nMessage-ID: <file@example.org>\nMIME-Version: 1.0\n"
             ."Content-Type: multipart/mixed; boundary=\"b\"\n\n--b\nContent-Type: text/plain; charset=utf-8\n\nSee attached\n"
             ."--b\nContent-Type: text/plain; name=\"notes.txt\"\nContent-Disposition: attachment; filename=\"notes.txt\"\n\nattached content\n--b--\n",
         );
-        $outside = $this->appendRaw(
-            "From: s@example.org\nTo: carl@other.test\nSubject: Other file\nMessage-ID: <other@example.org>\nMIME-Version: 1.0\n"
-            ."Content-Type: multipart/mixed; boundary=\"b\"\n\n--b\nContent-Type: text/plain; charset=utf-8\n\nSee attached\n"
-            ."--b\nContent-Type: text/plain; name=\"secret.txt\"\nContent-Disposition: attachment; filename=\"secret.txt\"\n\nsecret content\n--b--\n",
-        );
         $middleware = $this->middleware();
-        $allowed = ['letterbox_inbox' => $this->issue()->token];
 
-        self::assertStringNotContainsString('secret.txt', (string) $this->send($middleware, '/_letterbox/inbox/'.$outside, $allowed)->getBody());
-        $detail = (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $allowed)->getBody();
+        $detail = (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody();
         self::assertStringContainsString('href="/_letterbox/inbox/'.$id.'/attachments/0"', $detail);
         self::assertStringContainsString('notes.txt', $detail);
-        $download = $this->send($middleware, '/_letterbox/inbox/'.$id.'/attachments/0', $allowed);
+        $download = $this->send($middleware, '/_letterbox/inbox/'.$id.'/attachments/0', $this->cookie());
         self::assertSame(200, $download->getStatusCode());
         self::assertSame('application/octet-stream', $download->getHeaderLine('Content-Type'));
         self::assertStringStartsWith('attachment; filename="notes.txt"', $download->getHeaderLine('Content-Disposition'));
@@ -425,29 +392,27 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame('no-store, private', $download->getHeaderLine('Cache-Control'));
         self::assertStringContainsString('attached content', (string) $download->getBody());
 
-        foreach (['/'.$id.'/attachments/9', '/'.$id.'/attachments/00', '/'.$id.'/attachments/-1', '/'.$id.'/attachments/x', '/'.$id.'/attachments/0/x', '/'.$outside.'/attachments/0'] as $path) {
-            $response = $this->send($middleware, '/_letterbox/inbox'.$path, $allowed);
-            self::assertSame(404, $response->getStatusCode(), $path);
-            self::assertStringNotContainsString('secret content', (string) $response->getBody());
+        foreach (['/'.$id.'/attachments/9', '/'.$id.'/attachments/00', '/'.$id.'/attachments/-1', '/'.$id.'/attachments/x', '/'.$id.'/attachments/0/x'] as $path) {
+            self::assertSame(404, $this->send($middleware, '/_letterbox/inbox'.$path, $this->cookie())->getStatusCode(), $path);
         }
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$id.'/attachments/0', $allowed, 'POST')->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$id.'/attachments/0', $this->cookie(), 'POST')->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$id.'/attachments/0')->getStatusCode(), 'no cookie, no download');
     }
 
     #[Test]
     public function deleteRouteIsGone(): void
     {
         $id = $this->append('Keep me', 'anna@example.org');
-        $cookie = ['letterbox_inbox' => $this->issue()->token];
         $middleware = $this->middleware();
 
         foreach (['POST', 'GET'] as $method) {
-            $response = $this->send($middleware, '/_letterbox/inbox/'.$id.'/delete', $cookie, $method, [], ['letterboxCsrf' => 'x']);
+            $response = $this->send($middleware, '/_letterbox/inbox/'.$id.'/delete', $this->cookie(), $method, [], ['letterboxCsrf' => 'x']);
             self::assertSame(404, $response->getStatusCode(), $method);
             self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
         }
         self::assertNotNull($this->get(MailRepository::class)->findById($id, MailFilter::all()));
-        self::assertStringNotContainsString('/delete', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $cookie)->getBody());
-        self::assertStringNotContainsString('<form method="post"', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $cookie)->getBody());
+        self::assertStringNotContainsString('/delete', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody());
+        self::assertStringNotContainsString('<form method="post"', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody());
     }
 
     private function assertClearedCookie(ResponseInterface $response): void
@@ -465,27 +430,29 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame('lax', strtolower($attributes['samesite']));
     }
 
-    private function issue(string $label = 'QA'): IssuedLink
+    private function sessionValue(): string
     {
-        return $this->repository()->issue($label, [RecipientPattern::fromString('*@example.org')], 1, time());
+        return hash_hmac('sha256', 'inbox', self::TOKEN);
     }
 
-    private function repository(): TesterLinkRepository
+    /**
+     * @return array<string, string>
+     */
+    private function cookie(): array
     {
-        return new TesterLinkRepository(GeneralUtility::makeInstance(ConnectionPool::class));
+        return ['letterbox_inbox' => $this->sessionValue()];
     }
 
-    private function middleware(): TesterInboxMiddleware
+    private function middleware(string $token = self::TOKEN): TesterInboxMiddleware
     {
-        $variables = new EnvironmentVariables(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing']);
+        $variables = new EnvironmentVariables(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => $token]);
         $responseFactory = new ResponseFactory();
         $streamFactory = new StreamFactory();
 
         return new TesterInboxMiddleware(
-            new ExternalAccessGuard($variables, $this->get(ExtensionSettings::class)),
-            new AuthenticationThrottle(new RateLimitStorage($this->get(CacheManager::class)->getCache('typo3_letterbox_ratelimit'))),
+            new ExternalAccessGuard($variables),
             new ExternalResponses($responseFactory, $streamFactory),
-            new TesterSession($this->repository(), GeneralUtility::makeInstance(Context::class)),
+            new TesterSession(GeneralUtility::makeInstance(Context::class)),
             $this->get(MailRepository::class),
             new TesterInboxView($this->get(ViewFactoryInterface::class), GeneralUtility::makeInstance(LanguageServiceFactory::class), $responseFactory, $streamFactory, new MailHtmlDocument()),
             $responseFactory,

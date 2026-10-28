@@ -43,7 +43,7 @@ final class ExtensionSettingsTest extends TestCase
 
         self::assertSame('1', $settings->get('showToolbarItem', '1'));
         self::assertSame(7, $settings->int('maxAgeDays', 7));
-        self::assertNull($settings->raw('externalExcludedRecipients'));
+        self::assertNull($settings->raw('unknownSetting'));
     }
 
     #[Test]

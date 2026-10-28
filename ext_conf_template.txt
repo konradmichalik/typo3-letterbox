@@ -15,6 +15,3 @@ maxAgeDays = 30
 
 # cat=basic; type=boolean; label=Show the backend toolbar item while Letterbox catches mails
 showToolbarItem = 1
-
-# cat=basic; type=string; label=Recipients never visible from outside: comma separated addresses or *@domain patterns, matched against every recipient including Bcc. One invalid entry disables external access.
-externalExcludedRecipients =

@@ -13,11 +13,9 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\External\Tester;
 
-use DateTimeImmutable;
 use DateTimeZone;
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailFilter, MailLink};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailLink};
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
-use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use KonradMichalik\Typo3Letterbox\Mbox\TextSegments;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface, StreamFactoryInterface};
 use TYPO3\CMS\Core\Http\NormalizedParams;
@@ -26,14 +24,13 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\View\{ViewFactoryData, ViewFactoryInterface};
 
 use function count;
-use function in_array;
 use function sprintf;
 
 /**
  * TesterInboxView.
  *
  * Renders the tester inbox pages. They run before site resolution, so labels come from a fixed
- * language and never from a site. Masked recipients are counted, never handed to the template.
+ * language and never from a site.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
@@ -80,24 +77,21 @@ final readonly class TesterInboxView
 
     /**
      * @param list<Mail> $mails
-     * @param MailFilter $filter the link filter, it decides which recipients are visible
      */
-    public function list(ServerRequestInterface $request, TesterLink $link, MailFilter $filter, string $basePath, string $query, int $page, int $pages, int $total, array $mails): ResponseInterface
+    public function list(ServerRequestInterface $request, string $basePath, string $query, int $page, int $pages, int $total, array $mails): ResponseInterface
     {
         $language = $this->languageServiceFactory->create('default');
-        $heading = '' !== trim($link->label) ? $link->label : $this->label($language, 'page.fallbackHeading');
+        $heading = $this->label($language, 'page.heading');
 
         return $this->render($request, 'List', 200, $language, [
             'title' => $heading,
             'heading' => $heading,
-            'scope' => sprintf($this->label($language, 'scope.mailsFor'), $this->scopeSummary($link)),
-            'validUntil' => sprintf($this->label($language, 'scope.validUntil'), $this->localTime($link->expires)),
             'basePath' => $basePath,
             'query' => $query,
             'listHeading' => sprintf($this->label($language, 'list.heading'), $total),
             'emptyText' => $this->label($language, '' === $query ? 'list.empty' : 'list.emptySearch'),
             'refreshUrl' => $this->url($basePath, $query, $page),
-            'rows' => array_map(fn (Mail $mail): array => $this->row($language, $mail, $filter, $basePath), $mails),
+            'rows' => array_map(fn (Mail $mail): array => $this->row($language, $mail, $basePath), $mails),
             'pagination' => $pages > 1 ? [
                 'status' => sprintf($this->label($language, 'pagination.status'), $page, $pages),
                 'previous' => $page > 1 ? $this->url($basePath, $query, $page - 1) : '',
@@ -107,19 +101,16 @@ final readonly class TesterInboxView
     }
 
     /**
-     * The detail page shows no headers, no source and no recipient outside the link scope. The HTML part is
-     * only ever a sandboxed srcdoc document without remote content.
-     *
-     * @param MailFilter $filter the link filter, it decides which recipients are visible
+     * The detail page shows no headers and no source. The HTML part is only ever a sandboxed srcdoc document
+     * without remote content.
      */
-    public function show(ServerRequestInterface $request, MailFilter $filter, Mail $mail, string $basePath, bool $textView): ResponseInterface
+    public function show(ServerRequestInterface $request, Mail $mail, string $basePath, bool $textView): ResponseInterface
     {
         $language = $this->languageServiceFactory->create('default');
         $subject = '' !== trim($mail->subject) ? $mail->subject : $this->label($language, 'row.noSubject');
         $detailUrl = $basePath.'/'.$mail->id;
         $html = $textView ? '' : $this->htmlDocument->build($mail);
         $hasHtml = '' !== $html || ($textView && $this->htmlDocument->canBuild($mail));
-        $visible = $filter->visibleRecipients($mail);
         $date = $mail->date?->setTimezone(new DateTimeZone(date_default_timezone_get()));
         $reset = array_values(array_filter($mail->links, static fn (MailLink $mailLink): bool => $mailLink->isPasswordReset))[0] ?? null;
 
@@ -128,8 +119,8 @@ final readonly class TesterInboxView
             'subject' => $subject,
             'backUrl' => $basePath,
             'from' => $this->sender($language, $mail->from, true),
-            'to' => $this->recipients($language, $mail->to, $visible),
-            'cc' => $this->recipients($language, $mail->cc, $visible),
+            'to' => self::recipients($mail->to),
+            'cc' => self::recipients($mail->cc),
             'date' => $date?->format('Y-m-d H:i') ?? '',
             'isoDate' => $date?->format(\DATE_ATOM) ?? '',
             'resetUrl' => $reset->url ?? '',
@@ -180,9 +171,9 @@ final readonly class TesterInboxView
     /**
      * @return array<string, mixed>
      */
-    private function row(LanguageService $language, Mail $mail, MailFilter $filter, string $basePath): array
+    private function row(LanguageService $language, Mail $mail, string $basePath): array
     {
-        $recipients = $this->recipients($language, [...$mail->to, ...$mail->cc], $filter->visibleRecipients($mail));
+        $recipients = self::recipients([...$mail->to, ...$mail->cc]);
         $meta = sprintf($this->label($language, 'row.from'), $this->sender($language, $mail->from, false));
         $date = $mail->date?->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
@@ -197,21 +188,11 @@ final readonly class TesterInboxView
     }
 
     /**
-     * Visible addresses of the given header plus a count of the masked ones, never the masked addresses themselves.
-     *
      * @param list<Address> $addresses
-     * @param list<Address> $visible
      */
-    private function recipients(LanguageService $language, array $addresses, array $visible): string
+    private static function recipients(array $addresses): string
     {
-        $shown = array_values(array_filter($addresses, static fn (Address $address): bool => in_array($address, $visible, true)));
-        $hidden = count($addresses) - count($shown);
-        if ([] === $shown) {
-            return $hidden > 0 ? sprintf($this->label($language, 'row.hiddenOnly'), $hidden) : '';
-        }
-        $list = implode(', ', array_map(static fn (Address $address): string => $address->address, $shown));
-
-        return $hidden > 0 ? $list.' '.sprintf($this->label($language, 'row.more'), $hidden) : $list;
+        return implode(', ', array_map(static fn (Address $address): string => $address->address, $addresses));
     }
 
     private function sender(LanguageService $language, ?Address $from, bool $withAddress): string
@@ -241,16 +222,6 @@ final readonly class TesterInboxView
         $parameters = array_filter(['q' => $query, 'p' => $page > 1 ? (string) $page : ''], static fn (string $value): bool => '' !== $value);
 
         return [] === $parameters ? $basePath : $basePath.'?'.http_build_query($parameters);
-    }
-
-    private function scopeSummary(TesterLink $link): string
-    {
-        return implode(', ', array_map(static fn (RecipientPattern $pattern): string => $pattern->value(), $link->scope));
-    }
-
-    private function localTime(int $timestamp): string
-    {
-        return (new DateTimeImmutable('@'.$timestamp))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i');
     }
 
     private function label(LanguageService $language, string $key): string

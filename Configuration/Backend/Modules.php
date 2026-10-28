@@ -62,14 +62,6 @@ return [
                 'target' => ExternalAccessController::class.'::indexAction',
                 'methods' => ['GET'],
             ],
-            'access_create' => [
-                'target' => ExternalAccessController::class.'::createAction',
-                'methods' => ['POST'],
-            ],
-            'access_revoke' => [
-                'target' => ExternalAccessController::class.'::revokeAction',
-                'methods' => ['POST'],
-            ],
         ],
     ],
 ];

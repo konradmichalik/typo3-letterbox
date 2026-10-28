@@ -14,19 +14,18 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\External;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\Api\{ApiMiddleware, MailJson};
-use KonradMichalik\Typo3Letterbox\External\{AuthenticationThrottle, EnvironmentVariables, ExternalAccessGuard, ExternalResponses, RateLimitStorage};
+use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard, ExternalResponses};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
-use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry};
+use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Configuration\{ConfigurationManager};
+use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Http\{NormalizedParams, Response, ResponseFactory, ServerRequest, StreamFactory};
 use TYPO3\CMS\Core\Locking\LockFactory;
@@ -35,7 +34,6 @@ use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequest;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 use function dirname;
-use function is_array;
 
 /**
  * ApiMiddlewareTest.
@@ -51,7 +49,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
 {
     private const TOKEN = 'example-api-token-0123456789abcdef-example';
 
-    private const ENV_NAMES = ['LETTERBOX_EXTERNAL_ACCESS', 'LETTERBOX_API_TOKEN', 'LETTERBOX_EXTERNAL_ALLOWED_IPS'];
+    private const ENV_NAMES = ['LETTERBOX_EXTERNAL_ACCESS', 'LETTERBOX_ACCESS_TOKEN'];
 
     private const HEADERS = ['X-Letterbox-Token' => self::TOKEN];
 
@@ -85,9 +83,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         $this->get(ConfigurationManager::class)->setLocalConfigurationValuesByPathValuePairs($mail);
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = LetterboxTransport::class;
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = $this->path;
-        $cacheManager = $this->get(CacheManager::class);
-        $cacheManager->getCache('typo3_letterbox_index')->flush();
-        $cacheManager->getCache('typo3_letterbox_ratelimit')->flush();
+        $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();
     }
 
     protected function tearDown(): void
@@ -109,7 +105,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     public function apiAnswersWithoutSiteConfiguration(): void
     {
         $this->append('Hello', 'anna@example.org');
-        $this->putEnvironment(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_API_TOKEN' => self::TOKEN]);
+        $this->putEnvironment(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN]);
 
         $response = $this->executeFrontendSubRequest(
             (new InternalRequest('https://stage.example.org/_letterbox/api/v1/messages'))->withHeader('X-Letterbox-Token', self::TOKEN),
@@ -127,7 +123,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     public function inactiveApiIs404(): void
     {
         $this->append('Hello', 'anna@example.org');
-        $this->putEnvironment(['LETTERBOX_API_TOKEN' => self::TOKEN]);
+        $this->putEnvironment(['LETTERBOX_ACCESS_TOKEN' => self::TOKEN]);
 
         $response = $this->executeFrontendSubRequest(
             (new InternalRequest('https://stage.example.org/_letterbox/api/v1/messages'))->withHeader('X-Letterbox-Token', self::TOKEN),
@@ -143,7 +139,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     public function shortTokenKeepsApiOff(): void
     {
         $shortToken = substr(self::TOKEN, 0, 31);
-        $this->putEnvironment(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_API_TOKEN' => $shortToken]);
+        $this->putEnvironment(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => $shortToken]);
 
         $response = $this->executeFrontendSubRequest(
             (new InternalRequest('https://stage.example.org/_letterbox/api/v1/messages'))->withHeader('X-Letterbox-Token', $shortToken),
@@ -168,17 +164,14 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function queryStringTokenIsRefusedAndCounted(): void
+    public function queryStringTokenIsRefused(): void
     {
         $api = $this->middleware();
+
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages?token='.self::TOKEN)->getStatusCode());
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages?X-Letterbox-Token='.self::TOKEN, 'GET', [])->getStatusCode());
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages?t='.self::TOKEN, 'GET', [])->getStatusCode());
         self::assertSame(200, $this->send($api, '/_letterbox/api/v1/messages')->getStatusCode());
-
-        for ($i = 0; $i < 5; ++$i) {
-            self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages?token='.self::TOKEN)->getStatusCode());
-            self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages?X-Letterbox-Token='.self::TOKEN, 'GET', [])->getStatusCode());
-        }
-
-        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages')->getStatusCode(), 'ten query string attempts block the IP');
     }
 
     #[Test]
@@ -299,8 +292,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     {
         $this->append('One', 'anna@example.org');
         $this->append('Two', 'bob@example.org');
-        $this->append('Three', 'admin@example.org');
-        $this->append('Four', 'anna@example.org');
+        $this->append('Three', 'carl@example.org');
         $id = $this->mails()[0]->id;
         $api = $this->middleware();
 
@@ -310,98 +302,28 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         self::assertSame('', (string) $deleted->getBody());
         self::assertSame(self::API_CSP, $deleted->getHeaderLine('Content-Security-Policy'));
         self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$id, 'DELETE')->getStatusCode());
-        self::assertSame(['Three', 'Two', 'One'], array_map(static fn (Mail $mail): string => $mail->subject, $this->mails()));
+        self::assertSame(['Two', 'One'], array_map(static fn (Mail $mail): string => $mail->subject, $this->mails()));
 
-        $this->excludeRecipients('admin@example.org');
-        self::assertSame(204, $this->send($this->middleware(), '/_letterbox/api/v1/messages', 'DELETE')->getStatusCode());
-        self::assertSame(['Three'], array_map(static fn (Mail $mail): string => $mail->subject, $this->mails()), 'a restricted base filter deletes only what it sees');
-
-        $this->excludeRecipients('');
-        self::assertSame(204, $this->send($this->middleware(), '/_letterbox/api/v1/messages', 'DELETE')->getStatusCode());
-        self::assertSame([], $this->mails());
-        self::assertSame(0, (int) filesize($this->path), 'an unrestricted base filter clears the file');
-    }
-
-    #[Test]
-    public function deleteAllAnswersConflictWhenTheFileChangedMeanwhile(): void
-    {
-        $this->append('Visible', 'anna@example.org');
-        $this->append('Admin', 'admin@example.org');
-        $this->excludeRecipients('admin@example.org');
-        $api = $this->middleware();
-        self::assertSame(1, $this->json($this->send($api, '/_letterbox/api/v1/messages'))['total']);
-        // A stale index stands in for another process that rewrote the file between indexing and deleting.
-        $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
-        $key = 'v5_'.hash('sha256', $this->path);
-        $cached = $cache->get($key);
-        self::assertIsArray($cached);
-        $cached['entries'] = array_map(
-            static fn (MessageIndexEntry $entry): MessageIndexEntry => new MessageIndexEntry($entry->span, str_repeat('f', 32), $entry->date, $entry->sender, $entry->fromName, $entry->recipients, $entry->recipientLabels, $entry->scopeRecipients, $entry->subject, $entry->attachmentCount, $entry->received),
-            $cached['entries'],
-        );
-        $cache->set($key, $cached);
-
-        $response = $this->send($api, '/_letterbox/api/v1/messages', 'DELETE');
-
-        self::assertSame(409, $response->getStatusCode());
-        self::assertSame(['error' => 'conflict'], $this->json($response));
-        self::assertSame(self::API_CSP, $response->getHeaderLine('Content-Security-Policy'));
-        $cache->flush();
-        self::assertCount(2, $this->mails());
-    }
-
-    #[Test]
-    public function rootProductionOnlySeesCatchList(): void
-    {
-        $this->append('Caught', 'qa@catch.example.org');
-        $this->append('Live', 'anna@example.org');
-        $liveId = $this->mails()[0]->id;
-        $api = $this->rootProductionMiddleware();
-
-        $list = $this->json($this->send($api, '/_letterbox/api/v1/messages'));
-
-        self::assertSame(1, $list['total']);
-        self::assertSame(['Caught'], array_column($list['items'], 'subject'));
-        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$liveId)->getStatusCode());
         self::assertSame(204, $this->send($api, '/_letterbox/api/v1/messages', 'DELETE')->getStatusCode());
-        self::assertSame(['Live'], array_map(static fn (Mail $mail): string => $mail->subject, $this->mails()));
+        self::assertSame([], $this->mails());
+        self::assertSame(0, (int) filesize($this->path), 'deleting all clears the file');
     }
 
     #[Test]
-    public function productionApiMasksCoRecipients(): void
+    public function rootProductionApiIs404(): void
     {
-        $this->appendRaw("From: s@example.org\nTo: \"QA\" <qa@catch.example.org>, \"Anna Live\" <anna@example.org>\nCc: carl@example.org, qa2@catch.example.org\nSubject: Caught\n\nbody\n");
-        $id = $this->mails()[0]->id;
-        $api = $this->rootProductionMiddleware();
+        $this->append('Live', 'anna@example.org');
+        $this->previousContext = Environment::getContext();
+        $this->useContext(new ApplicationContext('Production'));
+        $api = $this->middleware(['LETTERBOX_EXTERNAL_ACCESS' => 'Production', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN]);
 
-        $item = $this->json($this->send($api, '/_letterbox/api/v1/messages'))['items'][0];
-        $latest = $this->json($this->send($api, '/_letterbox/api/v1/messages/latest'));
-        $detail = $this->json($this->send($api, '/_letterbox/api/v1/messages/'.$id));
-
-        foreach ([$item, $latest, $detail] as $mail) {
-            self::assertSame([['address' => 'qa@catch.example.org', 'name' => 'QA']], $mail['to']);
-            self::assertSame([['address' => 'qa2@catch.example.org', 'name' => '']], $mail['cc']);
-        }
-        self::assertStringNotContainsString('anna@example.org', json_encode($detail, \JSON_THROW_ON_ERROR));
-        self::assertStringNotContainsString('carl@example.org', json_encode($detail, \JSON_THROW_ON_ERROR));
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages')->getStatusCode());
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages', 'DELETE')->getStatusCode());
+        self::assertCount(1, $this->mails());
     }
 
     #[Test]
-    public function productionApiHasNoHeadersOrSource(): void
-    {
-        $this->append('Caught', 'qa@catch.example.org, anna@example.org');
-        $id = $this->mails()[0]->id;
-        $api = $this->rootProductionMiddleware();
-
-        $detail = $this->json($this->send($api, '/_letterbox/api/v1/messages/'.$id));
-
-        self::assertArrayNotHasKey('headers', $detail);
-        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$id.'/source')->getStatusCode());
-        self::assertSame(200, $this->send($api, '/_letterbox/api/v1/messages/'.$id.'/attachments/0')->getStatusCode(), 'attachments stay available');
-    }
-
-    #[Test]
-    public function unscopedApiKeepsAllRecipientsHeadersAndSource(): void
+    public function apiShowsAllRecipientsHeadersAndSource(): void
     {
         $this->append('Stage', 'qa@catch.example.org, anna@example.org');
         $id = $this->mails()[0]->id;
@@ -412,39 +334,6 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         self::assertSame(['qa@catch.example.org', 'anna@example.org'], array_column($detail['to'], 'address'));
         self::assertArrayHasKey('headers', $detail);
         self::assertSame(200, $this->send($api, '/_letterbox/api/v1/messages/'.$id.'/source')->getStatusCode());
-    }
-
-    #[Test]
-    public function excludedMailIsInvisible(): void
-    {
-        $this->append('Visible', 'anna@example.org');
-        $this->append('Admin reset', 'admin@example.org');
-        $hiddenId = $this->mails()[0]->id;
-        $this->excludeRecipients('admin@example.org');
-        $api = $this->middleware();
-
-        self::assertSame(['Visible'], array_column($this->json($this->send($api, '/_letterbox/api/v1/messages'))['items'], 'subject'));
-        self::assertSame('Visible', $this->json($this->send($api, '/_letterbox/api/v1/messages/latest'))['subject']);
-        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/latest?to=admin@example.org')->getStatusCode());
-        foreach (['', '/source', '/attachments/0'] as $suffix) {
-            self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$hiddenId.$suffix)->getStatusCode(), $suffix);
-        }
-        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$hiddenId, 'DELETE')->getStatusCode());
-        self::assertCount(2, $this->mails());
-    }
-
-    #[Test]
-    public function blockedIpGets404EvenWithValidToken(): void
-    {
-        $api = $this->middleware();
-
-        for ($i = 0; $i < 5; ++$i) {
-            self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages', 'GET', ['X-Letterbox-Token' => 'wrong-'.self::TOKEN])->getStatusCode());
-            self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages', 'GET', [])->getStatusCode());
-        }
-
-        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages')->getStatusCode());
-        self::assertSame(200, $this->send($api, '/_letterbox/api/v1/messages', 'GET', self::HEADERS, ['REMOTE_ADDR' => '192.0.2.20'])->getStatusCode());
     }
 
     #[Test]
@@ -473,30 +362,17 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         }
     }
 
-    private function rootProductionMiddleware(): ApiMiddleware
-    {
-        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_mode'] = 'listed';
-        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_catch'] = '*@catch.example.org';
-        $this->previousContext = Environment::getContext();
-        $this->useContext(new ApplicationContext('Production'));
-
-        return $this->middleware(['LETTERBOX_EXTERNAL_ACCESS' => 'Production', 'LETTERBOX_API_TOKEN' => self::TOKEN]);
-    }
-
     /**
      * @param array<string, string> $environment
      */
-    private function middleware(array $environment = ['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_API_TOKEN' => self::TOKEN]): ApiMiddleware
+    private function middleware(array $environment = ['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN]): ApiMiddleware
     {
-        $variables = new EnvironmentVariables($environment);
         $responseFactory = new ResponseFactory();
         $streamFactory = new StreamFactory();
 
         return new ApiMiddleware(
-            new ExternalAccessGuard($variables, $this->get(ExtensionSettings::class)),
-            new AuthenticationThrottle(new RateLimitStorage($this->get(CacheManager::class)->getCache('typo3_letterbox_ratelimit'))),
+            new ExternalAccessGuard(new EnvironmentVariables($environment)),
             new ExternalResponses($responseFactory, $streamFactory),
-            $variables,
             $this->get(MailRepository::class),
             new MailJson(),
             new DownloadResponseFactory($responseFactory, $streamFactory, new MboxFormat()),
@@ -551,13 +427,6 @@ final class ApiMiddlewareTest extends FunctionalTestCase
         $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();
 
         return $this->get(MailRepository::class)->find(MailFilter::all(), 0, 100);
-    }
-
-    private function excludeRecipients(string $patterns): void
-    {
-        $extensions = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS'] ?? [];
-        $settings = is_array($extensions['typo3_letterbox'] ?? null) ? $extensions['typo3_letterbox'] : [];
-        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox'] = [...$settings, 'externalExcludedRecipients' => $patterns];
     }
 
     /**

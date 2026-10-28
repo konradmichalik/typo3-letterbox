@@ -433,10 +433,10 @@
 				<source>Back to inbox</source>
 			</trans-unit>
 			<trans-unit id="access.warning.title" resname="access.warning.title">
-				<source>Caught mails contain password reset links and personal data.</source>
+				<source>Everyone with the inbox link or the token sees every caught mail of this system.</source>
 			</trans-unit>
 			<trans-unit id="access.warning.body" resname="access.warning.body">
-				<source>Share links only with the people testing this system. Every link is limited to the recipients you choose.</source>
+				<source>Use external access only on test systems without real data. It is always off in the Production context.</source>
 			</trans-unit>
 			<trans-unit id="access.status.heading" resname="access.status.heading">
 				<source>Status</source>
@@ -456,164 +456,47 @@
 			<trans-unit id="access.status.switch" resname="access.status.switch">
 				<source>Switch</source>
 			</trans-unit>
-			<trans-unit id="access.status.inbox" resname="access.status.inbox">
-				<source>Tester inbox</source>
-			</trans-unit>
-			<trans-unit id="access.status.api" resname="access.status.api">
-				<source>JSON API</source>
-			</trans-unit>
 			<trans-unit id="access.reason.env_missing" resname="access.reason.env_missing">
 				<source>Set the environment variable LETTERBOX_EXTERNAL_ACCESS to %s.</source>
 			</trans-unit>
 			<trans-unit id="access.reason.env_context_mismatch" resname="access.reason.env_context_mismatch">
 				<source>Set the environment variable LETTERBOX_EXTERNAL_ACCESS to exactly %s. Its current value belongs to another context.</source>
 			</trans-unit>
+			<trans-unit id="access.reason.production" resname="access.reason.production">
+				<source>External access is always off in the Production context. Use it on a test system with its own context, for example Production/Staging.</source>
+			</trans-unit>
 			<trans-unit id="access.reason.transport_not_letterbox" resname="access.reason.transport_not_letterbox">
 				<source>Set MAIL/transport to KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport.</source>
 			</trans-unit>
-			<trans-unit id="access.reason.mail_settings_invalid" resname="access.reason.mail_settings_invalid">
-				<source>Fix the Letterbox settings in MAIL: the delivery mode or the catch list is invalid.</source>
-			</trans-unit>
-			<trans-unit id="access.reason.production_requires_listed" resname="access.reason.production_requires_listed">
-				<source>In the Production context, set MAIL/transport_letterbox_delivery to listed and list the addresses to catch.</source>
-			</trans-unit>
-			<trans-unit id="access.reason.catch_list_empty" resname="access.reason.catch_list_empty">
-				<source>Add at least one address to the catch list, because Production only shows caught addresses.</source>
-			</trans-unit>
-			<trans-unit id="access.reason.exclusions_invalid" resname="access.reason.exclusions_invalid">
-				<source>Fix the extension setting externalExcludedRecipients: it contains an invalid pattern.</source>
-			</trans-unit>
-			<trans-unit id="access.reason.ip_not_allowed" resname="access.reason.ip_not_allowed">
-				<source>Remove the * entry from LETTERBOX_EXTERNAL_ALLOWED_IPS and list the allowed IP ranges instead.</source>
+			<trans-unit id="access.reason.token_missing" resname="access.reason.token_missing">
+				<source>Set the environment variable LETTERBOX_ACCESS_TOKEN to a secret of at least 32 characters.</source>
 			</trans-unit>
 			<trans-unit id="access.reason.https_required" resname="access.reason.https_required">
 				<source>Open the site over HTTPS. External access refuses plain HTTP.</source>
 			</trans-unit>
-			<trans-unit id="access.create.heading" resname="access.create.heading">
-				<source>Create tester link</source>
+			<trans-unit id="access.token" resname="access.token">
+				<source>Access token</source>
 			</trans-unit>
-			<trans-unit id="access.create.label" resname="access.create.label">
-				<source>Label</source>
+			<trans-unit id="access.token.configured" resname="access.token.configured">
+				<source>Configured</source>
 			</trans-unit>
-			<trans-unit id="access.create.scope" resname="access.create.scope">
-				<source>Show only mails to</source>
+			<trans-unit id="access.token.missing" resname="access.token.missing">
+				<source>Not configured</source>
 			</trans-unit>
-			<trans-unit id="access.create.scope.help" resname="access.create.scope.help">
-				<source>One address or pattern per line, for example anna@example.org or *@customer.example. Display names are ignored.</source>
+			<trans-unit id="access.connect.heading" resname="access.connect.heading">
+				<source>Tester inbox and API</source>
 			</trans-unit>
-			<trans-unit id="access.create.lifetime" resname="access.create.lifetime">
-				<source>The link is valid for %s days.</source>
+			<trans-unit id="access.connect.inbox" resname="access.connect.inbox">
+				<source>Tester inbox</source>
 			</trans-unit>
-			<trans-unit id="access.create.submit" resname="access.create.submit">
-				<source>Create link</source>
+			<trans-unit id="access.connect.api" resname="access.connect.api">
+				<source>JSON API</source>
 			</trans-unit>
-			<trans-unit id="access.create.success.title" resname="access.create.success.title">
-				<source>Link created. It is shown only once.</source>
+			<trans-unit id="access.connect.share" resname="access.connect.share">
+				<source>Share the link %s?t=&lt;token&gt; with your testers. Changing the token revokes access for everyone.</source>
 			</trans-unit>
-			<trans-unit id="access.create.success.body" resname="access.create.success.body">
-				<source>Copy it now. Letterbox stores only a hash and cannot show it again.</source>
-			</trans-unit>
-			<trans-unit id="access.create.copy" resname="access.create.copy">
-				<source>Copy tester link</source>
-			</trans-unit>
-			<trans-unit id="access.create.errors.title" resname="access.create.errors.title">
-				<source>The link was not created.</source>
-			</trans-unit>
-			<trans-unit id="access.error.label" resname="access.error.label">
-				<source>Enter a label.</source>
-			</trans-unit>
-			<trans-unit id="access.error.labelLength" resname="access.error.labelLength">
-				<source>The label can have at most 255 characters.</source>
-			</trans-unit>
-			<trans-unit id="access.error.scopeEmpty" resname="access.error.scopeEmpty">
-				<source>Enter at least one address or pattern.</source>
-			</trans-unit>
-			<trans-unit id="access.error.scopeLine" resname="access.error.scopeLine">
-				<source>Line %s is not a valid address or pattern.</source>
-			</trans-unit>
-			<trans-unit id="access.links.heading" resname="access.links.heading">
-				<source>Tester links</source>
-			</trans-unit>
-			<trans-unit id="access.links.caption" resname="access.links.caption">
-				<source>Tester links</source>
-			</trans-unit>
-			<trans-unit id="access.links.empty" resname="access.links.empty">
-				<source>No tester links yet.</source>
-			</trans-unit>
-			<trans-unit id="access.links.count.one" resname="access.links.count.one">
-				<source>1 link</source>
-			</trans-unit>
-			<trans-unit id="access.links.count" resname="access.links.count">
-				<source>%s links</source>
-			</trans-unit>
-			<trans-unit id="access.links.col.label" resname="access.links.col.label">
-				<source>Label</source>
-			</trans-unit>
-			<trans-unit id="access.links.col.scope" resname="access.links.col.scope">
-				<source>Sees mails to</source>
-			</trans-unit>
-			<trans-unit id="access.links.col.expires" resname="access.links.col.expires">
-				<source>Expires</source>
-			</trans-unit>
-			<trans-unit id="access.links.col.createdBy" resname="access.links.col.createdBy">
-				<source>Created by</source>
-			</trans-unit>
-			<trans-unit id="access.links.col.state" resname="access.links.col.state">
-				<source>State</source>
-			</trans-unit>
-			<trans-unit id="access.links.col.actions" resname="access.links.col.actions">
-				<source>Actions</source>
-			</trans-unit>
-			<trans-unit id="access.links.invalidScope" resname="access.links.invalidScope">
-				<source>Invalid scope</source>
-			</trans-unit>
-			<trans-unit id="access.links.unknownUser" resname="access.links.unknownUser">
-				<source>Unknown user</source>
-			</trans-unit>
-			<trans-unit id="access.links.state.active" resname="access.links.state.active">
-				<source>Active</source>
-			</trans-unit>
-			<trans-unit id="access.links.state.expired" resname="access.links.state.expired">
-				<source>Expired</source>
-			</trans-unit>
-			<trans-unit id="access.links.state.revoked" resname="access.links.state.revoked">
-				<source>Revoked</source>
-			</trans-unit>
-			<trans-unit id="access.links.state.invalid" resname="access.links.state.invalid">
-				<source>Invalid</source>
-			</trans-unit>
-			<trans-unit id="access.links.revoke" resname="access.links.revoke">
-				<source>Revoke</source>
-			</trans-unit>
-			<trans-unit id="access.links.revoke.label" resname="access.links.revoke.label">
-				<source>Revoke tester link: %s</source>
-			</trans-unit>
-			<trans-unit id="access.links.revoke.title" resname="access.links.revoke.title">
-				<source>Revoke tester link</source>
-			</trans-unit>
-			<trans-unit id="access.links.revoke.content" resname="access.links.revoke.content">
-				<source>The link "%s" stops working immediately. This cannot be undone.</source>
-			</trans-unit>
-			<trans-unit id="access.api.heading" resname="access.api.heading">
-				<source>API for automated tests</source>
-			</trans-unit>
-			<trans-unit id="access.api.baseUrl" resname="access.api.baseUrl">
-				<source>Base URL</source>
-			</trans-unit>
-			<trans-unit id="access.api.token" resname="access.api.token">
-				<source>Token</source>
-			</trans-unit>
-			<trans-unit id="access.api.token.configured" resname="access.api.token.configured">
-				<source>API token: configured</source>
-			</trans-unit>
-			<trans-unit id="access.api.token.missing" resname="access.api.token.missing">
-				<source>API token: not configured. Set LETTERBOX_API_TOKEN to at least 32 characters.</source>
-			</trans-unit>
-			<trans-unit id="access.api.example" resname="access.api.example">
-				<source>Example</source>
-			</trans-unit>
-			<trans-unit id="flash.access.revoked" resname="flash.access.revoked">
-				<source>Tester link revoked.</source>
+			<trans-unit id="access.connect.example" resname="access.connect.example">
+				<source>Example for automated tests</source>
 			</trans-unit>
 			<trans-unit id="toolbar.active" resname="toolbar.active">
 				<source>Mail catcher active</source>
@@ -778,10 +661,7 @@
 				<source>Off</source>
 			</trans-unit>
 			<trans-unit id="status.external.onMessage" resname="status.external.onMessage">
-				<source>The API and tester links answer for this context, see the external access page of the module.</source>
-			</trans-unit>
-			<trans-unit id="status.external.onProductionMessage" resname="status.external.onProductionMessage">
-				<source>The API and tester links answer in Production. Only the catch list is reachable, check that this is intended.</source>
+				<source>The API and the tester inbox answer for this context, see the external access page of the module.</source>
 			</trans-unit>
 			<trans-unit id="status.external.offMessage" resname="status.external.offMessage">
 				<source>No request from outside the backend can read the caught mails.</source>

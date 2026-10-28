@@ -17,7 +17,6 @@ use DateTimeImmutable;
 use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry, MessageParser};
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\Test;
@@ -258,28 +257,14 @@ final class MailRepositoryTest extends FunctionalTestCase
     {
         $this->appendTo('inside', 'anna@customer.example');
         $this->appendTo('outside', 'bob@other.example');
-        $scope = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+        $anna = MailFilter::all()->withRecipient('anna@customer.example');
         $outside = $this->repository->find(MailFilter::all(), 0, 1)[0];
         $before = file_get_contents($this->path);
 
-        self::assertFalse($this->repository->delete($outside->id, $scope));
+        self::assertFalse($this->repository->delete($outside->id, $anna));
         self::assertSame($before, file_get_contents($this->path));
-        self::assertTrue($this->repository->delete($this->repository->find($scope, 0, 1)[0]->id, $scope));
+        self::assertTrue($this->repository->delete($this->repository->find($anna, 0, 1)[0]->id, $anna));
         self::assertSame(['outside'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
-    }
-
-    #[Test]
-    public function deleteMatchingRemovesOnlyMatching(): void
-    {
-        $this->appendTo('one', 'anna@customer.example');
-        $this->appendTo('two', 'bob@other.example');
-        $this->appendTo('three', 'carl@customer.example');
-        $scope = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
-
-        self::assertSame(2, $this->repository->deleteMatching($scope));
-
-        self::assertSame(['two'], $this->subjects($this->repository->find(MailFilter::all(), 0, 10)));
-        self::assertSame(0, $this->repository->deleteMatching($scope));
     }
 
     #[Test]
@@ -287,9 +272,8 @@ final class MailRepositoryTest extends FunctionalTestCase
     {
         $this->appendTo('old', 'anna@customer.example');
         $this->appendTo('newest other', 'bob@other.example');
-        $scope = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
 
-        self::assertSame('old', $this->repository->latest($scope)?->subject);
+        self::assertSame('old', $this->repository->latest(MailFilter::all()->withRecipient('anna@customer.example'))?->subject);
         self::assertSame('newest other', $this->repository->latest(MailFilter::all())?->subject);
         self::assertNull($this->repository->latest(MailFilter::all()->withRecipient('nobody@example.org')));
     }

@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\External\Tester;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
+use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\External\{AuthenticationThrottle, ExternalAccessGuard, ExternalResponses};
+use KonradMichalik\Typo3Letterbox\External\{ExternalAccessGuard, ExternalResponses};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
@@ -30,7 +30,7 @@ use function strlen;
  * TesterInboxMiddleware.
  *
  * The read-only tester inbox under `<site path>_letterbox/inbox` for people without a backend account.
- * An issued link is exchanged once for a strict cookie; every refusal, whatever the reason, is the same 404.
+ * The access token in the link is exchanged once for a session cookie; every refusal, whatever the reason, is the same 404.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
@@ -46,7 +46,6 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
 
     public function __construct(
         private ExternalAccessGuard $guard,
-        private AuthenticationThrottle $throttle,
         private ExternalResponses $responses,
         private TesterSession $session,
         private MailRepository $repository,
@@ -77,41 +76,35 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         if ('GET' !== $request->getMethod()) {
             return $this->view->notFound($request);
         }
-        $state = $this->guard->evaluate($request);
-        if (!$state->active || $this->throttle->isBlocked($request)) {
+        if (!$this->guard->evaluate($request)->active) {
             return $this->view->notFound($request);
         }
+        $token = $this->guard->token();
         if ([] === $segments && null !== ($request->getQueryParams()[self::TOKEN_PARAMETER] ?? null)) {
-            return $this->exchange($request, $basePath);
+            return $this->exchange($request, $token, $basePath);
+        }
+        if (!$this->session->isValid($request, $token)) {
+            $notFound = $this->view->notFound($request);
+
+            return $this->session->hasCookie($request) ? $notFound->withAddedHeader('Set-Cookie', $this->session->expiredCookie($basePath)) : $notFound;
         }
 
-        $token = $this->session->token($request);
-        if ('' === $token) {
-            return $this->view->notFound($request);
-        }
-        $link = $this->session->link($token);
-        if (null === $link) {
-            $this->throttle->recordFailure($request);
-
-            return $this->view->notFound($request)->withAddedHeader('Set-Cookie', $this->session->expiredCookie($basePath));
-        }
-
-        return $this->route($request, $segments, $link, $state->baseFilter, $basePath);
+        return $this->route($request, $segments, $basePath);
     }
 
     /**
      * @param list<string> $segments
      */
-    private function route(ServerRequestInterface $request, array $segments, TesterLink $link, MailFilter $baseFilter, string $basePath): ResponseInterface
+    private function route(ServerRequestInterface $request, array $segments, string $basePath): ResponseInterface
     {
         if ([] === $segments) {
-            return $this->list($request, $link, $baseFilter, $basePath);
+            return $this->list($request, $basePath);
         }
         $id = $segments[0];
         if (1 !== preg_match(self::ID_PATTERN, $id)) {
             return $this->view->notFound($request);
         }
-        $filter = $link->filter($baseFilter);
+        $filter = MailFilter::all();
 
         return match (true) {
             1 === count($segments) => $this->show($request, $filter, $id, $basePath),
@@ -128,7 +121,7 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         }
         $textView = 'text' === ($request->getQueryParams()['view'] ?? '');
 
-        return $this->view->show($request, $filter, $mail, $basePath, $textView);
+        return $this->view->show($request, $mail, $basePath, $textView);
     }
 
     private function attachment(ServerRequestInterface $request, MailFilter $filter, string $id, string $index): ResponseInterface
@@ -158,34 +151,28 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
     /**
      * The token leaves the address bar right away: the redirect target carries no query at all.
      */
-    private function exchange(ServerRequestInterface $request, string $basePath): ResponseInterface
+    private function exchange(ServerRequestInterface $request, string $token, string $basePath): ResponseInterface
     {
-        $token = $request->getQueryParams()[self::TOKEN_PARAMETER];
-        $link = is_string($token) ? $this->session->link($token) : null;
-        if (!is_string($token) || null === $link) {
-            $this->throttle->recordFailure($request);
-
+        $given = $request->getQueryParams()[self::TOKEN_PARAMETER];
+        if (!is_string($given) || !hash_equals(hash('sha256', $token), hash('sha256', $given))) {
             return $this->view->notFound($request);
         }
 
         return $this->responseFactory->createResponse(303)
             ->withHeader('Location', $basePath)
-            ->withAddedHeader('Set-Cookie', $this->session->cookie($token, $link, $basePath));
+            ->withAddedHeader('Set-Cookie', $this->session->cookie($token, $basePath));
     }
 
-    private function list(ServerRequestInterface $request, TesterLink $link, MailFilter $baseFilter, string $basePath): ResponseInterface
+    private function list(ServerRequestInterface $request, string $basePath): ResponseInterface
     {
-        $linkFilter = $link->filter($baseFilter);
         $query = $this->query($request);
-        $filter = '' === $query ? $linkFilter : $linkFilter->withScopedQuery($query);
+        $filter = MailFilter::create($query, QuickFilter::All, []);
         $total = $this->repository->count($filter);
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = min($this->page($request), $pages);
 
         return $this->view->list(
             $request,
-            $link,
-            $linkFilter,
             $basePath,
             $query,
             $page,

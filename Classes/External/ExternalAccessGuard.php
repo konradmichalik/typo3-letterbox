@@ -13,18 +13,13 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\External;
 
-use InvalidArgumentException;
-use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
-use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
-use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern};
+use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\NormalizedParams;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-use function in_array;
 use function is_array;
-use function is_string;
+use function strlen;
 
 /**
  * ExternalAccessGuard.
@@ -36,28 +31,20 @@ use function is_string;
 final readonly class ExternalAccessGuard
 {
     public const ENV_ACCESS = 'LETTERBOX_EXTERNAL_ACCESS';
-    public const ENV_ALLOWED_IPS = 'LETTERBOX_EXTERNAL_ALLOWED_IPS';
-    public const EXCLUSIONS_SETTING = 'externalExcludedRecipients';
+    public const ENV_TOKEN = 'LETTERBOX_ACCESS_TOKEN';
+    public const MIN_TOKEN_LENGTH = 32;
     private const ROOT_PRODUCTION = 'Production';
 
     public function __construct(
         private EnvironmentVariables $environment,
-        private ExtensionSettings $extensionSettings,
     ) {}
 
     public function evaluate(ServerRequestInterface $request): ExternalAccessState
     {
         $state = $this->status();
         $params = $request->getAttribute('normalizedParams');
-        if (!$params instanceof NormalizedParams) {
-            return $state->withReason(ExternalAccessState::HTTPS_REQUIRED);
-        }
 
-        if (!in_array(ExternalAccessState::IP_NOT_ALLOWED, $state->reasons, true) && !$this->ipAllowed($params->getRemoteAddress())) {
-            $state = $state->withReason(ExternalAccessState::IP_NOT_ALLOWED);
-        }
-
-        return $params->isHttps() ? $state : $state->withReason(ExternalAccessState::HTTPS_REQUIRED);
+        return $params instanceof NormalizedParams && $params->isHttps() ? $state : $state->withReason(ExternalAccessState::HTTPS_REQUIRED);
     }
 
     /**
@@ -66,119 +53,28 @@ final readonly class ExternalAccessGuard
     public function status(): ExternalAccessState
     {
         $context = (string) Environment::getContext();
-        $reasons = [$this->accessReason($context)];
-
-        $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
-        $mail = is_array($mail) ? $mail : [];
-        if (!LetterboxTransport::isSelectedIn($mail)) {
-            $reasons[] = ExternalAccessState::TRANSPORT_NOT_LETTERBOX;
-        }
-
-        $scope = [];
-        try {
-            $settings = LetterboxSettings::fromMailSettings($mail, $context);
-            if (self::ROOT_PRODUCTION === $context) {
-                $reasons[] = $this->rootProductionReason($settings);
-                $scope = $settings->catch;
-            }
-        } catch (InvalidArgumentException) {
-            $reasons[] = ExternalAccessState::MAIL_SETTINGS_INVALID;
-        }
-
-        $exclusions = $this->exclusions();
-        if (null === $exclusions) {
-            $reasons[] = ExternalAccessState::EXCLUSIONS_INVALID;
-        }
-
-        // A catch-all entry would turn the allowlist into "every address", so it refuses every request instead.
-        if ([] !== array_filter($this->allowlist(), self::isCatchAll(...))) {
-            $reasons[] = ExternalAccessState::IP_NOT_ALLOWED;
-        }
-
-        return new ExternalAccessState(MailFilter::all()->withExclusions($exclusions ?? [])->withScope($scope), array_values(array_filter($reasons, static fn (?string $reason): bool => null !== $reason)));
-    }
-
-    private function accessReason(string $context): ?string
-    {
         $access = $this->environment->get(self::ENV_ACCESS);
-        if ('' === $access) {
-            return ExternalAccessState::ENV_MISSING;
-        }
+        $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
 
-        return $access === $context ? null : ExternalAccessState::ENV_CONTEXT_MISMATCH;
+        $reasons = [
+            '' === $access ? ExternalAccessState::ENV_MISSING : null,
+            '' !== $access && $access !== $context ? ExternalAccessState::ENV_CONTEXT_MISMATCH : null,
+            // Live mails must stay out of reach, whatever the environment says.
+            self::ROOT_PRODUCTION === $context ? ExternalAccessState::PRODUCTION : null,
+            LetterboxTransport::isSelectedIn(is_array($mail) ? $mail : []) ? null : ExternalAccessState::TRANSPORT_NOT_LETTERBOX,
+            '' === $this->token() ? ExternalAccessState::TOKEN_MISSING : null,
+        ];
+
+        return new ExternalAccessState(array_values(array_filter($reasons, static fn (?string $reason): bool => null !== $reason)));
     }
 
     /**
-     * Live mails must stay out of reach, so root Production shows nothing but the catch list.
+     * The shared secret of the API and the tester inbox, empty when unset or shorter than the minimum.
      */
-    private function rootProductionReason(LetterboxSettings $settings): ?string
+    public function token(): string
     {
-        if (DeliveryMode::Listed !== $settings->mode) {
-            return ExternalAccessState::PRODUCTION_REQUIRES_LISTED;
-        }
+        $token = $this->environment->get(self::ENV_TOKEN);
 
-        return [] === $settings->catch ? ExternalAccessState::CATCH_LIST_EMPTY : null;
-    }
-
-    /**
-     * An unset allowlist allows every address. A list with a catch-all entry never gets here, status() refuses it.
-     */
-    private function ipAllowed(string $remoteAddress): bool
-    {
-        if ('' === $this->environment->get(self::ENV_ALLOWED_IPS)) {
-            return true;
-        }
-        $list = implode(',', $this->allowlist());
-
-        return '' !== $remoteAddress && '' !== $list && GeneralUtility::cmpIP($remoteAddress, $list);
-    }
-
-    /**
-     * Whitespace anywhere in an entry is dropped, so `*. *` cannot slip past the catch-all check.
-     *
-     * @return list<string>
-     */
-    private function allowlist(): array
-    {
-        $entries = array_map(static fn (string $entry): string => (string) preg_replace('/\s+/', '', $entry), explode(',', $this->environment->get(self::ENV_ALLOWED_IPS)));
-
-        return array_values(array_filter($entries, static fn (string $entry): bool => '' !== $entry));
-    }
-
-    /**
-     * Entries made only of wildcards and separators (`*`, `*.*.*.*`) or with prefix length 0 (`0.0.0.0/0`, `::/0`) match every address.
-     * Per-octet wildcards such as `10.0.*.*` stay allowed.
-     */
-    private static function isCatchAll(string $entry): bool
-    {
-        return 1 === preg_match('/^[*.:]+$/', $entry) || str_ends_with($entry, '/0');
-    }
-
-    /**
-     * @return list<RecipientPattern>|null null when the setting holds anything that is not a valid pattern
-     */
-    private function exclusions(): ?array
-    {
-        $value = $this->extensionSettings->raw(self::EXCLUSIONS_SETTING);
-        if (null === $value) {
-            return [];
-        }
-        if (!is_string($value)) {
-            return null;
-        }
-
-        $patterns = [];
-        foreach (explode(',', $value) as $entry) {
-            if ('' === trim($entry)) {
-                continue;
-            }
-            try {
-                $patterns[] = RecipientPattern::fromString($entry);
-            } catch (InvalidArgumentException) {
-                return null;
-            }
-        }
-
-        return $patterns;
+        return strlen($token) >= self::MIN_TOKEN_LENGTH ? $token : '';
     }
 }

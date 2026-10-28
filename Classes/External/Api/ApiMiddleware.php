@@ -15,7 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\External\Api;
 
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\External\{AuthenticationThrottle, EnvironmentVariables, ExternalAccessGuard, ExternalResponses};
+use KonradMichalik\Typo3Letterbox\External\{ExternalAccessGuard, ExternalResponses};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
@@ -37,8 +37,6 @@ use function strlen;
 final readonly class ApiMiddleware implements MiddlewareInterface
 {
     public const PATH_PREFIX = '_letterbox/api/v1';
-    public const ENV_TOKEN = 'LETTERBOX_API_TOKEN';
-    public const MIN_TOKEN_LENGTH = 32;
     private const CSP = "default-src 'none'; frame-ancestors 'none'";
     private const DEFAULT_LIMIT = 20;
     private const MAX_LIMIT = 100;
@@ -47,9 +45,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
 
     public function __construct(
         private ExternalAccessGuard $guard,
-        private AuthenticationThrottle $throttle,
         private ExternalResponses $responses,
-        private EnvironmentVariables $environment,
         private MailRepository $repository,
         private MailJson $mailJson,
         private DownloadResponseFactory $downloads,
@@ -71,12 +67,11 @@ final readonly class ApiMiddleware implements MiddlewareInterface
      */
     private function answer(ServerRequestInterface $request, array $segments): ResponseInterface
     {
-        $state = $this->guard->evaluate($request);
-        if (!$state->active || !$this->authenticated($request)) {
+        if (!$this->guard->evaluate($request)->active || !$this->authenticated($request)) {
             return $this->responses->notFound(true);
         }
 
-        return $this->route($request, $segments, $state->baseFilter) ?? $this->responses->notFound(true);
+        return $this->route($request, $segments) ?? $this->responses->notFound(true);
     }
 
     /**
@@ -102,21 +97,13 @@ final readonly class ApiMiddleware implements MiddlewareInterface
     }
 
     /**
-     * A throttled client is refused before any comparison. A missing, wrong or query string token counts as a failure.
+     * A token in the query string would end up in logs, so it refuses the request even when it is right.
      */
     private function authenticated(ServerRequestInterface $request): bool
     {
-        $configured = $this->environment->get(self::ENV_TOKEN);
-        if (strlen($configured) < self::MIN_TOKEN_LENGTH || $this->throttle->isBlocked($request)) {
-            return false;
-        }
-        if ($this->hasQueryToken($request) || !hash_equals(hash('sha256', $configured), hash('sha256', $this->givenToken($request)))) {
-            $this->throttle->recordFailure($request);
+        $configured = $this->guard->token();
 
-            return false;
-        }
-
-        return true;
+        return '' !== $configured && !$this->hasQueryToken($request) && hash_equals(hash('sha256', $configured), hash('sha256', $this->givenToken($request)));
     }
 
     /**
@@ -146,13 +133,14 @@ final readonly class ApiMiddleware implements MiddlewareInterface
     /**
      * @param list<string> $segments
      */
-    private function route(ServerRequestInterface $request, array $segments, MailFilter $filter): ?ResponseInterface
+    private function route(ServerRequestInterface $request, array $segments): ?ResponseInterface
     {
         $method = $request->getMethod();
+        $filter = MailFilter::all();
 
         return match (true) {
             ['messages'] === $segments && 'GET' === $method => $this->list($request, $filter),
-            ['messages'] === $segments && 'DELETE' === $method => $this->deleteAll($filter),
+            ['messages'] === $segments && 'DELETE' === $method => $this->deleteAll(),
             ['messages', 'latest'] === $segments && 'GET' === $method => $this->latest($request, $filter),
             'messages' === ($segments[0] ?? null) && 1 === preg_match(self::ID_PATTERN, $segments[1] ?? '') => $this->message($method, $segments[1], array_slice($segments, 2), $filter),
             default => null,
@@ -186,7 +174,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
 
         return $this->responses->json([
             'total' => $this->repository->count($filter),
-            'items' => array_map(fn (Mail $mail): array => $this->mailJson->summary($mail, $filter), $this->repository->find($filter, $offset, $limit)),
+            'items' => array_map($this->mailJson->summary(...), $this->repository->find($filter, $offset, $limit)),
         ]);
     }
 
@@ -195,22 +183,19 @@ final readonly class ApiMiddleware implements MiddlewareInterface
         $to = $this->stringParameter($request, 'to');
         $mail = null === $to ? null : $this->repository->latest($filter->withRecipient($to));
 
-        return null === $mail ? null : $this->responses->json($this->mailJson->summary($mail, $filter));
+        return null === $mail ? null : $this->responses->json($this->mailJson->summary($mail));
     }
 
     private function detail(string $id, MailFilter $filter): ?ResponseInterface
     {
         $mail = $this->repository->findById($id, $filter);
 
-        return null === $mail ? null : $this->responses->json($this->mailJson->detail($mail, $filter));
+        return null === $mail ? null : $this->responses->json($this->mailJson->detail($mail));
     }
 
-    /**
-     * The raw source carries every recipient, so a scoped view (root Production) never serves it.
-     */
     private function source(string $id, MailFilter $filter): ?ResponseInterface
     {
-        $mail = $filter->isScoped() ? null : $this->repository->findById($id, $filter);
+        $mail = $this->repository->findById($id, $filter);
 
         return null === $mail ? null : $this->downloads->source($mail);
     }
@@ -225,21 +210,9 @@ final readonly class ApiMiddleware implements MiddlewareInterface
         return null === $attachment ? null : $this->downloads->attachment($attachment);
     }
 
-    /**
-     * Only a base filter that sees every mail may truncate the file, any restriction deletes just what it sees.
-     * When visible mails existed but none could be removed, the file changed meanwhile and the client may retry.
-     */
-    private function deleteAll(MailFilter $filter): ResponseInterface
+    private function deleteAll(): ResponseInterface
     {
-        if ($filter->isUnrestricted()) {
-            $this->repository->clear();
-
-            return $this->noContent();
-        }
-        $visible = $this->repository->count($filter);
-        if ($visible > 0 && 0 === $this->repository->deleteMatching($filter)) {
-            return $this->responses->json(['error' => 'conflict'], 409);
-        }
+        $this->repository->clear();
 
         return $this->noContent();
     }

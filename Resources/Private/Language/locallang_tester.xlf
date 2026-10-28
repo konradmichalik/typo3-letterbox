@@ -6,20 +6,14 @@
 			<trans-unit id="page.brand" resname="page.brand">
 				<source>Test inbox</source>
 			</trans-unit>
-			<trans-unit id="page.fallbackHeading" resname="page.fallbackHeading">
-				<source>Letterbox</source>
+			<trans-unit id="page.heading" resname="page.heading">
+				<source>Caught mails</source>
 			</trans-unit>
 			<trans-unit id="page.notDelivered" resname="page.notDelivered">
 				<source>Mails are not delivered</source>
 			</trans-unit>
 			<trans-unit id="page.skip" resname="page.skip">
 				<source>Skip to content</source>
-			</trans-unit>
-			<trans-unit id="scope.mailsFor" resname="scope.mailsFor">
-				<source>Mails for %s</source>
-			</trans-unit>
-			<trans-unit id="scope.validUntil" resname="scope.validUntil">
-				<source>Link valid until %s</source>
 			</trans-unit>
 			<trans-unit id="search.label" resname="search.label">
 				<source>Search mails</source>
@@ -37,7 +31,7 @@
 				<source>Refresh</source>
 			</trans-unit>
 			<trans-unit id="list.empty" resname="list.empty">
-				<source>No mails for this link yet. New mails show up after a refresh.</source>
+				<source>No mails yet. New mails show up after a refresh.</source>
 			</trans-unit>
 			<trans-unit id="list.emptySearch" resname="list.emptySearch">
 				<source>No mails match your search.</source>
@@ -47,12 +41,6 @@
 			</trans-unit>
 			<trans-unit id="row.to" resname="row.to">
 				<source>to %s</source>
-			</trans-unit>
-			<trans-unit id="row.more" resname="row.more">
-				<source>and %d more</source>
-			</trans-unit>
-			<trans-unit id="row.hiddenOnly" resname="row.hiddenOnly">
-				<source>%d other recipients</source>
 			</trans-unit>
 			<trans-unit id="row.noSubject" resname="row.noSubject">
 				<source>(no subject)</source>

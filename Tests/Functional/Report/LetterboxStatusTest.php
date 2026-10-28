@@ -192,20 +192,21 @@ final class LetterboxStatusTest extends FunctionalTestCase
     {
         $this->useContext('Development');
 
-        $status = $this->provider(['LETTERBOX_EXTERNAL_ACCESS' => 'Development'])->getStatus()['external'];
+        $status = $this->provider(['LETTERBOX_EXTERNAL_ACCESS' => 'Development', 'LETTERBOX_ACCESS_TOKEN' => str_repeat('a', 32)])->getStatus()['external'];
 
         self::assertSame(ContextualFeedbackSeverity::INFO, $status->getSeverity());
     }
 
     #[Test]
-    public function externalAccessIsWarningWhenOnInRootProduction(): void
+    public function externalAccessIsOffInRootProduction(): void
     {
         $this->useContext('Production');
         $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => '*@example.org']);
 
-        $status = $this->provider(['LETTERBOX_EXTERNAL_ACCESS' => 'Production'])->getStatus()['external'];
+        $status = $this->provider(['LETTERBOX_EXTERNAL_ACCESS' => 'Production', 'LETTERBOX_ACCESS_TOKEN' => str_repeat('a', 32)])->getStatus()['external'];
 
-        self::assertSame(ContextualFeedbackSeverity::WARNING, $status->getSeverity());
+        self::assertSame(ContextualFeedbackSeverity::OK, $status->getSeverity());
+        self::assertSame('Off', $status->getValue());
     }
 
     #[Test]
@@ -239,7 +240,7 @@ final class LetterboxStatusTest extends FunctionalTestCase
     {
         return new LetterboxStatus(
             $this->get(MailRepository::class),
-            new ExternalAccessGuard(new EnvironmentVariables($environment), $this->get(ExtensionSettings::class)),
+            new ExternalAccessGuard(new EnvironmentVariables($environment)),
             $this->get(ExtensionSettings::class),
         );
     }

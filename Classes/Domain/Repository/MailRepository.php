@@ -133,14 +133,6 @@ final readonly class MailRepository
     }
 
     /**
-     * @return int the number of removed mails
-     */
-    public function deleteMatching(MailFilter $filter): int
-    {
-        return $this->remove($this->matching($filter));
-    }
-
-    /**
      * Removes the oldest mails beyond $maxMessages and every mail that arrived more than $maxAgeDays ago.
      * A limit of 0 is off. Mails without a readable arrival time count for $maxMessages but never expire.
      *

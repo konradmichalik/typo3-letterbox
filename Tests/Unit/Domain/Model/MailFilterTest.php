@@ -13,8 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Tests\Unit\Domain\Model;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Mail, MailFilter, QuickFilter};
-use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
+use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, MessageSpan};
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -101,170 +100,30 @@ final class MailFilterTest extends TestCase
     }
 
     #[Test]
-    public function scopeMatchesAnyScopeRecipient(): void
+    public function recipientAndSubjectFiltersCombine(): void
     {
-        $filter = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
+        $filter = MailFilter::all()->withRecipient('Anna@customer.example')->withSubject('RESET');
 
-        self::assertTrue($filter->matches($this->scoped('Hello', ['x@example.org', 'Anna@Customer.example'], ['x@example.org', 'anna@customer.example'])));
-        self::assertFalse($filter->matches($this->scoped('Hello', ['x@example.org'], ['x@example.org'])));
-        self::assertTrue(MailFilter::all()->withScope([])->matches($this->entry()));
+        self::assertTrue($filter->matches($this->addressed('Password reset', ['anna@customer.example'], ['anna@customer.example'])));
+        self::assertFalse($filter->matches($this->addressed('Welcome', ['anna@customer.example'], ['anna@customer.example'])));
+        self::assertFalse($filter->matches($this->addressed('Password reset', ['bob@customer.example'], ['bob@customer.example'])));
     }
 
     #[Test]
-    public function additionalScopeRequiresAMatchInEveryScopeGroup(): void
+    public function recipientFilterIgnoresTheBccHeader(): void
     {
-        $base = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
-        $filter = $base->withAdditionalScope([RecipientPattern::fromString('anna@customer.example')]);
+        $filter = MailFilter::all()->withRecipient('hidden@example.org');
 
-        self::assertTrue($filter->matches($this->scoped('Hello', ['anna@customer.example'], ['anna@customer.example'])));
-        self::assertFalse($filter->matches($this->scoped('Hello', ['bob@customer.example'], ['bob@customer.example'])));
-        self::assertFalse($filter->matches($this->scoped('Hello', ['anna@other.example'], ['anna@other.example'])));
-        self::assertFalse($filter->isUnrestricted());
-    }
-
-    #[Test]
-    public function oneAddressMustSatisfyEveryScopeGroup(): void
-    {
-        $filter = MailFilter::all()
-            ->withScope([RecipientPattern::fromString('*@letterbox.invalid')])
-            ->withAdditionalScope([RecipientPattern::fromString('anna@customer.example')]);
-        $linkOnly = MailFilter::all()->withAdditionalScope([RecipientPattern::fromString('*@letterbox.invalid')]);
-
-        self::assertFalse($filter->matches($this->scoped('Hello', ['anna@customer.example', 'test@letterbox.invalid'], ['anna@customer.example', 'test@letterbox.invalid'])));
-        self::assertTrue($linkOnly->matches($this->scoped('Hello', ['anna@letterbox.invalid'], ['anna@letterbox.invalid'])));
-        self::assertTrue(MailFilter::all()
-            ->withScope([RecipientPattern::fromString('*@letterbox.invalid')])
-            ->withAdditionalScope([RecipientPattern::fromString('*@letterbox.invalid')])
-            ->matches($this->scoped('Hello', ['anna@letterbox.invalid'], ['anna@letterbox.invalid'])));
-    }
-
-    #[Test]
-    public function additionalScopeNarrowsAnUnrestrictedFilterAndMasksRecipients(): void
-    {
-        $filter = MailFilter::all()->withAdditionalScope([RecipientPattern::fromString('*@customer.example')]);
-        $mail = new Mail(
-            'id', 'mid', 'Hello', null, null,
-            [new Address('anna@customer.example'), new Address('x@example.org')],
-            [], [], [], '', '', [], [], 0, '', [],
-        );
-
-        self::assertFalse($filter->matches($this->scoped('Hello', ['x@example.org'], ['x@example.org'])));
-        self::assertSame(['anna@customer.example'], array_map(static fn (Address $a): string => $a->address, $filter->visibleRecipients($mail)));
-    }
-
-    #[Test]
-    public function additionalScopeAlsoRestrictsVisibleRecipientsOfTheBaseScope(): void
-    {
-        $filter = MailFilter::all()
-            ->withScope([RecipientPattern::fromString('*@customer.example')])
-            ->withAdditionalScope([RecipientPattern::fromString('anna@customer.example')]);
-        $mail = new Mail(
-            'id', 'mid', 'Hello', null, null,
-            [new Address('anna@customer.example'), new Address('bob@customer.example')],
-            [], [], [], '', '', [], [], 0, '', [],
-        );
-
-        self::assertSame(['anna@customer.example'], array_map(static fn (Address $a): string => $a->address, $filter->visibleRecipients($mail)));
-    }
-
-    #[Test]
-    public function scopeIgnoresDisplayNamesAndBccHeader(): void
-    {
-        $filter = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')]);
-        $entry = $this->scoped('Hello', ['evil@example.org', 'anna@customer.example'], ['evil@example.org'], ['anna@customer.example', 'anna@customer.example']);
-
-        self::assertFalse($filter->matches($entry));
-    }
-
-    #[Test]
-    public function exclusionHidesMailWhenAnyRecipientIncludingBccMatches(): void
-    {
-        $filter = MailFilter::all()->withExclusions([RecipientPattern::fromString('vip@example.org')]);
-
-        self::assertFalse($filter->matches($this->scoped('Hello', ['b@example.com', 'vip@example.org'], ['b@example.com'])));
-        self::assertTrue($filter->matches($this->scoped('Hello', ['b@example.com'], ['b@example.com'])));
-    }
-
-    #[Test]
-    public function recipientAndSubjectFiltersCombineWithScope(): void
-    {
-        $filter = MailFilter::all()
-            ->withScope([RecipientPattern::fromString('*@customer.example')])
-            ->withRecipient('Anna@customer.example')
-            ->withSubject('RESET');
-        $match = $this->scoped('Password reset', ['anna@customer.example'], ['anna@customer.example']);
-
-        self::assertTrue($filter->matches($match));
-        self::assertFalse($filter->matches($this->scoped('Welcome', ['anna@customer.example'], ['anna@customer.example'])));
-        self::assertFalse($filter->matches($this->scoped('Password reset', ['bob@customer.example'], ['bob@customer.example'])));
-        self::assertFalse($filter->matches($this->scoped('Password reset', ['anna@other.example'], ['anna@other.example'])));
-    }
-
-    #[Test]
-    public function onlyAScopeOrAdditionalScopeMakesTheFilterScoped(): void
-    {
-        $pattern = RecipientPattern::fromString('*@example.org');
-
-        self::assertFalse(MailFilter::all()->withExclusions([$pattern])->withRecipient('anna@example.org')->isScoped());
-        self::assertTrue(MailFilter::all()->withScope([$pattern])->isScoped());
-        self::assertTrue(MailFilter::all()->withAdditionalScope([$pattern])->isScoped());
-    }
-
-    #[Test]
-    public function onlyThePlainAllFilterIsUnrestricted(): void
-    {
-        $pattern = RecipientPattern::fromString('*@customer.example');
-
-        self::assertTrue(MailFilter::all()->isUnrestricted());
-        self::assertTrue(MailFilter::all()->withScope([])->withExclusions([])->withRecipient(' ')->withSubject('')->isUnrestricted());
-        self::assertFalse(MailFilter::all()->withScope([$pattern])->isUnrestricted());
-        self::assertFalse(MailFilter::all()->withExclusions([$pattern])->isUnrestricted());
-        self::assertFalse(MailFilter::all()->withRecipient('anna@customer.example')->isUnrestricted());
-        self::assertFalse(MailFilter::all()->withSubject('Reset')->isUnrestricted());
-        self::assertFalse(MailFilter::create('hello', QuickFilter::All, [])->isUnrestricted());
-        self::assertFalse(MailFilter::all()->withQuick(QuickFilter::Attachments)->isUnrestricted());
-    }
-
-    #[Test]
-    public function visibleRecipientsMasksOthers(): void
-    {
-        $mail = new Mail(
-            'id', 'mid', 'Hello', null, null,
-            [new Address('anna@customer.example', 'Anna'), new Address('evil@example.org', 'anna@customer.example')],
-            [new Address('Bob@Customer.example')],
-            [], [], '', '', [], [], 0, '', [],
-        );
-
-        $visible = MailFilter::all()->withScope([RecipientPattern::fromString('*@customer.example')])->visibleRecipients($mail);
-
-        self::assertSame(['anna@customer.example', 'Bob@Customer.example'], array_map(static fn (Address $a): string => $a->address, $visible));
-        self::assertCount(3, MailFilter::all()->visibleRecipients($mail));
-    }
-
-    #[Test]
-    public function scopedQueryNeverMatchesMaskedRecipients(): void
-    {
-        $entry = $this->scoped('Hello', ['anna@customer.example', 'bob@other.test', 'hidden@bcc.test'], ['anna@customer.example', 'bob@other.test'], ['Anna', 'Bob Other', 'Hidden']);
-        $filter = MailFilter::all()->withAdditionalScope([RecipientPattern::fromString('*@customer.example')]);
-
-        self::assertTrue($filter->withScopedQuery('ANNA@customer')->matches($entry));
-        self::assertTrue($filter->withScopedQuery('hello')->matches($entry));
-        self::assertTrue($filter->withScopedQuery('a@example')->matches($entry), 'the sender stays searchable');
-        self::assertFalse($filter->withScopedQuery('bob@other')->matches($entry));
-        self::assertFalse($filter->withScopedQuery('Bob Other')->matches($entry));
-        self::assertFalse($filter->withScopedQuery('hidden')->matches($entry));
-        self::assertFalse($filter->withScopedQuery('hello')->isUnrestricted());
-        self::assertTrue(MailFilter::all()->withScopedQuery('bob other')->matches($entry), 'without a scope nothing is masked');
+        self::assertFalse($filter->matches($this->addressed('Hello', ['anna@example.org', 'hidden@example.org'], ['anna@example.org'])));
     }
 
     /**
-     * @param list<string>      $recipients
-     * @param list<string>      $scopeRecipients
-     * @param list<string>|null $labels          defaults to the recipients
+     * @param list<string> $recipients      every recipient, Bcc included
+     * @param list<string> $scopeRecipients To, Cc and envelope only
      */
-    private function scoped(string $subject, array $recipients, array $scopeRecipients, ?array $labels = null): MessageIndexEntry
+    private function addressed(string $subject, array $recipients, array $scopeRecipients): MessageIndexEntry
     {
-        return new MessageIndexEntry(new MessageSpan(0, 10), 'id', null, 'a@example.com', '', $recipients, $labels ?? $recipients, $scopeRecipients, $subject, 0);
+        return new MessageIndexEntry(new MessageSpan(0, 10), 'id', null, 'a@example.com', '', $recipients, $recipients, $scopeRecipients, $subject, 0);
     }
 
     /**

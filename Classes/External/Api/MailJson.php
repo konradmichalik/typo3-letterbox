@@ -13,16 +13,14 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\External\Api;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailFilter, MailLink};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailLink};
 
 use function count;
-use function in_array;
 
 /**
  * MailJson.
  *
- * The JSON shape of a mail in the API, a public contract from its first release. Under a scoped filter
- * (root Production) To and Cc list only the recipients in scope and the headers are left out.
+ * The JSON shape of a mail in the API, a public contract from its first release.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
@@ -31,22 +29,16 @@ final readonly class MailJson
     /**
      * @return array<string, mixed>
      */
-    public function summary(Mail $mail, MailFilter $filter): array
+    public function summary(Mail $mail): array
     {
-        $visible = $filter->visibleRecipients($mail);
-        $recipients = static fn (array $addresses): array => array_values(array_map(
-            self::address(...),
-            array_filter($addresses, static fn (Address $address): bool => in_array($address, $visible, true)),
-        ));
-
         return [
             'id' => $mail->id,
             'messageId' => $mail->messageId,
             'date' => $mail->date?->format(\DATE_ATOM),
             'subject' => $mail->subject,
             'from' => null === $mail->from ? null : self::address($mail->from),
-            'to' => $recipients($mail->to),
-            'cc' => $recipients($mail->cc),
+            'to' => array_map(self::address(...), $mail->to),
+            'cc' => array_map(self::address(...), $mail->cc),
             'attachmentCount' => count($mail->attachments),
             'links' => array_map(
                 static fn (MailLink $link): array => ['url' => $link->url, 'isPasswordReset' => $link->isPasswordReset],
@@ -60,16 +52,14 @@ final readonly class MailJson
      *
      * @return array<string, mixed>
      */
-    public function detail(Mail $mail, MailFilter $filter): array
+    public function detail(Mail $mail): array
     {
-        // An object even without headers, so clients can rely on the type.
-        $headers = $filter->isScoped() ? [] : ['headers' => (object) $mail->headers];
-
         return [
-            ...$this->summary($mail, $filter),
+            ...$this->summary($mail),
             'text' => $mail->text,
             'html' => $mail->html,
-            ...$headers,
+            // An object even without headers, so clients can rely on the type.
+            'headers' => (object) $mail->headers,
             'attachments' => array_map(
                 static fn (Attachment $attachment): array => [
                     'index' => $attachment->index,

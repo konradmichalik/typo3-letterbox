@@ -15,9 +15,6 @@
   --tester-header-muted: #d0cbe6;
   --tester-note-bg: #f2c94c;
   --tester-note-text: #2e2205;
-  --tester-callout-bg: light-dark(#faeed1, #2e2205);
-  --tester-callout-text: light-dark(#2e2205, #faeed1);
-  --tester-callout-border: light-dark(#e2b53e, #8a6a14);
   --tester-focus: light-dark(#412aa2, #b8aaf0);
   --tester-reset-bg: light-dark(#ebe8f7, #2a2442);
   --tester-radius: 9px;
@@ -134,15 +131,6 @@ dd {
   font-weight: normal;
   line-height: 1.25;
   overflow-wrap: anywhere;
-}
-
-.tester-scope {
-  background: var(--tester-callout-bg);
-  border-left: 4px solid var(--tester-callout-border);
-  border-radius: var(--tester-radius);
-  color: var(--tester-callout-text);
-  overflow-wrap: anywhere;
-  padding: 0.75rem 1rem;
 }
 
 .tester-search {
@@ -480,7 +468,6 @@ dd {
   }
 
   .tester-header__note,
-  .tester-scope,
   .tester-button,
   .tester-badge {
     border: 1px solid CanvasText;

@@ -22,15 +22,6 @@ services:
     factory: ['@TYPO3\CMS\Core\Cache\CacheManager', 'getCache']
     arguments: ['typo3_letterbox_index']
 
-  cache.typo3_letterbox_ratelimit:
-    class: TYPO3\CMS\Core\Cache\Frontend\FrontendInterface
-    factory: ['@TYPO3\CMS\Core\Cache\CacheManager', 'getCache']
-    arguments: ['typo3_letterbox_ratelimit']
-
-  KonradMichalik\Typo3Letterbox\External\RateLimitStorage:
-    arguments:
-      $cache: '@cache.typo3_letterbox_ratelimit'
-
   KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory:
     # Public for LetterboxTransport, which TYPO3 instantiates without dependency injection.
     public: true

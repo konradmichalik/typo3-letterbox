@@ -23,40 +23,36 @@ use function is_string;
 /**
  * TesterSession.
  *
- * The tester inbox session is the raw link token in a SameSite=Lax cookie (Lax, so a link clicked in webmail or chat survives the 303). Every request looks the link up
- * by the token hash again, so revoking or expiring a link ends every session at once.
+ * The tester inbox session is an HMAC of the access token in a SameSite=Lax cookie (Lax, so a link clicked in
+ * webmail or chat survives the 303). The browser never stores the token itself, and a changed token ends every
+ * session at once.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
 final readonly class TesterSession
 {
     public const COOKIE_NAME = 'letterbox_inbox';
+    private const LIFETIME = 7 * 86400;
 
     public function __construct(
-        private TesterLinkRepository $repository,
         private Context $context,
     ) {}
 
-    /**
-     * The cookie value as sent, empty when there is none.
-     */
-    public function token(ServerRequestInterface $request): string
+    public function hasCookie(ServerRequestInterface $request): bool
     {
-        $value = $request->getCookieParams()[self::COOKIE_NAME] ?? '';
-
-        return is_string($value) ? $value : '';
+        return '' !== $this->cookieValue($request);
     }
 
-    public function link(string $token): ?TesterLink
+    public function isValid(ServerRequestInterface $request, string $token): bool
     {
-        $link = '' === $token ? null : $this->repository->findByToken($token);
+        $value = $this->cookieValue($request);
 
-        return null !== $link && $link->isUsable($this->now()) ? $link : null;
+        return '' !== $token && '' !== $value && hash_equals(self::sessionValue($token), $value);
     }
 
-    public function cookie(string $token, TesterLink $link, string $path): string
+    public function cookie(string $token, string $path): string
     {
-        return (string) new Cookie(self::COOKIE_NAME, $token, $link->expires, $path, null, true, true, false, Cookie::SAMESITE_LAX);
+        return (string) new Cookie(self::COOKIE_NAME, self::sessionValue($token), $this->now() + self::LIFETIME, $path, null, true, true, false, Cookie::SAMESITE_LAX);
     }
 
     /**
@@ -67,7 +63,19 @@ final readonly class TesterSession
         return (string) new Cookie(self::COOKIE_NAME, '', 1, $path, null, true, true, false, Cookie::SAMESITE_LAX);
     }
 
-    public function now(): int
+    private static function sessionValue(string $token): string
+    {
+        return hash_hmac('sha256', 'inbox', $token);
+    }
+
+    private function cookieValue(ServerRequestInterface $request): string
+    {
+        $value = $request->getCookieParams()[self::COOKIE_NAME] ?? '';
+
+        return is_string($value) ? $value : '';
+    }
+
+    private function now(): int
     {
         $now = $this->context->getPropertyFromAspect('date', 'full');
 
