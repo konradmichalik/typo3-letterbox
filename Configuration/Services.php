@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-use KonradMichalik\Typo3Letterbox\Command\{ClearCommand, ListCommand, SendTestMailsCommand, ShowCommand};
+use KonradMichalik\Typo3Letterbox\Command\{ClearCommand, ListCommand, ReceiveCommand, SendTestMailsCommand, ShowCommand};
 use KonradMichalik\Typo3Letterbox\Report\LetterboxStatus;
 use KonradMichalik\Typo3Letterbox\Widgets\{AdminOnlyRecentMailsWidget, RecentMailsWidget};
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -28,6 +28,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
         ListCommand::class => ['letterbox:list', 'List the caught mails, newest first'],
         ShowCommand::class => ['letterbox:show', 'Print one part of a caught mail'],
         ClearCommand::class => ['letterbox:clear', 'Delete every caught mail'],
+        ReceiveCommand::class => [ReceiveCommand::NAME, 'Store one mail from stdin, for use as sendmail_path'],
     ];
     foreach ($commands as $class => [$name, $description]) {
         $services->set($class)->autowire()->tag('console.command', ['command' => $name, 'description' => $description, 'schedulable' => false]);

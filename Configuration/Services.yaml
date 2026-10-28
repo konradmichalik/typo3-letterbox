@@ -11,6 +11,7 @@ services:
       - '../Classes/Command/ListCommand.php'
       - '../Classes/Command/ShowCommand.php'
       - '../Classes/Command/ClearCommand.php'
+      - '../Classes/Command/ReceiveCommand.php'
       # Implements an interface of EXT:reports, which is optional. Registered in Services.php when it is installed.
       - '../Classes/Report/*'
       # Implements an interface of EXT:dashboard, which is optional. Registered in Services.php when it is installed.

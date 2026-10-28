@@ -33,3 +33,9 @@ parameters:
 			paths:
 				- ../../Tests/Functional/External/ApiMiddlewareTest.php
 				- ../../Tests/Functional/External/TesterInboxMiddlewareTest.php
+		-
+			# sendmail passes its flags on the command line, which has no PSR-7 counterpart. TYPO3 binds the input before the command runs and loses the tokens after the first unknown flag, so the command reads the raw argv.
+			identifier: disallowed.variable
+			paths:
+				- ../../Classes/Command/ReceiveCommand.php
+				- ../../Tests/Functional/Command/ReceiveCommandTest.php

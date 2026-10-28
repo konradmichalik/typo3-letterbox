@@ -8,7 +8,8 @@ TYPO3 extension `typo3_letterbox` (`konradmichalik/typo3-letterbox`): a mail tra
 * `ddev composer cgl migration:rector -- --dry-run`. Without `--dry-run` it rewrites files, check `git status` afterwards.
 * `ddev composer test:unit`, `ddev composer test:functional`. Run on the host, set `XDEBUG_MODE=off`: the host Xdebug `max_nesting_level` breaks a deep-nesting test.
 * `ddev composer bundle` bundles non-TYPO3 vendor libraries into `Resources/Private/Libs/` for TER. The folder is ignored by git and built in the release workflow.
-* Console commands: `letterbox:list|show|clear|prune` (`ddev exec vendor/bin/typo3 ...`). `list`, `show` and `clear` are tagged by hand in `Configuration/Services.php` with `schedulable: false`, because TYPO3 13 has no `#[AsNonSchedulableCommand]`. `prune` is autoconfigured and schedulable.
+* Console commands: `letterbox:list|show|clear|prune|receive` (`ddev exec vendor/bin/typo3 ...`). `list`, `show`, `clear` and `receive` are tagged by hand in `Configuration/Services.php` with `schedulable: false`, because TYPO3 13 has no `#[AsNonSchedulableCommand]`. `prune` is autoconfigured and schedulable.
+* `letterbox:receive` is a sendmail replacement (`sendmail_path`). It parses the sendmail flags from `$_SERVER['argv']` in `SendmailArguments`, because TYPO3 binds the input before the command runs and loses every token after the first unknown flag. Smoke test: `printf 'To: b@example.org\nSubject: x\n\nbody\n' | ddev 14 typo3 letterbox:receive -t -i`.
 * `ddev install 13 --classic` sets up a Composer-free TYPO3 to check the bundle.
 
 ## Conventions
