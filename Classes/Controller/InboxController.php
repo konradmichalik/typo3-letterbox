@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Controller;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Backend\{InboxQuery, MailListView, ReadState};
+use KonradMichalik\Typo3Letterbox\Backend\{InboxQuery, MailListView, ReadState, RetentionText};
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
@@ -221,7 +221,7 @@ final readonly class InboxController
             'path' => $this->repository->path(),
             'size' => $this->repository->sizeInBytes(),
             'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
-            'retention' => RetentionSettings::fromExtensionConfiguration($this->extensionConfiguration),
+            'retention' => RetentionText::of(RetentionSettings::fromExtensionConfiguration($this->extensionConfiguration), $this->translate(...)),
         ]);
 
         // The same URL answers with a fragment or the full page, depending on the request header.

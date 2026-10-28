@@ -22,13 +22,25 @@
 				<source>1 mail</source>
 			</trans-unit>
 			<trans-unit id="inbox.retention" resname="inbox.retention">
-				<source>keeps %1$s mails or %2$s days</source>
+				<source>keeps %1$s or %2$s</source>
 			</trans-unit>
 			<trans-unit id="inbox.retention.messages" resname="inbox.retention.messages">
-				<source>keeps %s mails</source>
+				<source>keeps %s</source>
 			</trans-unit>
 			<trans-unit id="inbox.retention.age" resname="inbox.retention.age">
-				<source>keeps mails for %s days</source>
+				<source>keeps mails for %s</source>
+			</trans-unit>
+			<trans-unit id="inbox.retention.mails" resname="inbox.retention.mails">
+				<source>%s mails</source>
+			</trans-unit>
+			<trans-unit id="inbox.retention.mails.one" resname="inbox.retention.mails.one">
+				<source>1 mail</source>
+			</trans-unit>
+			<trans-unit id="inbox.retention.days" resname="inbox.retention.days">
+				<source>%s days</source>
+			</trans-unit>
+			<trans-unit id="inbox.retention.days.one" resname="inbox.retention.days.one">
+				<source>1 day</source>
 			</trans-unit>
 			<trans-unit id="inbox.mailList" resname="inbox.mailList">
 				<source>Mails</source>

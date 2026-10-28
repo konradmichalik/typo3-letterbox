@@ -503,6 +503,26 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function retentionTextUsesSingularForOne(): void
+    {
+        $this->append('Only one');
+        $meta = function (int $maxMessages, int $maxAgeDays): string {
+            $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxMessages'] = (string) $maxMessages;
+            $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['maxAgeDays'] = (string) $maxAgeDays;
+            $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+            preg_match('/<p class="text-variant letterbox-meta">(.*?)<\/p>/s', $body, $match);
+
+            return (string) preg_replace('/\s+/', ' ', $match[1] ?? '');
+        };
+
+        self::assertStringEndsWith(' · keeps 1 mail ', $meta(1, 0));
+        self::assertStringEndsWith(' · keeps mails for 1 day ', $meta(0, 1));
+        self::assertStringEndsWith(' · keeps 1 mail or 1 day ', $meta(1, 1));
+        self::assertStringEndsWith(' · keeps 1 mail or 30 days ', $meta(1, 30));
+        self::assertStringEndsWith(' · keeps 500 mails or 1 day ', $meta(500, 1));
+    }
+
+    #[Test]
     public function textOnlyMailHasNoHtmlTab(): void
     {
         $this->appendRaw("From: s@example.org\nTo: r@example.org\nSubject: Plain\n\nJust text.\n");
