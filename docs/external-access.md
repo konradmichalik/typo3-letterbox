@@ -41,7 +41,7 @@ In the exact root context `Production`, external access is limited to the catch 
 
 `LETTERBOX_EXTERNAL_ALLOWED_IPS` is matched against the client address from `NormalizedParams`. Behind a reverse proxy or load balancer set `SYS/reverseProxyIP`, otherwise the proxy address is what gets compared.
 
-A catch-all entry (`*`, `*.*.*.*`, anything ending in `/0`) switches the whole surface off instead of allowing everyone. Octet wildcards such as `10.0.*.*` are fine.
+A catch-all entry (`*`, `*.*.*.*`, anything ending in `/0`) switches the whole surface off instead of allowing everyone. Octet wildcards such as `10.0.*.*` are fine. Whitespace inside an entry is removed before the check, so `*. *` counts as a catch-all too.
 
 ## Excluded recipients
 

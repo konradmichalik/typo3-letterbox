@@ -135,11 +135,15 @@ final readonly class ExternalAccessGuard
     }
 
     /**
+     * Whitespace anywhere in an entry is dropped, so `*. *` cannot slip past the catch-all check.
+     *
      * @return list<string>
      */
     private function allowlist(): array
     {
-        return array_values(array_filter(array_map(trim(...), explode(',', $this->environment->get(self::ENV_ALLOWED_IPS))), static fn (string $entry): bool => '' !== $entry));
+        $entries = array_map(static fn (string $entry): string => (string) preg_replace('/\s+/', '', $entry), explode(',', $this->environment->get(self::ENV_ALLOWED_IPS)));
+
+        return array_values(array_filter($entries, static fn (string $entry): bool => '' !== $entry));
     }
 
     /**

@@ -139,9 +139,19 @@ final class ExternalAccessGuardTest extends TestCase
     }
 
     #[Test]
+    public function whitespaceInsideAnEntryIsIgnored(): void
+    {
+        $guard = $this->guard(['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_EXTERNAL_ALLOWED_IPS' => '10.0.0.0 / 8, 192.0. 2.7']);
+
+        self::assertTrue($guard->evaluate($this->request('10.1.2.3'))->active);
+        self::assertTrue($guard->evaluate($this->request('192.0.2.7'))->active);
+        self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->evaluate($this->request('192.0.2.8'))->reasons);
+    }
+
+    #[Test]
     public function catchAllEntriesDisableTheSurface(): void
     {
-        foreach (['*', '*.*.*.*', '0.0.0.0/0', '::/0', '10.0.0.0/8, *'] as $list) {
+        foreach (['*', '*.*.*.*', '0.0.0.0/0', '::/0', '10.0.0.0/8, *', '*. *', "* .*.\t*.*", '0.0.0.0 /0', ':: / 0'] as $list) {
             $guard = $this->guard(['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_EXTERNAL_ALLOWED_IPS' => $list]);
             self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->status()->reasons, $list);
             self::assertSame([ExternalAccessState::IP_NOT_ALLOWED], $guard->evaluate($this->request('10.1.2.3'))->reasons, $list);
