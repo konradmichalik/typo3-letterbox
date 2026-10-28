@@ -15,7 +15,7 @@
             <f:if condition="{resetUrl}">
                 <div class="tester-reset">
                     <p class="tester-reset__text"><strong>{labels.resetFound}</strong> {labels.resetText}</p>
-                    <a class="tester-button tester-button--primary" href="{resetUrl}" target="_blank" rel="noopener noreferrer">{labels.resetOpen}</a>
+                    <a class="tester-button tester-button--primary" href="{resetUrl}" target="_blank" rel="noopener noreferrer">{labels.resetOpen}<span class="tester-visually-hidden"> {labels.newTab}</span></a>
                     <p class="tester-reset__url"><code>{resetUrl}</code></p>
                 </div>
             </f:if>
@@ -36,7 +36,7 @@
             <f:if condition="{showText}">
                 <f:then>
                     <f:if condition="{textSegments}">
-                        <f:then><pre class="tester-text"><f:for each="{textSegments}" as="segment"><f:if condition="{segment.url}"><f:then><a href="{segment.url}" target="_blank" rel="noopener noreferrer">{segment.text}</a></f:then><f:else>{segment.text}</f:else></f:if></f:for></pre></f:then>
+                        <f:then><f:comment>A description instead of inline text, so copying the text keeps it unchanged.</f:comment><span class="tester-visually-hidden" id="tester-new-tab">{labels.newTab}</span><pre class="tester-text"><f:for each="{textSegments}" as="segment"><f:if condition="{segment.url}"><f:then><a href="{segment.url}" target="_blank" rel="noopener noreferrer" aria-describedby="tester-new-tab">{segment.text}</a></f:then><f:else>{segment.text}</f:else></f:if></f:for></pre></f:then>
                         <f:else><p class="tester-empty">{labels.noText}</p></f:else>
                     </f:if>
                 </f:then>
@@ -57,7 +57,7 @@
                 <f:for each="{links}" as="link">
                     <li class="tester-item">
                         <f:if condition="{link.isPasswordReset}"><span class="tester-badge">{labels.resetLink}</span></f:if>
-                        <a class="tester-item__link" href="{link.url}" target="_blank" rel="noopener noreferrer">{link.url}</a>
+                        <a class="tester-item__link" href="{link.url}" target="_blank" rel="noopener noreferrer">{link.url}<span class="tester-visually-hidden"> {labels.newTab}</span></a>
                     </li>
                 </f:for>
             </ul>

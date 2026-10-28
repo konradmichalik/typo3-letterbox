@@ -7,6 +7,8 @@
   --tester-text: light-dark(#18181b, #e4e4e7);
   --tester-muted: light-dark(#5f5f63, #a8a7ae);
   --tester-border: light-dark(#d4d4d8, #3f3f46);
+  /* At least 3:1 against surface and page background, for borders that outline a control. */
+  --tester-control-border: light-dark(#7a7982, #7c7c85);
   --tester-primary: light-dark(#412aa2, #9785e0);
   --tester-primary-bg: light-dark(#412aa2, #6a55c8);
   --tester-on-primary: #fff;
@@ -151,7 +153,7 @@ dd {
 
 .tester-input {
   background: var(--tester-surface);
-  border: 1px solid light-dark(#8a8992, #71717a);
+  border: 1px solid var(--tester-control-border);
   border-radius: var(--tester-radius);
   color: var(--tester-text);
   flex: 1 1 12rem;
@@ -384,7 +386,7 @@ dd {
 .tester-tabs__item {
   align-items: center;
   background: var(--tester-surface);
-  border: 1px solid var(--tester-border);
+  border: 1px solid var(--tester-control-border);
   color: var(--tester-text);
   display: inline-flex;
   min-height: 44px;

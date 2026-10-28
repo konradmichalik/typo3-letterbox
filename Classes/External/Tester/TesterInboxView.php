@@ -65,6 +65,7 @@ final readonly class TesterInboxView
         'viewText' => 'detail.viewText',
         'noText' => 'detail.noText',
         'resetLink' => 'links.reset',
+        'newTab' => 'links.newTab',
     ];
 
     public function __construct(

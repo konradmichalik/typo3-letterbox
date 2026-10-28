@@ -342,6 +342,11 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertStringContainsString('><code>https://example.org/login?tx_felogin_login%5Baction%5D=showChangePassword&amp;tx_felogin_login%5Bhash%5D=abc123</code><', $body, 'the URL is visible as text');
         self::assertSame(0, preg_match('/<a\b(?![^>]*rel="noopener noreferrer")[^>]*href="https?:/', $body), 'every external link is opened without opener and referrer');
         self::assertStringNotContainsString('<script', $body);
+        self::assertGreaterThan(1, preg_match_all('#<a\b([^>]*target="_blank"[^>]*)>(.*?)</a>#s', $body, $newTabLinks));
+        foreach ($newTabLinks[2] as $index => $text) {
+            $announced = str_contains($text, '<span class="tester-visually-hidden"> (opens in a new tab)</span>') || str_contains($newTabLinks[1][$index], 'aria-describedby="tester-new-tab"');
+            self::assertTrue($announced, 'a link to a new tab says so: '.$text);
+        }
     }
 
     #[Test]
@@ -355,6 +360,10 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         $middleware = $this->middleware();
 
         $body = (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie())->getBody();
+
+        $text = (string) $this->send($middleware, '/_letterbox/inbox/'.$id.'?view=text', $this->cookie())->getBody();
+        self::assertStringContainsString('<span class="tester-visually-hidden" id="tester-new-tab">(opens in a new tab)</span>', $text);
+        self::assertStringContainsString('href="https://example.org/plain" target="_blank" rel="noopener noreferrer" aria-describedby="tester-new-tab"', $text);
 
         self::assertSame(1, preg_match('/<iframe\b[^>]*>/', $body, $frame));
         $tag = $frame[0] ?? '';
@@ -372,7 +381,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
 
         $text = (string) $this->send($middleware, '/_letterbox/inbox/'.$id.'?view=text', $this->cookie())->getBody();
         self::assertStringNotContainsString('<iframe', $text);
-        self::assertStringContainsString('Plain part <a href="https://example.org/plain" target="_blank" rel="noopener noreferrer">https://example.org/plain</a>', $text);
+        self::assertStringContainsString('Plain part <a href="https://example.org/plain" target="_blank" rel="noopener noreferrer" aria-describedby="tester-new-tab">https://example.org/plain</a>', $text);
 
         $plainOnly = $this->append('Plain only', 'anna@example.org');
         $plain = (string) $this->send($middleware, '/_letterbox/inbox/'.$plainOnly, $this->cookie())->getBody();
