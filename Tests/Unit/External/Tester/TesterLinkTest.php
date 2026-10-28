@@ -74,7 +74,7 @@ final class TesterLinkTest extends TestCase
      */
     private function link(array $scope, int $revoked = 0, bool $scopeValid = true): TesterLink
     {
-        return new TesterLink(1, 'Label', $scope, 2000, 1000, 1, $revoked, $scopeValid);
+        return new TesterLink(1, 'Label', $scope, 2000, 1, $revoked, $scopeValid);
     }
 
     /**

@@ -61,7 +61,7 @@ final readonly class TesterLinkRepository
             'created_by' => $createdBy,
         ]);
 
-        $link = new TesterLink((int) $connection->lastInsertId(), $label, $scope, $expires, $now, $createdBy, 0);
+        $link = new TesterLink((int) $connection->lastInsertId(), $label, $scope, $expires, $createdBy, 0);
 
         return new IssuedLink($link, $token);
     }
@@ -149,7 +149,6 @@ final readonly class TesterLinkRepository
             (string) $row['label'],
             $scopeValid ? $scope : [],
             (int) $row['expires'],
-            (int) $row['created'],
             (int) $row['created_by'],
             (int) $row['revoked'],
             $scopeValid,

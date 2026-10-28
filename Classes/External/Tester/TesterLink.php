@@ -32,7 +32,6 @@ final readonly class TesterLink
         public string $label,
         public array $scope,
         public int $expires,
-        public int $created,
         public int $createdBy,
         public int $revoked,
         public bool $scopeValid = true,

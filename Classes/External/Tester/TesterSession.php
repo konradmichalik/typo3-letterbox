@@ -37,11 +37,6 @@ final readonly class TesterSession
         private Context $context,
     ) {}
 
-    public function fromRequest(ServerRequestInterface $request): ?TesterLink
-    {
-        return $this->link($this->token($request));
-    }
-
     /**
      * The cookie value as sent, empty when there is none.
      */
