@@ -32,6 +32,9 @@ final readonly class TesterLinkRepository
 
     public const LIFETIME_DAYS = 7;
 
+    /** Expired and revoked links stay listed this long, then the next issue() removes them. */
+    public const RETENTION_DAYS = 30;
+
     public function __construct(
         private ConnectionPool $connectionPool,
     ) {}
@@ -45,6 +48,7 @@ final readonly class TesterLinkRepository
             throw new InvalidArgumentException('A tester link needs at least one recipient pattern.', 1761561701);
         }
 
+        $this->purge($now - self::RETENTION_DAYS * 86400);
         $token = bin2hex(random_bytes(32));
         $expires = $now + self::LIFETIME_DAYS * 86400;
         $connection = $this->connection();
@@ -104,6 +108,22 @@ final readonly class TesterLinkRepository
     public function revoke(int $uid, int $now): void
     {
         $this->connection()->update(self::TABLE, ['revoked' => $now], ['uid' => $uid]);
+    }
+
+    private function purge(int $before): void
+    {
+        $queryBuilder = $this->connection()->createQueryBuilder();
+        $cutoff = $queryBuilder->createNamedParameter($before, Connection::PARAM_INT);
+        $queryBuilder
+            ->delete(self::TABLE)
+            ->where($queryBuilder->expr()->or(
+                $queryBuilder->expr()->lt('expires', $cutoff),
+                $queryBuilder->expr()->and(
+                    $queryBuilder->expr()->gt('revoked', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                    $queryBuilder->expr()->lt('revoked', $cutoff),
+                ),
+            ))
+            ->executeStatement();
     }
 
     /**

@@ -49,6 +49,26 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function issuePurgesOldExpiredAndRevokedLinks(): void
+    {
+        $now = 100 * 86400;
+        $day = 86400;
+        $scope = [RecipientPattern::fromString('a@example.org')];
+        $repository = $this->subject();
+        $repository->issue('Expired 31 days ago', $scope, 1, $now - 38 * $day);
+        $repository->issue('Expired 29 days ago', $scope, 1, $now - 36 * $day);
+        $repository->revoke($repository->issue('Revoked 31 days ago', $scope, 1, $now - 32 * $day)->link->uid, $now - 31 * $day);
+        $repository->revoke($repository->issue('Revoked 29 days ago', $scope, 1, $now - 30 * $day)->link->uid, $now - 29 * $day);
+        $repository->issue('Active', $scope, 1, $now - $day);
+
+        $repository->issue('New', $scope, 1, $now);
+
+        $labels = array_column($this->connection()->select(['label'], self::TABLE)->fetchAllAssociative(), 'label');
+        sort($labels);
+        self::assertSame(['Active', 'Expired 29 days ago', 'New', 'Revoked 29 days ago'], $labels);
+    }
+
+    #[Test]
     public function issueRejectsAnEmptyScope(): void
     {
         $this->expectException(InvalidArgumentException::class);
