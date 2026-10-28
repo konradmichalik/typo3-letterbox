@@ -71,7 +71,7 @@
                 <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.connect.api" extensionName="Typo3Letterbox" /></dt>
                 <dd class="col-sm-8 mb-0"><code class="text-break">{apiUrl}</code></dd>
             </dl>
-            <p><f:translate key="access.connect.share" extensionName="Typo3Letterbox" arguments="{0: inboxUrl}" /></p>
+            <p><f:translate key="{f:if(condition: testerLink, then: 'access.connect.share', else: 'access.connect.shareWithoutToken')}" extensionName="Typo3Letterbox" /></p>
             <p class="text-variant mb-1"><f:translate key="access.connect.example" extensionName="Typo3Letterbox" /></p>
             <pre class="mb-0"><code>curl -H "X-Letterbox-Token: &lt;token&gt;" {apiUrl}/messages</code></pre>
         </div>

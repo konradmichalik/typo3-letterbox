@@ -77,4 +77,14 @@ final readonly class ExternalAccessGuard
 
         return strlen($token) >= self::MIN_TOKEN_LENGTH ? $token : '';
     }
+
+    /**
+     * The secret of the tester link. It is derived from the token, so a leaked link opens the read-only inbox but never the API.
+     */
+    public function testerLinkSecret(): string
+    {
+        $token = $this->token();
+
+        return '' === $token ? '' : hash_hmac('sha256', 'tester-link', $token);
+    }
 }

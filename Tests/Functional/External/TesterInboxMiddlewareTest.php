@@ -101,7 +101,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         putenv('LETTERBOX_EXTERNAL_ACCESS=Testing');
         putenv('LETTERBOX_ACCESS_TOKEN='.self::TOKEN);
 
-        $response = $this->executeFrontendSubRequest(new InternalRequest('https://stage.example.org/_letterbox/inbox?t='.self::TOKEN.'&p=2&q=x'));
+        $response = $this->executeFrontendSubRequest(new InternalRequest('https://stage.example.org/_letterbox/inbox?t='.$this->linkSecret().'&p=2&q=x'));
 
         self::assertSame(303, $response->getStatusCode());
         self::assertSame('/_letterbox/inbox', $response->getHeaderLine('Location'));
@@ -113,33 +113,47 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     #[Test]
     public function inboxCookieIsDerivedFromTheToken(): void
     {
-        $response = $this->send($this->middleware(), '/_letterbox/inbox?t='.self::TOKEN);
+        $response = $this->send($this->middleware(), '/_letterbox/inbox?t='.$this->linkSecret());
 
         self::assertSame(303, $response->getStatusCode());
         $attributes = $this->cookieAttributes($response);
         self::assertSame(hash_hmac('sha256', 'inbox', self::TOKEN), $attributes['letterbox_inbox']);
         self::assertStringNotContainsString(self::TOKEN, $response->getHeaderLine('Set-Cookie'));
+        self::assertStringNotContainsString($this->linkSecret(), $response->getHeaderLine('Set-Cookie'));
         self::assertEqualsWithDelta(time() + 7 * 86400, strtotime($attributes['expires']), 5);
         self::assertSame(200, $this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => $attributes['letterbox_inbox']])->getStatusCode());
         self::assertSame(404, $this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => self::TOKEN])->getStatusCode(), 'the raw token is no cookie');
     }
 
     #[Test]
+    public function rawTokenIsNoTesterLink(): void
+    {
+        $middleware = $this->middleware();
+
+        $response = $this->send($middleware, '/_letterbox/inbox?t='.self::TOKEN);
+
+        self::assertSame(404, $response->getStatusCode(), 'the API credential must not open the inbox');
+        self::assertFalse($response->hasHeader('Set-Cookie'));
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t='.strtoupper($this->linkSecret()))->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t='.hash_hmac('sha256', 'tester-link', str_repeat('b', 40)))->getStatusCode());
+    }
+
+    #[Test]
     public function changedTokenInvalidatesCookie(): void
     {
         $this->append('In scope', 'anna@example.org');
-        $cookie = ['letterbox_inbox' => hash_hmac('sha256', 'inbox', self::TOKEN)];
+        $cookie = $this->cookie();
         $changed = $this->middleware(str_repeat('b', 40));
 
         self::assertSame(200, $this->send($this->middleware(), '/_letterbox/inbox', $cookie)->getStatusCode());
         $this->assertClearedCookie($this->send($changed, '/_letterbox/inbox', $cookie));
-        self::assertSame(404, $this->send($changed, '/_letterbox/inbox?t='.self::TOKEN)->getStatusCode());
+        self::assertSame(404, $this->send($changed, '/_letterbox/inbox?t='.$this->linkSecret())->getStatusCode());
     }
 
     #[Test]
     public function cookieAttributesAreLax(): void
     {
-        $response = $this->send($this->middleware(), '/_letterbox/inbox?t='.self::TOKEN);
+        $response = $this->send($this->middleware(), '/_letterbox/inbox?t='.$this->linkSecret());
 
         self::assertSame(303, $response->getStatusCode());
         $attributes = $this->cookieAttributes($response);
@@ -169,7 +183,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/', $this->cookie())->getStatusCode(), 'no trailing slash');
         self::assertSame(404, $this->send($middleware, '/_letterbox/inbox', $this->cookie(), 'POST')->getStatusCode());
         self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t=wrong')->getStatusCode());
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t[]='.self::TOKEN)->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox?t[]='.$this->linkSecret())->getStatusCode());
         self::assertSame('1', $this->send($middleware, '/_letterbox/inboxes')->getHeaderLine('X-Passed-Through'));
         self::assertSame('1', $this->send($middleware, '/_letterbox')->getHeaderLine('X-Passed-Through'));
     }
@@ -237,12 +251,12 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         $middleware = $this->middleware();
         $server = ['SCRIPT_NAME' => '/sub/index.php'];
 
-        $response = $this->send($middleware, '/sub/_letterbox/inbox?t='.self::TOKEN, [], 'GET', $server);
+        $response = $this->send($middleware, '/sub/_letterbox/inbox?t='.$this->linkSecret(), [], 'GET', $server);
 
         self::assertSame(303, $response->getStatusCode());
         self::assertSame('/sub/_letterbox/inbox', $response->getHeaderLine('Location'));
         self::assertSame('/sub/_letterbox/inbox', $this->cookieAttributes($response)['path']);
-        self::assertSame('1', $this->send($middleware, '/_letterbox/inbox?t='.self::TOKEN, [], 'GET', $server)->getHeaderLine('X-Passed-Through'));
+        self::assertSame('1', $this->send($middleware, '/_letterbox/inbox?t='.$this->linkSecret(), [], 'GET', $server)->getHeaderLine('X-Passed-Through'));
         $list = $this->send($middleware, '/sub/_letterbox/inbox', $this->cookie(), 'GET', $server);
         self::assertSame(200, $list->getStatusCode());
         self::assertStringContainsString('action="/sub/_letterbox/inbox"', (string) $list->getBody());
@@ -433,6 +447,11 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     private function sessionValue(): string
     {
         return hash_hmac('sha256', 'inbox', self::TOKEN);
+    }
+
+    private function linkSecret(): string
+    {
+        return hash_hmac('sha256', 'tester-link', self::TOKEN);
     }
 
     /**

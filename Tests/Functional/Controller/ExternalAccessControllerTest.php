@@ -100,17 +100,30 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function pageShowsInboxAndApiUrlsWithoutToken(): void
+    public function pageShowsTesterLinkAndApiUrlWithoutToken(): void
     {
         $this->environment = ['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN];
 
         $body = $this->page(['SCRIPT_NAME' => '/sub/index.php']);
 
-        self::assertStringContainsString('<code class="text-break">https://typo3-testing.local/sub/_letterbox/inbox</code>', $body);
+        $link = 'https://typo3-testing.local/sub/_letterbox/inbox?t='.hash_hmac('sha256', 'tester-link', self::TOKEN);
+        self::assertStringContainsString('<code class="text-break">'.$link.'</code>', $body);
         self::assertStringContainsString('<code class="text-break">https://typo3-testing.local/sub/_letterbox/api/v1</code>', $body);
-        self::assertStringContainsString('Share the link https://typo3-testing.local/sub/_letterbox/inbox?t=&lt;token&gt; with your testers. Changing the token revokes access for everyone.', $body);
+        self::assertStringContainsString('Share this link with your testers. It opens the read-only inbox only, never the API. Changing the token revokes it for everyone.', $body);
         self::assertStringContainsString('curl -H "X-Letterbox-Token: &lt;token&gt;" https://typo3-testing.local/sub/_letterbox/api/v1/messages', $body);
         self::assertStringContainsString('Everyone with the inbox link or the token sees every caught mail of this system.', $body);
+        self::assertStringNotContainsString(self::TOKEN, $body);
+    }
+
+    #[Test]
+    public function testerLinkIsHiddenWithoutToken(): void
+    {
+        $this->environment = ['LETTERBOX_EXTERNAL_ACCESS' => 'Testing'];
+
+        $body = $this->page();
+
+        self::assertStringNotContainsString('_letterbox/inbox?t=', $body);
+        self::assertStringContainsString('<code class="text-break">https://typo3-testing.local/_letterbox/inbox</code>', $body);
     }
 
     #[Test]

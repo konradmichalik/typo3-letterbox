@@ -62,6 +62,7 @@ final class ExternalAccessGuardTest extends TestCase
 
         self::assertTrue($guard->evaluate($this->request())->active);
         self::assertSame(self::TOKEN, $guard->token());
+        self::assertSame(hash_hmac('sha256', 'tester-link', self::TOKEN), $guard->testerLinkSecret());
     }
 
     #[Test]
@@ -119,6 +120,7 @@ final class ExternalAccessGuardTest extends TestCase
             self::assertFalse($guard->status()->active, $token);
             self::assertSame([ExternalAccessState::TOKEN_MISSING], $guard->evaluate($this->request())->reasons, $token);
             self::assertSame('', $guard->token(), $token);
+            self::assertSame('', $guard->testerLinkSecret(), $token);
         }
 
         $legacy = $this->guard(['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_API_TOKEN' => self::TOKEN]);

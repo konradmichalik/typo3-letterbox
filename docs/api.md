@@ -2,7 +2,7 @@
 
 Back to [documentation overview](README.md).
 
-A token-protected, read-mostly API for end-to-end tests, for example to fetch the password reset link of a mail. It needs [external access](external-access.md) to be on, which includes `LETTERBOX_ACCESS_TOKEN` (at least 32 characters). The tester inbox uses the same token. Every client with the token sees and can delete every caught mail of the system.
+A token-protected, read-mostly API for end-to-end tests, for example to fetch the password reset link of a mail. It needs [external access](external-access.md) to be on, which includes `LETTERBOX_ACCESS_TOKEN` (at least 32 characters). The tester link is derived from the same token, see [external access](external-access.md#tester-inbox). Every client with the token sees and can delete every caught mail of the system.
 
 Every endpoint sits below `<site URL>_letterbox/api/v1/`. On an install in a sub-directory the prefix follows the TYPO3 path, for example `https://example.org/sub/_letterbox/api/v1/`. The API sets no CORS headers and answers every refusal with `404 {"error":"not_found"}`, whether the cause is a wrong token or an inactive guard.
 

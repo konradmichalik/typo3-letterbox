@@ -30,15 +30,15 @@ use function strlen;
  * TesterInboxMiddleware.
  *
  * The read-only tester inbox under `<site path>_letterbox/inbox` for people without a backend account.
- * The access token in the link is exchanged once for a session cookie; every refusal, whatever the reason, is the same 404.
+ * The link secret is exchanged once for a session cookie; every refusal, whatever the reason, is the same 404.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
 final readonly class TesterInboxMiddleware implements MiddlewareInterface
 {
     public const PATH_PREFIX = '_letterbox/inbox';
+    public const TOKEN_PARAMETER = 't';
     private const CSP = "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
-    private const TOKEN_PARAMETER = 't';
     private const PER_PAGE = 20;
     private const MAX_QUERY_LENGTH = 200;
     private const ID_PATTERN = '/^[0-9a-f]{32}$/D';
@@ -81,7 +81,7 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         }
         $token = $this->guard->token();
         if ([] === $segments && null !== ($request->getQueryParams()[self::TOKEN_PARAMETER] ?? null)) {
-            return $this->exchange($request, $token, $basePath);
+            return $this->exchange($request, $token, $this->guard->testerLinkSecret(), $basePath);
         }
         if (!$this->session->isValid($request, $token)) {
             $notFound = $this->view->notFound($request);
@@ -149,12 +149,13 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
     }
 
     /**
-     * The token leaves the address bar right away: the redirect target carries no query at all.
+     * The link carries the derived link secret, never the token. It leaves the address bar right away: the redirect
+     * target carries no query at all.
      */
-    private function exchange(ServerRequestInterface $request, string $token, string $basePath): ResponseInterface
+    private function exchange(ServerRequestInterface $request, string $token, string $linkSecret, string $basePath): ResponseInterface
     {
         $given = $request->getQueryParams()[self::TOKEN_PARAMETER];
-        if (!is_string($given) || !hash_equals(hash('sha256', $token), hash('sha256', $given))) {
+        if ('' === $linkSecret || !is_string($given) || !hash_equals($linkSecret, $given)) {
             return $this->view->notFound($request);
         }
 

@@ -34,7 +34,7 @@ use function sprintf;
  * ExternalAccessController.
  *
  * The status page of external access: whether it is on, what to change, and where testers and E2E tests connect.
- * The access token itself is never shown.
+ * The access token itself is never shown. The ready tester link is, because it only opens the inbox and admins can read every mail anyway.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
@@ -61,6 +61,8 @@ final readonly class ExternalAccessController
         $siteUrl = $params instanceof NormalizedParams ? $params->getSiteUrl() : '/';
         $context = (string) Environment::getContext();
         $state = $this->guard->evaluate($request);
+        $inboxUrl = $siteUrl.TesterInboxMiddleware::PATH_PREFIX;
+        $linkSecret = $this->guard->testerLinkSecret();
 
         $view = $this->moduleTemplateFactory->create($request);
         $view->setTitle($this->translate('module.title'), $this->translate('access.heading'));
@@ -75,7 +77,8 @@ final readonly class ExternalAccessController
             'reasons' => array_map(fn (string $reason): string => sprintf($this->translate('access.reason.'.$reason), $context), $state->reasons),
             'context' => $context,
             'tokenConfigured' => '' !== $this->guard->token(),
-            'inboxUrl' => $siteUrl.TesterInboxMiddleware::PATH_PREFIX,
+            'inboxUrl' => '' === $linkSecret ? $inboxUrl : $inboxUrl.'?'.TesterInboxMiddleware::TOKEN_PARAMETER.'='.$linkSecret,
+            'testerLink' => '' !== $linkSecret,
             'apiUrl' => $siteUrl.ApiMiddleware::PATH_PREFIX,
         ]);
 

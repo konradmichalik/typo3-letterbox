@@ -493,7 +493,10 @@
 				<source>JSON API</source>
 			</trans-unit>
 			<trans-unit id="access.connect.share" resname="access.connect.share">
-				<source>Share the link %s?t=&lt;token&gt; with your testers. Changing the token revokes access for everyone.</source>
+				<source>Share this link with your testers. It opens the read-only inbox only, never the API. Changing the token revokes it for everyone.</source>
+			</trans-unit>
+			<trans-unit id="access.connect.shareWithoutToken" resname="access.connect.shareWithoutToken">
+				<source>The ready tester link appears here once the token is configured.</source>
 			</trans-unit>
 			<trans-unit id="access.connect.example" resname="access.connect.example">
 				<source>Example for automated tests</source>
