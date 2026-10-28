@@ -42,8 +42,11 @@
 			<trans-unit id="inbox.hasAttachments" resname="inbox.hasAttachments">
 				<source>has attachments</source>
 			</trans-unit>
-			<trans-unit id="inbox.selectMail" resname="inbox.selectMail">
-				<source>Select a mail on the left to read it.</source>
+			<trans-unit id="inbox.noSelection.title" resname="inbox.noSelection.title">
+				<source>No mail selected</source>
+			</trans-unit>
+			<trans-unit id="inbox.noSelection.sentence" resname="inbox.noSelection.sentence">
+				<source>Pick a mail from the list to read it here.</source>
 			</trans-unit>
 			<trans-unit id="inbox.opened" resname="inbox.opened">
 				<source>Mail opened: %s</source>

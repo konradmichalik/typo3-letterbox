@@ -98,7 +98,7 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertSame(200, $response->getStatusCode());
         $body = (string) $response->getBody();
         self::assertStringContainsString('No mails caught yet', $body);
-        self::assertStringContainsString('aria-hidden="true" focusable="false"', $body);
+        self::assertMatchesRegularExpression('/<svg class="letterbox-illu" [^>]*width="240" aria-hidden="true" focusable="false"/', $body);
         self::assertStringNotContainsString('letterbox:testmails:send', $body);
     }
 
@@ -939,7 +939,9 @@ final class InboxControllerTest extends FunctionalTestCase
         $this->assertFragmentHeaders($response);
         $body = (string) $response->getBody();
         self::assertStringContainsString('data-letterbox-region="detail"', $body);
-        self::assertStringContainsString('Select a mail', $body);
+        self::assertMatchesRegularExpression('/<svg class="letterbox-illu" [^>]*width="150" aria-hidden="true" focusable="false"/', $body);
+        self::assertMatchesRegularExpression('#<h2[^>]*>\\s*No mail selected\\s*</h2>#', $body);
+        self::assertStringContainsString('Pick a mail from the list to read it here.', $body);
         self::assertStringNotContainsString('Waiting', $body);
     }
 

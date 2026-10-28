@@ -49,7 +49,7 @@ $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/html/var/
 
 <f:section name="NoMails">
     <section class="letterbox-empty text-center" aria-labelledby="letterbox-empty-title">
-        <f:render partial="EmptyIllustration" />
+        <f:render partial="EmptyIllustration" arguments="{width: 240}" />
         <h2 id="letterbox-empty-title"><f:translate key="inbox.empty.noMails" extensionName="Typo3Letterbox" /></h2>
         <p><f:translate key="inbox.empty.sentence" extensionName="Typo3Letterbox" /></p>
         <p>

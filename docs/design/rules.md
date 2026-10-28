@@ -6,7 +6,7 @@ These rules are binding for every change to Letterbox's backend module, the test
 
 The screens these rules produce are listed in [screens.md](screens.md).
 
-Phase 1 implements the inbox, detail view and empty state; the other screens are the target design for later phases.
+Phases 1 and 2 implement the inbox, detail view, empty state and the "No mail selected" state; the other screens are the target design for later phases.
 
 ## Principles
 
@@ -75,7 +75,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 - Header: subject as `h2`, then a definition list (`dl`) with the rows From, To, Cc and Date. Labels sit in a narrow muted column (48px), values in the second, 4px between rows. An address shows the display name in semibold and the address in muted angle brackets, or only the address in normal weight when there is no name. Cc only when present. The Date row carries the full date and time and ends with "All headers", which jumps to the Headers tab; there is no second, collapsible header block.
 - Actions are icon-only buttons with a tooltip and an accessible name that includes the subject: download `.eml`, delete.
-- Tabs: HTML, Text, Headers, Source, Links, Attachments (Phase 1 ships HTML, Text, Source). Core tab markup with the full ARIA tabs pattern.
+- Tabs: HTML, Text, Headers, Source, Links, Attachments (all six ship in Phase 2). Core tab markup with the full ARIA tabs pattern.
 - Preview width: icon-only toggles for desktop, tablet and mobile width, with tooltip and accessible name.
 
 ## Mail preview
@@ -90,7 +90,8 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 | State | Treatment |
 | --- | --- |
 | Not configured | Core info callout: what to set (`MAIL/transport`, `transport_mbox_file`) and where |
-| No mails | Large centred minimal illustration (a paper plane with its centre fold, a small primary-coloured tail fold and a dashed trail), `h2` "No mails caught yet", one sentence on how mails arrive, a Reload button, and the test mail command as a muted hint when debug mode is on. Replaces both columns |
+| No mails | Large centred illustration (the unDraw "empty mailbox", 240px wide), `h2` "No mails caught yet", one sentence on how mails arrive, a Reload button, and the test mail command as a muted hint when debug mode is on. Replaces both columns |
+| No mail selected | Detail column shows the 150px illustration, `h2` "No mail selected" and "Pick a mail from the list to read it here." |
 | No HTML preview | Core callout, Text tab selected |
 | Catching in a Production context (mode `all`) | Warning in toolbar and reports |
 | Mode `listed` | Info: "Catching N addresses" |
@@ -113,8 +114,8 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 ## Illustration
 
-- One illustration only, for the empty inbox, kept in `Resources/Private/Partials/EmptyIllustration.html`. Inline SVG, minimal: four shapes, 2px strokes, one small filled shape (the tail fold), no decoration, gradients or shadows.
-- Colours come from `currentColor` and core custom properties: text colour for the outline and the centre fold, module background as the plane's fill, primary for the tail fold, border colour for the dashed trail. It follows light and dark mode.
+- One illustration only, the unDraw "empty mailbox" by Katerina Limpitsouni, kept in `Resources/Private/Partials/EmptyIllustration.html`. Inline SVG, recoloured with CSS classes. It appears twice through the same partial with a `width` argument: 240px for the empty inbox and 150px above "No mail selected" in the detail column. It is under the [unDraw license](https://undraw.co/license), not the GPL (see Credits in the README).
+- Colours come from `currentColor` and core custom properties: text colour for the outline parts, module background for the light parts, primary text colour for the flag, border colour at 55% opacity for bushes and the circle. No hard-coded hex values. It follows light and dark mode; in forced-colors mode outlines use `CanvasText`, fills `Canvas` and the flag `Highlight`.
 - It is decorative: `aria-hidden="true"` and `focusable="false"`. The heading and sentence next to it carry the message.
 - Scales down with `max-width: 100%`; it never pushes the heading below the fold at 1280 by 720.
 

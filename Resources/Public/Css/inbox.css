@@ -160,24 +160,49 @@
   padding-block: 1rem;
 }
 
-.letterbox-empty-illustration {
-  color: var(--typo3-text-color-base);
+.letterbox-illu {
   display: block;
   height: auto;
   margin: 0 auto 1rem;
   max-width: 100%;
 }
 
-.letterbox-empty-surface {
-  fill: var(--module-bg);
-}
-
-.letterbox-empty-primary {
+.letterbox-illu-flag {
   fill: var(--typo3-text-color-primary);
 }
 
-.letterbox-empty-border {
-  stroke: var(--typo3-component-border-color);
+.letterbox-illu-ink {
+  fill: var(--typo3-text-color-base);
+}
+
+.letterbox-illu-soft {
+  fill: var(--typo3-component-border-color);
+  fill-opacity: 0.55;
+}
+
+.letterbox-illu-paper {
+  fill: var(--module-bg);
+}
+
+@media (forced-colors: active) {
+  .letterbox-illu-flag {
+    fill: Highlight;
+  }
+
+  .letterbox-illu-ink {
+    fill: CanvasText;
+  }
+
+  .letterbox-illu-soft {
+    fill: Canvas;
+    fill-opacity: 1;
+    stroke: CanvasText;
+    stroke-width: 3;
+  }
+
+  .letterbox-illu-paper {
+    fill: Canvas;
+  }
 }
 
 /* Collapsed list: a bar above the detail on narrow screens, a 52px rail beside it on wide ones. */

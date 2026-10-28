@@ -88,6 +88,8 @@ Please have a look at [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Letterbox is forked from [`t3/mbox`](https://github.com/a-r-m-i-n/mbox) by Armin Vieweg. The mbox parser approach comes from [`armin/mbox-parser`](https://github.com/a-r-m-i-n/mbox-parser).
 
+The illustration for the empty and unselected states is "Empty mailbox" by Katerina Limpitsouni from [unDraw](https://undraw.co/), recoloured. It is used under the [unDraw license](https://undraw.co/license) and is not covered by the GPL of this extension.
+
 ## ⭐ License
 
 This project is licensed under [GNU General Public License 2.0 (or later)](LICENSE.md).

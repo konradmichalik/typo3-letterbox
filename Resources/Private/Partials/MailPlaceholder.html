@@ -4,8 +4,10 @@
 >
 
 <div class="card" data-letterbox-region="detail">
-    <div class="card-body text-variant">
-        <f:translate key="inbox.selectMail" extensionName="Typo3Letterbox" />
+    <div class="card-body text-center">
+        <f:render partial="EmptyIllustration" arguments="{width: 150}" />
+        <h2 class="h4"><f:translate key="inbox.noSelection.title" extensionName="Typo3Letterbox" /></h2>
+        <p class="text-variant mb-0"><f:translate key="inbox.noSelection.sentence" extensionName="Typo3Letterbox" /></p>
     </div>
 </div>
 
