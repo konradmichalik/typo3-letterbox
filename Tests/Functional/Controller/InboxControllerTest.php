@@ -1281,15 +1281,14 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function releaseButtonIsDisabledWhileReleaseIsOff(): void
+    public function noButtonWhenReleaseIsOff(): void
     {
         $this->append('Hold');
 
         $body = $this->show($this->firstId());
 
-        self::assertMatchesRegularExpression('/<button\\s+type="button"[^>]*aria-disabled="true"[^>]*aria-describedby="letterbox-release-refusal"[^>]*title="Release is off: [^"]*transport_letterbox_release/', $body);
-        self::assertStringNotContainsString('letterbox-release-form', $body);
         self::assertStringNotContainsString('data-letterbox-release', $body);
+        self::assertStringNotContainsString('letterbox-release-', $body);
     }
 
     #[Test]
@@ -1312,16 +1311,22 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function refusedReleaseExplainsWhyNextToTheButton(): void
+    public function refusedReleaseShowsReasonInDialog(): void
     {
-        $this->enableRelease(['transport_letterbox_delivery' => '']);
+        $this->enableRelease(['transport_letterbox_delivery' => 'mbox']);
         $this->append('Hold');
 
         $body = $this->show($this->firstId());
 
-        self::assertMatchesRegularExpression('/<button\s+type="button"[^>]*aria-disabled="true"[^>]*aria-describedby="letterbox-release-refusal"/', $body);
-        self::assertMatchesRegularExpression('/id="letterbox-release-refusal"[^>]*>[^<]*transport_letterbox_delivery/', $body);
+        self::assertMatchesRegularExpression('/<button\\s+type="button"[^>]*data-letterbox-release[^>]*aria-label="Release this mail: Hold"/', $body);
+        self::assertStringNotContainsString('aria-disabled', $body);
+        self::assertSame(1, preg_match('/<template id="letterbox-release-dialog">(.*?)<\/template>/s', $body, $dialog));
+        self::assertStringContainsString('callout-danger', $dialog[1] ?? '');
+        self::assertStringContainsString('loop', $dialog[1] ?? '');
+        self::assertStringContainsString('transport_letterbox_delivery', $dialog[1] ?? '');
+        self::assertStringNotContainsString('<input', $dialog[1] ?? '');
         self::assertStringNotContainsString('letterbox-release-form', $body);
+        self::assertMatchesRegularExpression('/data-letterbox-release[^>]*data-button-close-text="Close"/', $body);
     }
 
     private function assertFragmentHeaders(ResponseInterface $response): void

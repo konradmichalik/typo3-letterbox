@@ -297,6 +297,12 @@
 			<trans-unit id="inbox.release.refusal.release_off" resname="inbox.release.refusal.release_off">
 				<source>Release is off: MAIL/transport_letterbox_release lists no addresses.</source>
 			</trans-unit>
+			<trans-unit id="inbox.release.unavailable" resname="inbox.release.unavailable">
+				<source>Release is not available</source>
+			</trans-unit>
+			<trans-unit id="inbox.close" resname="inbox.close">
+				<source>Close</source>
+			</trans-unit>
 			<trans-unit id="inbox.release.dialog.title" resname="inbox.release.dialog.title">
 				<source>Release mail</source>
 			</trans-unit>
@@ -313,16 +319,16 @@
 				<source>Release mail</source>
 			</trans-unit>
 			<trans-unit id="inbox.release.refusal.release_invalid" resname="inbox.release.refusal.release_invalid">
-				<source>Release is off: MAIL/transport_letterbox_release contains an invalid entry.</source>
+				<source>MAIL/transport_letterbox_release contains an invalid entry. Use exact addresses or *@domain patterns only.</source>
 			</trans-unit>
 			<trans-unit id="inbox.release.refusal.delivery_missing" resname="inbox.release.refusal.delivery_missing">
-				<source>Release needs a delivery transport in MAIL/transport_letterbox_delivery.</source>
+				<source>No delivery transport is set. Set MAIL/transport_letterbox_delivery to a real mail transport, for example smtp.</source>
 			</trans-unit>
 			<trans-unit id="inbox.release.refusal.delivery_loops" resname="inbox.release.refusal.delivery_loops">
-				<source>Release is off: the delivery transport would hand the mail back to Letterbox, a loop.</source>
+				<source>The delivery transport would hand the mail back to Letterbox, a loop. Point MAIL/transport_letterbox_delivery at a real mail server, not at Letterbox, mbox or a sendmail command that runs letterbox:receive.</source>
 			</trans-unit>
 			<trans-unit id="inbox.release.refusal.sender_missing" resname="inbox.release.refusal.sender_missing">
-				<source>This mail cannot be released: it has no sender address and MAIL/defaultMailFromAddress is empty.</source>
+				<source>This mail has no sender address. Set MAIL/defaultMailFromAddress to release it.</source>
 			</trans-unit>
 			<trans-unit id="flash.released" resname="flash.released">
 				<source>Mail released to %s.</source>

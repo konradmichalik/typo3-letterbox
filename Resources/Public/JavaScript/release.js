@@ -22,23 +22,51 @@ const allowed = (patterns, address) => {
 
 const isSingleAddress = (input) => input.checkValidity() && !/[\s,;<>]/.test(input.value.trim());
 
+const addTitleIcon = (modal) => {
+  // Core takes the title as text only, so the icon is added once the header is rendered.
+  modal.updateComplete.then(() => {
+    const icon = modal.ownerDocument.createElement('typo3-backend-icon');
+    icon.setAttribute('identifier', ICON);
+    icon.setAttribute('size', 'small');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.classList.add('me-2');
+    modal.querySelector('.t3js-modal-title')?.prepend(icon);
+  });
+};
+
+const returnFocus = (modal, button, isSubmitted) => {
+  modal.addEventListener('typo3-modal-hidden', () => {
+    if (!isSubmitted()) {
+      button.focus();
+    }
+  });
+};
+
+/**
+ * A refused release shows the reason only, with a single Close button. The server refuses as well.
+ */
+const openRefusal = (button, content) => {
+  const modal = Modal.advanced({
+    title: button.dataset.title,
+    content,
+    severity: Severity.notice,
+    buttons: [{ text: button.dataset.buttonCloseText, btnClass: 'btn-default', name: 'close', trigger: (event, current) => current.hideModal() }],
+  });
+  addTitleIcon(modal);
+  modal.addEventListener('typo3-modal-shown', () => modal.querySelector('.modal-footer button')?.focus());
+  returnFocus(modal, button, () => false);
+};
+
 /**
  * Core opens the modal in the top frame, so the dialog only collects the address and submits the form that stays
  * in the module document.
  */
-const openDialog = (button) => {
-  const doc = button.ownerDocument;
-  const form = doc.getElementById('letterbox-release-form');
-  const template = doc.getElementById('letterbox-release-dialog');
-  if (form === null || template === null) {
-    return;
-  }
-  const content = template.content.firstElementChild.cloneNode(true);
+const openRelease = (button, content, form) => {
   const input = content.querySelector('input');
+  const error = content.querySelector('.invalid-feedback');
   const patterns = (button.dataset.allowlist ?? '').split(',').map((pattern) => pattern.trim().toLowerCase()).filter((pattern) => pattern !== '');
   let submitted = false;
 
-  const error = content.querySelector('.invalid-feedback');
   const setInvalid = (invalid) => {
     error.hidden = !invalid;
     input.classList.toggle('is-invalid', invalid);
@@ -66,32 +94,35 @@ const openDialog = (button) => {
       { text: button.dataset.buttonOkText, btnClass: 'btn-primary', name: 'release', icon: ICON, trigger: (event, current) => confirm(current) },
     ],
   });
-  // Core takes the title as text only, so the icon is added once the header is rendered.
-  modal.updateComplete.then(() => {
-    const icon = modal.ownerDocument.createElement('typo3-backend-icon');
-    icon.setAttribute('identifier', ICON);
-    icon.setAttribute('size', 'small');
-    icon.setAttribute('aria-hidden', 'true');
-    icon.classList.add('me-2');
-    modal.querySelector('.t3js-modal-title')?.prepend(icon);
-  });
+  addTitleIcon(modal);
   content.addEventListener('submit', (event) => {
     event.preventDefault();
     confirm(modal);
   });
   input.addEventListener('input', () => setInvalid(false));
   modal.addEventListener('typo3-modal-shown', () => input.focus());
-  modal.addEventListener('typo3-modal-hidden', () => {
-    if (!submitted) {
-      button.focus();
-    }
-  });
+  returnFocus(modal, button, () => submitted);
+};
+
+const openDialog = (button) => {
+  const doc = button.ownerDocument;
+  const template = doc.getElementById('letterbox-release-dialog');
+  if (template === null) {
+    return;
+  }
+  const content = template.content.firstElementChild.cloneNode(true);
+  const form = doc.getElementById('letterbox-release-form');
+  if (form === null) {
+    openRefusal(button, content);
+  } else {
+    openRelease(button, content, form);
+  }
 };
 
 // Delegated on the document, so the button keeps working after inbox.js swapped the detail region.
 document.addEventListener('click', (event) => {
   const button = event.target.closest('[data-letterbox-release]');
-  if (button === null || button.getAttribute('aria-disabled') === 'true') {
+  if (button === null) {
     return;
   }
   event.preventDefault();

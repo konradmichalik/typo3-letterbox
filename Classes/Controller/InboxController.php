@@ -314,7 +314,7 @@ final readonly class InboxController
     }
 
     /**
-     * The release button is always shown. A refusal reason key disables it, the template names the reason.
+     * The template hides the button for refusal release_off and explains any other refusal in the dialog.
      *
      * @return array{url: string, refusal: string, recipient: string, allowlist: string}
      */

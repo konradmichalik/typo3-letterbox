@@ -16,7 +16,10 @@
                     <div class="btn-group">
                         <f:variable name="downloadLabel" value="{f:translate(key: 'inbox.downloadEml', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
                         <f:variable name="deleteLabel" value="{f:translate(key: 'inbox.delete', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
-                        <f:render section="ReleaseButton" arguments="{release: release, subject: subject}" />
+                        <f:comment>Release is opt-in: without a release list there is no button.</f:comment>
+                        <f:if condition="{release.refusal} != 'release_off'">
+                            <f:render section="ReleaseButton" arguments="{release: release, subject: subject}" />
+                        </f:if>
                         <a class="btn btn-sm btn-default" href="{f:be.uri(route: 'system_letterbox.source', parameters: {id: mail.id})}" title="{downloadLabel}" aria-label="{downloadLabel}">
                             <span aria-hidden="true"><core:icon identifier="actions-download" /></span>
                         </a>
@@ -36,7 +39,9 @@
                         </button>
                     </div>
                 </form>
-                <f:render section="Release" arguments="{release: release, mail: mail, subject: subject, token: token}" />
+                <f:if condition="{release.refusal} != 'release_off'">
+                    <f:render section="Release" arguments="{release: release, mail: mail, subject: subject, token: token}" />
+                </f:if>
             </div>
         </div>
 
@@ -247,38 +252,39 @@
 
 
 <f:section name="ReleaseButton">
-    <f:variable name="refusalText" value="{f:if(condition: release.refusal, then: '{f:translate(key: \'inbox.release.refusal.{release.refusal}\', extensionName: \'Typo3Letterbox\')}')}" />
-    <f:variable name="releaseLabel" value="{f:translate(key: 'inbox.release', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
-    <f:if condition="{release.refusal}">
-        <f:then>
-            <button type="button" class="btn btn-sm btn-default" aria-disabled="true" aria-describedby="letterbox-release-refusal" title="{refusalText}" aria-label="{releaseLabel}">
-                <span aria-hidden="true"><core:icon identifier="actions-paperplane" /></span>
-            </button>
-        </f:then>
-        <f:else>
-            <f:comment>Opens the dialog of release.js, which needs JavaScript like the confirmation of delete.</f:comment>
-            <button
-                type="button"
-                class="btn btn-sm btn-default"
-                data-letterbox-release
-                title="{f:translate(key: 'inbox.release.tooltip', extensionName: 'Typo3Letterbox')}"
-                aria-label="{releaseLabel}"
-                aria-haspopup="dialog"
-                data-allowlist="{release.allowlist}"
-                data-title="{f:translate(key: 'inbox.release.dialog.title', extensionName: 'Typo3Letterbox')}"
-                data-button-close-text="{f:translate(key: 'inbox.cancel', extensionName: 'Typo3Letterbox')}"
-                data-button-ok-text="{f:translate(key: 'inbox.release.dialog.ok', extensionName: 'Typo3Letterbox')}"
-            >
-                <span aria-hidden="true"><core:icon identifier="actions-paperplane" /></span>
-            </button>
-        </f:else>
-    </f:if>
+    <f:variable name="closeKey" value="{f:if(condition: release.refusal, then: 'inbox.close', else: 'inbox.cancel')}" />
+    <f:comment>Opens the dialog of release.js, which needs JavaScript like the confirmation of delete. A refused release opens it too and explains why.</f:comment>
+    <button
+        type="button"
+        class="btn btn-sm btn-default"
+        data-letterbox-release
+        title="{f:translate(key: 'inbox.release.tooltip', extensionName: 'Typo3Letterbox')}"
+        aria-label="{f:translate(key: 'inbox.release', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"
+        aria-haspopup="dialog"
+        data-allowlist="{release.allowlist}"
+        data-title="{f:translate(key: 'inbox.release.dialog.title', extensionName: 'Typo3Letterbox')}"
+        data-button-close-text="{f:translate(key: closeKey, extensionName: 'Typo3Letterbox')}"
+        data-button-ok-text="{f:translate(key: 'inbox.release.dialog.ok', extensionName: 'Typo3Letterbox')}"
+    >
+        <span aria-hidden="true"><core:icon identifier="actions-paperplane" /></span>
+    </button>
 </f:section>
 
 <f:section name="Release">
+    <f:comment>Core shows the modal in the top frame. release.js copies the template content there and submits the form.</f:comment>
     <f:if condition="{release.refusal}">
         <f:then>
-            <p id="letterbox-release-refusal" class="visually-hidden"><f:translate key="inbox.release.refusal.{release.refusal}" extensionName="Typo3Letterbox" /></p>
+            <template id="letterbox-release-dialog">
+                <div class="callout callout-danger mb-0">
+                    <div class="callout-icon" aria-hidden="true">
+                        <span class="icon-emphasized"><core:icon identifier="actions-close" /></span>
+                    </div>
+                    <div class="callout-content">
+                        <div class="callout-title"><f:translate key="inbox.release.unavailable" extensionName="Typo3Letterbox" /></div>
+                        <div class="callout-body"><f:translate key="inbox.release.refusal.{release.refusal}" extensionName="Typo3Letterbox" /></div>
+                    </div>
+                </div>
+            </template>
         </f:then>
         <f:else>
             <form id="letterbox-release-form" method="post" action="{release.url}">
@@ -286,7 +292,6 @@
                 <input type="hidden" name="letterboxToken" value="{token}" />
                 <input type="hidden" name="recipient" value="" />
             </form>
-            <f:comment>Core shows the modal in the top frame. release.js copies this content there and submits the form above.</f:comment>
             <template id="letterbox-release-dialog">
                 <form class="text-start" novalidate>
                     <div class="callout callout-warning">
