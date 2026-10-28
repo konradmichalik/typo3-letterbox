@@ -50,6 +50,11 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
 
     private ServerRequestInterface $request;
 
+    /**
+     * @var array<string, mixed>|null the item and its dropdown render in one request, the mailbox is read once
+     */
+    private ?array $variables = null;
+
     public function __construct(
         private readonly BackendViewFactory $backendViewFactory,
         private readonly MailRepository $mailRepository,
@@ -123,6 +128,14 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
      * @return array<string, mixed>
      */
     private function variables(): array
+    {
+        return $this->variables ??= $this->readVariables();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function readVariables(): array
     {
         $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
         $settings = $this->settings(is_array($mail) ? $mail : []);

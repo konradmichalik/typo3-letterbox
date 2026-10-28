@@ -255,6 +255,18 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function dropdownReusesTheMailboxReadOfTheItem(): void
+    {
+        $this->append('First');
+        $item = $this->item();
+        $item->getItem();
+
+        $this->append('Second');
+
+        self::assertStringNotContainsString('Second', $item->getDropDown());
+    }
+
+    #[Test]
     public function missingMailboxFileRendersEmptyDropdown(): void
     {
         $html = $this->item()->getDropDown();
