@@ -1,0 +1,54 @@
+<f:layout name="Page" />
+<f:section name="Main">
+    <h1 class="tester-title">{heading}</h1>
+    <p class="tester-scope">{scope} · {validUntil}</p>
+    <form class="tester-search" method="get" action="{basePath}" role="search">
+        <label class="tester-search__label" for="tester-query">{labels.searchLabel}</label>
+        <div class="tester-search__row">
+            <input class="tester-input" type="search" id="tester-query" name="q" value="{query}" maxlength="200" autocomplete="off">
+            <button class="tester-button tester-button--primary" type="submit">{labels.searchSubmit}</button>
+            <f:if condition="{query}">
+                <a class="tester-button" href="{basePath}">{labels.searchClear}</a>
+            </f:if>
+        </div>
+    </form>
+    <section class="tester-card" aria-labelledby="tester-list-heading">
+        <div class="tester-card__header">
+            <h2 id="tester-list-heading" class="tester-card__title">{listHeading}</h2>
+            <a class="tester-button" href="{refreshUrl}">{labels.refresh}</a>
+        </div>
+        <f:if condition="{rows}">
+            <f:then>
+                <ul class="tester-list">
+                    <f:for each="{rows}" as="row">
+                        <li>
+                            <a class="tester-row" href="{row.url}">
+                                <span class="tester-row__top">
+                                    <span class="tester-row__subject">{row.subject}</span>
+                                    <f:if condition="{row.date}"><time class="tester-row__date" datetime="{row.isoDate}">{row.date}</time></f:if>
+                                </span>
+                                <span class="tester-row__meta">
+                                    {row.meta}
+                                    <f:if condition="{row.hasAttachments}">
+                                        <svg class="tester-row__clip" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/></svg>
+                                        <span class="tester-visually-hidden">, {labels.attachments}</span>
+                                    </f:if>
+                                </span>
+                            </a>
+                        </li>
+                    </f:for>
+                </ul>
+            </f:then>
+            <f:else>
+                <p class="tester-empty">{emptyText}</p>
+            </f:else>
+        </f:if>
+    </section>
+    <f:if condition="{pagination}">
+        <nav class="tester-pagination" aria-label="{labels.paginationLabel}">
+            <f:if condition="{pagination.previous}"><a class="tester-button" href="{pagination.previous}">{labels.previous}</a></f:if>
+            <p class="tester-pagination__status">{pagination.status}</p>
+            <f:if condition="{pagination.next}"><a class="tester-button" href="{pagination.next}">{labels.next}</a></f:if>
+        </nav>
+    </f:if>
+</f:section>

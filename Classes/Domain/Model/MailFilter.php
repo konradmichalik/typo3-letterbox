@@ -41,6 +41,7 @@ final readonly class MailFilter
         private string $recipient = '',
         private string $subject = '',
         private array $additionalScopes = [],
+        private bool $scopedQuery = false,
     ) {}
 
     public static function all(): self
@@ -92,7 +93,7 @@ final readonly class MailFilter
 
     public function withQuick(QuickFilter $quick): self
     {
-        return new self($this->query, $quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject, $this->additionalScopes);
+        return new self($this->query, $quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject, $this->additionalScopes, $this->scopedQuery);
     }
 
     /**
@@ -100,7 +101,7 @@ final readonly class MailFilter
      */
     public function withScope(array $scope): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $scope, $this->exclusions, $this->recipient, $this->subject, $this->additionalScopes);
+        return new self($this->query, $this->quick, $this->readLookup, $scope, $this->exclusions, $this->recipient, $this->subject, $this->additionalScopes, $this->scopedQuery);
     }
 
     /**
@@ -110,7 +111,7 @@ final readonly class MailFilter
      */
     public function withAdditionalScope(array $scope): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject, [...$this->additionalScopes, $scope]);
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject, [...$this->additionalScopes, $scope], $this->scopedQuery);
     }
 
     /**
@@ -118,17 +119,27 @@ final readonly class MailFilter
      */
     public function withExclusions(array $exclusions): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $exclusions, $this->recipient, $this->subject, $this->additionalScopes);
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $exclusions, $this->recipient, $this->subject, $this->additionalScopes, $this->scopedQuery);
     }
 
     public function withRecipient(string $address): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, strtolower(trim($address)), $this->subject, $this->additionalScopes);
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, strtolower(trim($address)), $this->subject, $this->additionalScopes, $this->scopedQuery);
     }
 
     public function withSubject(string $needle): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $needle, $this->additionalScopes);
+        return new self($this->query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $needle, $this->additionalScopes, $this->scopedQuery);
+    }
+
+    /**
+     * A search that matches recipients only when they are in scope, so masked addresses and names cannot be probed.
+     *
+     * @param string $query already trimmed and capped
+     */
+    public function withScopedQuery(string $query): self
+    {
+        return new self($query, $this->quick, $this->readLookup, $this->scope, $this->exclusions, $this->recipient, $this->subject, $this->additionalScopes, true);
     }
 
     /**
@@ -219,12 +230,25 @@ final readonly class MailFilter
 
     private function queryMatches(MessageIndexEntry $entry): bool
     {
-        foreach ([$entry->subject, $entry->sender, $entry->fromName, ...$entry->recipients, ...$entry->recipientLabels] as $haystack) {
+        foreach ([$entry->subject, $entry->sender, $entry->fromName, ...$this->searchableRecipients($entry)] as $haystack) {
             if (false !== mb_stripos($haystack, $this->query)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchableRecipients(MessageIndexEntry $entry): array
+    {
+        $groups = $this->scopeGroups();
+        if (!$this->scopedQuery || [] === $groups) {
+            return [...$entry->recipients, ...$entry->recipientLabels];
+        }
+
+        return array_values(array_filter($entry->scopeRecipients, fn (string $address): bool => $this->matchesEveryGroup($groups, [$address])));
     }
 }

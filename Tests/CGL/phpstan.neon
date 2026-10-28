@@ -30,4 +30,6 @@ parameters:
 		-
 			# The frontend sub-request boots its own container, so the stack tests can only pass the environment through the process. tearDown() restores it.
 			identifier: disallowed.function
-			path: ../../Tests/Functional/External/ApiMiddlewareTest.php
+			paths:
+				- ../../Tests/Functional/External/ApiMiddlewareTest.php
+				- ../../Tests/Functional/External/TesterInboxMiddlewareTest.php

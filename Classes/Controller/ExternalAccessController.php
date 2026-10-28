@@ -18,7 +18,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\External\Api\ApiMiddleware;
 use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard, ExternalAccessState};
-use KonradMichalik\Typo3Letterbox\External\Tester\{TesterLink, TesterLinkRepository};
+use KonradMichalik\Typo3Letterbox\External\Tester\{TesterInboxMiddleware, TesterLink, TesterLinkRepository};
 use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -62,7 +62,6 @@ final readonly class ExternalAccessController
     // TYPO3 reads a body field named "token" as the backend route token, so the form token needs its own name.
     private const TOKEN_FIELD = 'letterboxToken';
     private const LANGUAGE_FILE = 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:';
-    private const TESTER_INBOX_PREFIX = '_letterbox/inbox';
     private const MAX_LABEL_LENGTH = 255;
     private const DAYS = [1, 7, 30];
     private const DEFAULT_DAYS = 7;
@@ -116,7 +115,7 @@ final readonly class ExternalAccessController
         $params = $request->getAttribute('normalizedParams');
         $siteUrl = $params instanceof NormalizedParams ? $params->getSiteUrl() : '/';
         $created = [
-            'url' => $siteUrl.self::TESTER_INBOX_PREFIX.'?t='.$issued->token,
+            'url' => $siteUrl.TesterInboxMiddleware::PATH_PREFIX.'?t='.$issued->token,
             'label' => $issued->link->label,
             'expires' => $this->formatTime($issued->link->expires),
         ];
@@ -175,7 +174,7 @@ final readonly class ExternalAccessController
             'reasons' => $this->reasonTexts($state),
             'context' => (string) Environment::getContext(),
             'siteUrl' => $siteUrl,
-            'inboxUrl' => $siteUrl.self::TESTER_INBOX_PREFIX,
+            'inboxUrl' => $siteUrl.TesterInboxMiddleware::PATH_PREFIX,
             'apiUrl' => $siteUrl.ApiMiddleware::PATH_PREFIX,
             'apiTokenConfigured' => strlen($this->environment->get(ApiMiddleware::ENV_TOKEN)) >= ApiMiddleware::MIN_TOKEN_LENGTH,
             'links' => $this->linkRows($links),

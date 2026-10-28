@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+	<file source-language="en" datatype="plaintext" original="EXT:typo3_letterbox/Resources/Private/Language/locallang_tester.xlf" date="2026-10-28T00:00:00Z" product-name="typo3_letterbox">
+		<header/>
+		<body>
+			<trans-unit id="page.brand" resname="page.brand">
+				<source>Test inbox</source>
+			</trans-unit>
+			<trans-unit id="page.fallbackHeading" resname="page.fallbackHeading">
+				<source>Letterbox</source>
+			</trans-unit>
+			<trans-unit id="page.notDelivered" resname="page.notDelivered">
+				<source>Mails are not delivered</source>
+			</trans-unit>
+			<trans-unit id="page.skip" resname="page.skip">
+				<source>Skip to content</source>
+			</trans-unit>
+			<trans-unit id="scope.mailsFor" resname="scope.mailsFor">
+				<source>Mails for %s</source>
+			</trans-unit>
+			<trans-unit id="scope.all" resname="scope.all">
+				<source>all recipients</source>
+			</trans-unit>
+			<trans-unit id="scope.validUntil" resname="scope.validUntil">
+				<source>Link valid until %s</source>
+			</trans-unit>
+			<trans-unit id="search.label" resname="search.label">
+				<source>Search mails</source>
+			</trans-unit>
+			<trans-unit id="search.submit" resname="search.submit">
+				<source>Search</source>
+			</trans-unit>
+			<trans-unit id="search.clear" resname="search.clear">
+				<source>Clear search</source>
+			</trans-unit>
+			<trans-unit id="list.heading" resname="list.heading">
+				<source>Mails (%d)</source>
+			</trans-unit>
+			<trans-unit id="list.refresh" resname="list.refresh">
+				<source>Refresh</source>
+			</trans-unit>
+			<trans-unit id="list.empty" resname="list.empty">
+				<source>No mails for this link yet. New mails show up after a refresh.</source>
+			</trans-unit>
+			<trans-unit id="list.emptySearch" resname="list.emptySearch">
+				<source>No mails match your search.</source>
+			</trans-unit>
+			<trans-unit id="row.from" resname="row.from">
+				<source>From %s</source>
+			</trans-unit>
+			<trans-unit id="row.to" resname="row.to">
+				<source>to %s</source>
+			</trans-unit>
+			<trans-unit id="row.more" resname="row.more">
+				<source>and %d more</source>
+			</trans-unit>
+			<trans-unit id="row.hiddenOnly" resname="row.hiddenOnly">
+				<source>%d other recipients</source>
+			</trans-unit>
+			<trans-unit id="row.noSubject" resname="row.noSubject">
+				<source>(no subject)</source>
+			</trans-unit>
+			<trans-unit id="row.unknownSender" resname="row.unknownSender">
+				<source>unknown sender</source>
+			</trans-unit>
+			<trans-unit id="row.attachments" resname="row.attachments">
+				<source>has attachments</source>
+			</trans-unit>
+			<trans-unit id="pagination.label" resname="pagination.label">
+				<source>Pages</source>
+			</trans-unit>
+			<trans-unit id="pagination.previous" resname="pagination.previous">
+				<source>Previous page</source>
+			</trans-unit>
+			<trans-unit id="pagination.next" resname="pagination.next">
+				<source>Next page</source>
+			</trans-unit>
+			<trans-unit id="pagination.status" resname="pagination.status">
+				<source>Page %1$d of %2$d</source>
+			</trans-unit>
+			<trans-unit id="notFound.heading" resname="notFound.heading">
+				<source>Page not found</source>
+			</trans-unit>
+			<trans-unit id="notFound.text" resname="notFound.text">
+				<source>This page does not exist, or the link you used is no longer valid. Ask the person who sent you the link for a new one.</source>
+			</trans-unit>
+		</body>
+	</file>
+</xliff>

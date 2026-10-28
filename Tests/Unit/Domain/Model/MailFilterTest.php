@@ -231,6 +231,22 @@ final class MailFilterTest extends TestCase
         self::assertCount(3, MailFilter::all()->visibleRecipients($mail));
     }
 
+    #[Test]
+    public function scopedQueryNeverMatchesMaskedRecipients(): void
+    {
+        $entry = $this->scoped('Hello', ['anna@customer.example', 'bob@other.test', 'hidden@bcc.test'], ['anna@customer.example', 'bob@other.test'], ['Anna', 'Bob Other', 'Hidden']);
+        $filter = MailFilter::all()->withAdditionalScope([RecipientPattern::fromString('*@customer.example')]);
+
+        self::assertTrue($filter->withScopedQuery('ANNA@customer')->matches($entry));
+        self::assertTrue($filter->withScopedQuery('hello')->matches($entry));
+        self::assertTrue($filter->withScopedQuery('a@example')->matches($entry), 'the sender stays searchable');
+        self::assertFalse($filter->withScopedQuery('bob@other')->matches($entry));
+        self::assertFalse($filter->withScopedQuery('Bob Other')->matches($entry));
+        self::assertFalse($filter->withScopedQuery('hidden')->matches($entry));
+        self::assertFalse($filter->withScopedQuery('hello')->isUnrestricted());
+        self::assertTrue(MailFilter::all()->withScopedQuery('bob other')->matches($entry), 'without a scope nothing is masked');
+    }
+
     /**
      * @param list<string>      $recipients
      * @param list<string>      $scopeRecipients

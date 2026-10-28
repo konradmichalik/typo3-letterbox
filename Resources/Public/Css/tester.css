@@ -1,0 +1,325 @@
+/* Tester inbox outside the backend: copies the TYPO3 v14 "fresh" look, the only place with own colour values. */
+:root {
+  color-scheme: light dark;
+  --tester-bg: light-dark(#ececee, #18181b);
+  --tester-surface: light-dark(#fcfcfd, #232327);
+  --tester-surface-muted: light-dark(#f4f4f6, #2c2c31);
+  --tester-text: light-dark(#18181b, #e4e4e7);
+  --tester-muted: light-dark(#5f5f63, #a8a7ae);
+  --tester-border: light-dark(#d4d4d8, #3f3f46);
+  --tester-primary: light-dark(#412aa2, #9785e0);
+  --tester-primary-bg: light-dark(#412aa2, #6a55c8);
+  --tester-on-primary: #fff;
+  --tester-header-bg: #271f48;
+  --tester-header-text: #fff;
+  --tester-header-muted: #d0cbe6;
+  --tester-note-bg: #f2c94c;
+  --tester-note-text: #2e2205;
+  --tester-callout-bg: light-dark(#faeed1, #2e2205);
+  --tester-callout-text: light-dark(#2e2205, #faeed1);
+  --tester-callout-border: light-dark(#e2b53e, #8a6a14);
+  --tester-focus: light-dark(#412aa2, #b8aaf0);
+  --tester-radius: 9px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--tester-bg);
+  color: var(--tester-text);
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+a {
+  color: var(--tester-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--tester-focus);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.tester-visually-hidden {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.tester-skip {
+  background: var(--tester-surface);
+  border-radius: var(--tester-radius);
+  left: 1rem;
+  padding: 0.75rem 1rem;
+  position: absolute;
+  top: -100px;
+  z-index: 10;
+}
+
+.tester-skip:focus {
+  top: 0.5rem;
+}
+
+.tester-header {
+  background: var(--tester-header-bg);
+  color: var(--tester-header-text);
+}
+
+.tester-header__inner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin: 0 auto;
+  max-width: 60rem;
+  padding: 0.75rem 1rem;
+}
+
+.tester-header__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tester-header__title {
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+.tester-header__host {
+  color: var(--tester-header-muted);
+  overflow-wrap: anywhere;
+}
+
+.tester-header__note {
+  background: var(--tester-note-bg);
+  border-radius: var(--tester-radius);
+  color: var(--tester-note-text);
+  font-weight: bold;
+  padding: 0.25rem 0.625rem;
+}
+
+.tester-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0 auto;
+  max-width: 60rem;
+  padding: 1.25rem 1rem 2.5rem;
+}
+
+.tester-main:focus {
+  outline: none;
+}
+
+.tester-title {
+  font-size: 1.5rem;
+  font-weight: normal;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.tester-scope {
+  background: var(--tester-callout-bg);
+  border-left: 4px solid var(--tester-callout-border);
+  border-radius: var(--tester-radius);
+  color: var(--tester-callout-text);
+  overflow-wrap: anywhere;
+  padding: 0.75rem 1rem;
+}
+
+.tester-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.tester-search__label {
+  font-weight: bold;
+}
+
+.tester-search__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tester-input {
+  background: var(--tester-surface);
+  border: 1px solid light-dark(#8a8992, #71717a);
+  border-radius: var(--tester-radius);
+  color: var(--tester-text);
+  flex: 1 1 12rem;
+  font: inherit;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+}
+
+.tester-button {
+  align-items: center;
+  background: var(--tester-surface);
+  border: 1px solid var(--tester-border);
+  border-radius: var(--tester-radius);
+  color: var(--tester-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+}
+
+.tester-button:hover {
+  background: var(--tester-surface-muted);
+}
+
+.tester-button--primary {
+  background: var(--tester-primary-bg);
+  border-color: var(--tester-primary-bg);
+  color: var(--tester-on-primary);
+  font-weight: bold;
+}
+
+.tester-button--primary:hover {
+  background: var(--tester-primary-bg);
+  filter: brightness(1.1);
+}
+
+.tester-card {
+  background: var(--tester-surface);
+  border: 1px solid var(--tester-border);
+  border-radius: var(--tester-radius);
+  overflow: hidden;
+}
+
+.tester-card--padded {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+}
+
+.tester-card--padded h1 {
+  font-size: 1.25rem;
+  font-weight: normal;
+}
+
+.tester-card__header {
+  align-items: center;
+  background: var(--tester-surface-muted);
+  border-bottom: 1px solid var(--tester-border);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+}
+
+.tester-card__title {
+  font-size: 0.875rem;
+  font-weight: normal;
+}
+
+.tester-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tester-list li + li {
+  border-top: 1px solid var(--tester-border);
+}
+
+.tester-row {
+  color: var(--tester-text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 44px;
+  padding: 0.875rem 1rem;
+  text-decoration: none;
+}
+
+.tester-row:hover {
+  background: var(--tester-surface-muted);
+}
+
+.tester-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.tester-row__top {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.tester-row__subject {
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.tester-row__date {
+  color: var(--tester-muted);
+  flex: none;
+  font-size: 0.6875rem;
+}
+
+.tester-row__meta {
+  color: var(--tester-muted);
+  overflow-wrap: anywhere;
+}
+
+.tester-row__clip {
+  margin-left: 0.25rem;
+  vertical-align: -2px;
+}
+
+.tester-empty {
+  color: var(--tester-muted);
+  padding: 1.5rem 1rem;
+}
+
+.tester-pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.tester-pagination__status {
+  padding: 0 0.5rem;
+}
+
+@media (forced-colors: active) {
+  .tester-header__note,
+  .tester-scope,
+  .tester-button {
+    border: 1px solid CanvasText;
+  }
+}
+
+@media (min-width: 48rem) {
+  .tester-header__inner,
+  .tester-main {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}

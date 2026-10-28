@@ -12,14 +12,24 @@ declare(strict_types=1);
  */
 
 use KonradMichalik\Typo3Letterbox\External\Api\ApiMiddleware;
+use KonradMichalik\Typo3Letterbox\External\Tester\TesterInboxMiddleware;
 
-// Before site resolution, so the API works without a site for the host and never reaches a page cache.
+// Before site resolution, so the API and the tester inbox work without a site for the host and never reach a page cache.
 return [
     'frontend' => [
         'konradmichalik/typo3-letterbox/api' => [
             'target' => ApiMiddleware::class,
             'after' => [
                 'typo3/cms-core/normalized-params-attribute',
+            ],
+            'before' => [
+                'typo3/cms-frontend/site',
+            ],
+        ],
+        'konradmichalik/typo3-letterbox/tester-inbox' => [
+            'target' => TesterInboxMiddleware::class,
+            'after' => [
+                'konradmichalik/typo3-letterbox/api',
             ],
             'before' => [
                 'typo3/cms-frontend/site',

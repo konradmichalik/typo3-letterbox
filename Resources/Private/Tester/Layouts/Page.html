@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="color-scheme" content="light dark">
+    <title>{title} · {labels.brand}</title>
+    <link rel="stylesheet" href="{f:uri.resource(path: 'EXT:typo3_letterbox/Resources/Public/Css/tester.css')}">
+</head>
+<body>
+    <a class="tester-skip" href="#tester-main">{labels.skip}</a>
+    <header class="tester-header">
+        <div class="tester-header__inner">
+            <svg class="tester-header__icon" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>
+            <div class="tester-header__text">
+                <p class="tester-header__title">{labels.brand}</p>
+                <p class="tester-header__host">{host}</p>
+            </div>
+            <p class="tester-header__note">{labels.notDelivered}</p>
+        </div>
+    </header>
+    <main id="tester-main" class="tester-main" tabindex="-1">
+        <f:render section="Main" />
+    </main>
+</body>
+</html>
