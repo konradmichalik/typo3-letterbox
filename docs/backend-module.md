@@ -11,7 +11,7 @@ The module is under System › Letterbox and is available to administrators only
 * The search field finds mails by sender, recipient (name or address) and subject. The quick filters All, Unread and Attachments show their counts for the current search. Search, filter and page stay in every link, also while a mail is open.
 * Unread mails carry a dot. A mail counts as read once its detail view has been opened, separately for each backend user. With the Unread filter active, an opened mail stays in the list until the list is fetched again.
 * The detail view has these tabs:
-  * HTML: the sandboxed preview
+  * HTML: the sandboxed preview, with a Preview and Code switch. Code shows the HTML part as the sender sent it, escaped and unsanitised.
   * Text: the plain text part, with `http` and `https` URLs linked
   * Headers: the main headers, with an "All headers" link
   * Source: the raw message, which can be downloaded

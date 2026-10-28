@@ -34,6 +34,8 @@ final readonly class InboxQuery
     private const TABS = ['html', 'text', 'headers', 'source', 'links', 'attachments'];
     private const WIDTHS = ['desktop', 'tablet', 'mobile'];
     private const DEFAULT_WIDTH = 'desktop';
+    private const VIEWS = ['preview', 'code'];
+    private const DEFAULT_VIEW = 'preview';
 
     private function __construct(
         public string $query,
@@ -42,6 +44,7 @@ final readonly class InboxQuery
         public ?string $id,
         public ?string $tab,
         public string $width,
+        public string $view,
         public bool $remote,
     ) {}
 
@@ -57,6 +60,7 @@ final readonly class InboxQuery
             self::isMailId($value('id')) ? $value('id') : null,
             in_array($value('tab'), self::TABS, true) ? $value('tab') : null,
             in_array($value('width'), self::WIDTHS, true) ? $value('width') : self::DEFAULT_WIDTH,
+            in_array($value('view'), self::VIEWS, true) ? $value('view') : self::DEFAULT_VIEW,
             '1' === $value('remote'),
         );
     }
@@ -70,7 +74,7 @@ final readonly class InboxQuery
     }
 
     /**
-     * Only non-default values are emitted. "remote" is never carried over, it applies to one view only.
+     * Only non-default values are emitted. "remote" and "view" are never carried over, they apply to one mail view only.
      *
      * @param array<string, string|null> $override null removes a parameter
      *

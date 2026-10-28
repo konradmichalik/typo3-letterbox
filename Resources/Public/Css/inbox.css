@@ -172,6 +172,10 @@
   word-break: break-word;
 }
 
+.letterbox-code {
+  overflow-wrap: anywhere;
+}
+
 .letterbox-empty {
   margin-inline: auto;
   max-width: 40rem;

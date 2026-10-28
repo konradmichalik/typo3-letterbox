@@ -82,16 +82,17 @@ final readonly class MailListView
     }
 
     /**
-     * Width switch form and remote image links for the HTML tab. Remote loading is carried only to the
+     * View and width switch forms and remote image links for the HTML tab. Remote loading is carried only to the
      * width form of the same mail, every other link built from the query drops it.
      *
-     * @return array{widthForm: array{action: string, fields: array<string, string>}, remoteUrl: string, blockUrl: string, previewUrl: string}
+     * @return array{viewForm: array{action: string, fields: array<string, string>}, widthForm: array{action: string, fields: array<string, string>}, remoteUrl: string, blockUrl: string, previewUrl: string}
      */
     public function previewControls(InboxQuery $query): array
     {
         $tab = ['tab' => 'html'];
 
         return [
+            'viewForm' => $this->form($query->toParameters($tab + ['remote' => $query->remote ? '1' : null])),
             'widthForm' => $this->form($query->toParameters($tab + ['width' => null, 'remote' => $query->remote ? '1' : null])),
             'remoteUrl' => $this->url($query, $tab + ['remote' => '1']),
             'blockUrl' => $this->url($query, $tab),

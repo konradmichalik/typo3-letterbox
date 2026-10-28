@@ -16,7 +16,7 @@ use Rector\PostRector\Rector\NameImportingPostRector;
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\TypeDeclaration\Rector\ClassMethod\AddVoidReturnTypeWhereNoReturnRector;
 use Rector\ValueObject\PhpVersion;
-use Ssch\TYPO3Rector\CodeQuality\General\ExtEmConfRector;
+use Ssch\TYPO3Rector\CodeQuality\General\{ExtEmConfRector, GeneralUtilityMakeInstanceToConstructorPropertyRector};
 use Ssch\TYPO3Rector\Configuration\Typo3Option;
 use Ssch\TYPO3Rector\Set\{Typo3LevelSetList, Typo3SetList};
 
@@ -53,6 +53,10 @@ return RectorConfig::configure()
         NameImportingPostRector::class => [
             'ext_localconf.php',
             'ext_tables.php',
+        ],
+        // Test classes are instantiated by PHPUnit, constructor injection breaks them.
+        GeneralUtilityMakeInstanceToConstructorPropertyRector::class => [
+            $rootPath.'/Tests/*',
         ],
     ])
     ->withTypeCoverageLevel(0)

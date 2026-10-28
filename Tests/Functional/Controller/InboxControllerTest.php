@@ -211,6 +211,75 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function htmlCodeViewShowsEscapedSource(): void
+    {
+        $this->append('Code', '<p><b>x</b></p><script>alert(1)</script>');
+
+        $body = $this->show($this->firstId(), ['view' => 'code', 'remote' => '1']);
+
+        self::assertSame(1, preg_match('/<pre class="letterbox-text letterbox-code"><code>(.*?)<\/code><\/pre>/s', $body, $code));
+        self::assertStringContainsString('&lt;b&gt;x&lt;/b&gt;', $code[1] ?? '');
+        self::assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $code[1] ?? '');
+        self::assertStringNotContainsString('<script>alert', $body);
+        self::assertStringNotContainsString('<iframe', $body);
+        self::assertStringNotContainsString('letterbox-preview-width', $body);
+        self::assertStringNotContainsString('Load remote images', $body);
+        self::assertStringNotContainsString('Block remote images', $body);
+        if (1 !== preg_match('/<button[^>]*name="view"[^>]*value="code"[^>]*>/', $body, $pressed)) {
+            self::fail('Pattern not found.');
+        }
+        self::assertStringContainsString('aria-pressed="true"', $pressed[0]);
+        if (1 !== preg_match('/<button[^>]*name="view"[^>]*value="preview"[^>]*>/', $body, $other)) {
+            self::fail('Pattern not found.');
+        }
+        self::assertStringContainsString('aria-pressed="false"', $other[0]);
+        foreach (['Preview', 'Code'] as $label) {
+            self::assertStringContainsString('title="'.$label.'"', $body);
+        }
+    }
+
+    #[Test]
+    public function previewViewOffersTheCodeSwitch(): void
+    {
+        $this->append('Preview');
+
+        $body = $this->show($this->firstId());
+
+        self::assertStringContainsString('<iframe', $body);
+        self::assertStringNotContainsString('letterbox-code', $body);
+        if (1 !== preg_match('/<button[^>]*name="view"[^>]*value="preview"[^>]*>/', $body, $pressed)) {
+            self::fail('Pattern not found.');
+        }
+        self::assertStringContainsString('aria-pressed="true"', $pressed[0]);
+    }
+
+    #[Test]
+    public function codeViewIsNotCarriedToOtherMails(): void
+    {
+        $this->append('One', '<p>One</p>');
+        $this->append('Two', '<p>Two</p>');
+
+        $body = $this->show($this->firstId(), ['view' => 'code']);
+
+        preg_match_all('/<a href="([^"]+)" class="letterbox-row[^"]*"/', $body, $rows);
+        self::assertNotEmpty($rows[1]);
+        foreach ($rows[1] as $href) {
+            self::assertStringNotContainsString('view', $href);
+        }
+    }
+
+    #[Test]
+    public function unknownViewFallsBackToPreview(): void
+    {
+        $this->append('Fallback');
+
+        $body = $this->show($this->firstId(), ['view' => 'nonsense']);
+
+        self::assertStringContainsString('<iframe', $body);
+        self::assertStringNotContainsString('letterbox-code', $body);
+    }
+
+    #[Test]
     public function loadRemoteImagesIsPerMessage(): void
     {
         $this->append('One', '<p>One</p>');

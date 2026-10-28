@@ -69,33 +69,52 @@
                 <div class="tab-pane{f:if(condition: '{defaultTab} == \'html\'', then: ' active')}" id="letterbox-pane-html" role="tabpanel" aria-labelledby="letterbox-tab-html" tabindex="0">
                     <f:if condition="{hasPreview}">
                         <f:then>
-                            <form class="letterbox-preview-width mt-3" method="get" action="{widthForm.action}">
-                                <f:for each="{widthForm.fields}" key="fieldName" as="fieldValue">
-                                    <input type="hidden" name="{fieldName}" value="{fieldValue}" />
-                                </f:for>
-                                <div class="btn-group" role="group" aria-label="{f:translate(key: 'inbox.width.label', extensionName: 'Typo3Letterbox')}">
-                                    <f:render section="WidthButton" arguments="{name: 'desktop', icon: 'actions-device-desktop', previewWidth: previewWidth}" />
-                                    <f:render section="WidthButton" arguments="{name: 'tablet', icon: 'actions-device-tablet', previewWidth: previewWidth}" />
-                                    <f:render section="WidthButton" arguments="{name: 'mobile', icon: 'actions-device-mobile', previewWidth: previewWidth}" />
-                                </div>
-                            </form>
-                            <div class="callout {f:if(condition: remote, then: 'callout-info', else: 'callout-warning')} mt-3">
-                                <div class="callout-content">
-                                    <div class="callout-body">
-                                        <f:if condition="{remote}">
-                                            <f:then>
-                                                <p class="mb-2"><f:translate key="inbox.remote.active" extensionName="Typo3Letterbox" /></p>
-                                                <a class="btn btn-sm btn-default" href="{blockUrl}"><f:translate key="inbox.remote.block" extensionName="Typo3Letterbox" /></a>
-                                            </f:then>
-                                            <f:else>
-                                                <p class="mb-2"><f:translate key="inbox.remote.blocked" extensionName="Typo3Letterbox" /></p>
-                                                <a class="btn btn-sm btn-default" href="{remoteUrl}" aria-describedby="letterbox-remote-hint"><f:translate key="inbox.remote.load" extensionName="Typo3Letterbox" /></a>
-                                                <p class="mb-0 mt-2" id="letterbox-remote-hint"><f:translate key="inbox.remote.hint" extensionName="Typo3Letterbox" /></p>
-                                            </f:else>
-                                        </f:if>
+                            <div class="d-flex flex-wrap gap-3 mt-3">
+                                <form class="letterbox-preview-view" method="get" action="{viewForm.action}">
+                                    <f:for each="{viewForm.fields}" key="fieldName" as="fieldValue">
+                                        <input type="hidden" name="{fieldName}" value="{fieldValue}" />
+                                    </f:for>
+                                    <div class="btn-group" role="group" aria-label="{f:translate(key: 'inbox.view.label', extensionName: 'Typo3Letterbox')}">
+                                        <f:render section="ViewButton" arguments="{name: 'preview', view: view}" />
+                                        <f:render section="ViewButton" arguments="{name: 'code', view: view}" />
                                     </div>
-                                </div>
+                                </form>
+                                <f:if condition="{codeView}">
+                                    <f:else>
+                                        <form class="letterbox-preview-width" method="get" action="{widthForm.action}">
+                                            <f:for each="{widthForm.fields}" key="fieldName" as="fieldValue">
+                                                <input type="hidden" name="{fieldName}" value="{fieldValue}" />
+                                            </f:for>
+                                            <div class="btn-group" role="group" aria-label="{f:translate(key: 'inbox.width.label', extensionName: 'Typo3Letterbox')}">
+                                                <f:render section="WidthButton" arguments="{name: 'desktop', icon: 'actions-device-desktop', previewWidth: previewWidth}" />
+                                                <f:render section="WidthButton" arguments="{name: 'tablet', icon: 'actions-device-tablet', previewWidth: previewWidth}" />
+                                                <f:render section="WidthButton" arguments="{name: 'mobile', icon: 'actions-device-mobile', previewWidth: previewWidth}" />
+                                            </div>
+                                        </form>
+                                    </f:else>
+                                </f:if>
                             </div>
+                            <f:if condition="{codeView}">
+                                <f:else>
+                                    <div class="callout {f:if(condition: remote, then: 'callout-info', else: 'callout-warning')} mt-3">
+                                        <div class="callout-content">
+                                            <div class="callout-body">
+                                                <f:if condition="{remote}">
+                                                    <f:then>
+                                                        <p class="mb-2"><f:translate key="inbox.remote.active" extensionName="Typo3Letterbox" /></p>
+                                                        <a class="btn btn-sm btn-default" href="{blockUrl}"><f:translate key="inbox.remote.block" extensionName="Typo3Letterbox" /></a>
+                                                    </f:then>
+                                                    <f:else>
+                                                        <p class="mb-2"><f:translate key="inbox.remote.blocked" extensionName="Typo3Letterbox" /></p>
+                                                        <a class="btn btn-sm btn-default" href="{remoteUrl}" aria-describedby="letterbox-remote-hint"><f:translate key="inbox.remote.load" extensionName="Typo3Letterbox" /></a>
+                                                        <p class="mb-0 mt-2" id="letterbox-remote-hint"><f:translate key="inbox.remote.hint" extensionName="Typo3Letterbox" /></p>
+                                                    </f:else>
+                                                </f:if>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </f:else>
+                            </f:if>
                             <f:if condition="{unresolvedContentIds}">
                                 <div class="callout callout-info mt-3">
                                     <div class="callout-content">
@@ -110,14 +129,21 @@
                                     </div>
                                 </div>
                             </f:if>
-                            <f:variable name="previewTitle" value="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
-                            <f:if condition="{remote}">
+                            <f:if condition="{codeView}">
                                 <f:then>
-                                    <f:comment>The remote mode frame loads its own route, because the backend policy blocks remote images in srcdoc frames.</f:comment>
-                                    <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" src="{previewUrl}" title="{previewTitle}"></iframe>
+                                    <pre class="letterbox-text letterbox-code"><code>{mail.html}</code></pre>
                                 </f:then>
                                 <f:else>
-                                    <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{previewTitle}"></iframe>
+                                    <f:variable name="previewTitle" value="{f:translate(key: 'inbox.preview', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
+                                    <f:if condition="{remote}">
+                                        <f:then>
+                                            <f:comment>The remote mode frame loads its own route, because the backend policy blocks remote images in srcdoc frames.</f:comment>
+                                            <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" src="{previewUrl}" title="{previewTitle}"></iframe>
+                                        </f:then>
+                                        <f:else>
+                                            <iframe class="letterbox-preview letterbox-preview--{previewWidth}" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{previewTitle}"></iframe>
+                                        </f:else>
+                                    </f:if>
                                 </f:else>
                             </f:if>
                         </f:then>
@@ -237,6 +263,11 @@
     <button type="submit" name="width" value="{name}" class="btn btn-sm btn-default{f:if(condition: '{name} == {previewWidth}', then: ' active')}" title="{widthLabel}" aria-label="{widthLabel}" aria-pressed="{f:if(condition: '{name} == {previewWidth}', then: 'true', else: 'false')}">
         <span aria-hidden="true"><core:icon identifier="{icon}" /></span>
     </button>
+</f:section>
+
+<f:section name="ViewButton">
+    <f:variable name="viewLabel"><f:translate key="inbox.view.{name}" extensionName="Typo3Letterbox" /></f:variable>
+    <button type="submit" name="view" value="{name}" class="btn btn-sm btn-default{f:if(condition: '{view} == {name}', then: ' active')}" title="{viewLabel}" aria-pressed="{f:if(condition: '{view} == {name}', then: 'true', else: 'false')}">{viewLabel}</button>
 </f:section>
 
 <f:section name="Addresses">

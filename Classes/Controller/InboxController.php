@@ -260,9 +260,11 @@ final readonly class InboxController
      */
     private function detailVariables(ServerRequestInterface $request, InboxQuery $query, Mail $mail): array
     {
-        // Remote mode frames the preview route, which builds the document itself.
-        $htmlDocument = $query->remote ? '' : $this->htmlDocument->build($mail);
-        $hasPreview = $query->remote ? $this->htmlDocument->canBuild($mail) : '' !== $htmlDocument;
+        // Remote mode frames the preview route, which builds the document itself. The code view needs no document.
+        $codeView = 'code' === $query->view;
+        $skipDocument = $query->remote || $codeView;
+        $htmlDocument = $skipDocument ? '' : $this->htmlDocument->build($mail);
+        $hasPreview = $skipDocument ? $this->htmlDocument->canBuild($mail) : '' !== $htmlDocument;
         $hasHtml = '' !== trim($mail->html);
 
         return $this->mailListView->previewControls($query) + [
@@ -274,6 +276,8 @@ final readonly class InboxController
             'unresolvedContentIds' => $this->htmlDocument->unresolvedContentIds($mail),
             'previewWidth' => $query->width,
             'remote' => $query->remote,
+            'view' => $query->view,
+            'codeView' => $codeView,
             'textSegments' => TextSegments::split($mail->text),
             'headersUrl' => $this->mailListView->url($query, ['id' => $mail->id, 'tab' => 'headers']),
             'defaultTab' => $this->defaultTab($query->tab, $hasHtml, $hasPreview),

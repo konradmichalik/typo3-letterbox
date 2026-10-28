@@ -144,6 +144,15 @@
 			<trans-unit id="inbox.preview" resname="inbox.preview">
 				<source>Mail preview: %s</source>
 			</trans-unit>
+			<trans-unit id="inbox.view.label" resname="inbox.view.label">
+				<source>HTML view</source>
+			</trans-unit>
+			<trans-unit id="inbox.view.preview" resname="inbox.view.preview">
+				<source>Preview</source>
+			</trans-unit>
+			<trans-unit id="inbox.view.code" resname="inbox.view.code">
+				<source>Code</source>
+			</trans-unit>
 			<trans-unit id="inbox.width.label" resname="inbox.width.label">
 				<source>Preview width</source>
 			</trans-unit>
