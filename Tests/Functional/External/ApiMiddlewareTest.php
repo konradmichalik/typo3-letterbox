@@ -20,7 +20,7 @@ use KonradMichalik\Typo3Letterbox\External\Api\{ApiMiddleware, MailJson};
 use KonradMichalik\Typo3Letterbox\External\{AuthenticationThrottle, EnvironmentVariables, ExternalAccessGuard, ExternalResponses, RateLimitStorage};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
-use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, MailboxLock, MailboxWriter, MboxFormat};
+use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry};
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;

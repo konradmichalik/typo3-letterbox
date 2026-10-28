@@ -36,14 +36,12 @@ final class AuthenticationThrottleTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] = 'unit-test-encryption-key';
     }
 
     protected function tearDown(): void
     {
         unset($GLOBALS['TYPO3_CONF_VARS']);
-        parent::tearDown();
     }
 
     #[Test]
