@@ -144,6 +144,21 @@ final class MailFilterTest extends TestCase
     }
 
     #[Test]
+    public function onlyThePlainAllFilterIsUnrestricted(): void
+    {
+        $pattern = RecipientPattern::fromString('*@customer.example');
+
+        self::assertTrue(MailFilter::all()->isUnrestricted());
+        self::assertTrue(MailFilter::all()->withScope([])->withExclusions([])->withRecipient(' ')->withSubject('')->isUnrestricted());
+        self::assertFalse(MailFilter::all()->withScope([$pattern])->isUnrestricted());
+        self::assertFalse(MailFilter::all()->withExclusions([$pattern])->isUnrestricted());
+        self::assertFalse(MailFilter::all()->withRecipient('anna@customer.example')->isUnrestricted());
+        self::assertFalse(MailFilter::all()->withSubject('Reset')->isUnrestricted());
+        self::assertFalse(MailFilter::create('hello', QuickFilter::All, [])->isUnrestricted());
+        self::assertFalse(MailFilter::all()->withQuick(QuickFilter::Attachments)->isUnrestricted());
+    }
+
+    #[Test]
     public function visibleRecipientsMasksOthers(): void
     {
         $mail = new Mail(

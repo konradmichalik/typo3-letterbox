@@ -25,3 +25,9 @@ parameters:
 	ergebnis:
 		noConstructorParameterWithDefaultValue:
 			enabled: false # Optional constructor arguments of value objects (e.g. Address::$name) are part of the extension's public API.
+
+	ignoreErrors:
+		-
+			# The frontend sub-request boots its own container, so the stack tests can only pass the environment through the process. tearDown() restores it.
+			identifier: disallowed.function
+			path: ../../Tests/Functional/External/ApiMiddlewareTest.php

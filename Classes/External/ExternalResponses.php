@@ -49,11 +49,13 @@ final readonly class ExternalResponses
     }
 
     /**
+     * Invalid UTF-8, which mail bodies can carry, is substituted so a broken mail never fails the response.
+     *
      * @param array<array-key, mixed> $data
      */
     public function json(array $data, int $status = 200): ResponseInterface
     {
-        $body = json_encode($data, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE);
+        $body = json_encode($data, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_INVALID_UTF8_SUBSTITUTE);
 
         return $this->withPolicy(
             $this->responseFactory->createResponse($status)

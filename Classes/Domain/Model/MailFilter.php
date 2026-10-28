@@ -70,6 +70,14 @@ final readonly class MailFilter
         return '' === $this->query || $this->queryMatches($entry);
     }
 
+    /**
+     * True when the filter matches every mail, so deleting what it matches may clear the whole file.
+     */
+    public function isUnrestricted(): bool
+    {
+        return '' === $this->query && QuickFilter::All === $this->quick && [] === $this->scope && [] === $this->exclusions && '' === $this->recipient && '' === $this->subject;
+    }
+
     public function query(): string
     {
         return $this->query;
