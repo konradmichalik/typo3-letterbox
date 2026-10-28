@@ -22,6 +22,17 @@ The module is under System › Letterbox and is available to administrators only
 * Deleting a single mail and clearing all mails ask for confirmation first, and a message confirms the result. After a delete the list keeps its search and filter. Opening a mail that no longer exists, for example through the browser history, returns to the list with a message.
 * Without caught mails the module shows an empty state. When `debugMode` is already enabled in the [extension settings](configuration.md#extension-settings), it also shows the command that sends test mails.
 
+## External access page
+
+The "External access" button in the doc header opens `system_letterbox.access`, also admin only. It shows:
+
+* Whether external access is on. When it is off, each reason says what to change, for example which value `LETTERBOX_EXTERNAL_ACCESS` needs.
+* The tester links with scope, permissions, expiry, last use, creator and state. "Revoke" asks for confirmation and takes effect immediately.
+* A form to create a tester link: label, recipient patterns (one per line, or "unrestricted"), permissions and a validity of 1, 7 or 30 days.
+* Whether the API token is configured (at least 32 characters), with a `curl` example. The token itself is never shown.
+
+The URL of a new link (`<site URL>_letterbox/inbox?t=<token>`) appears once, in the response to the create form, and is not stored or put in a flash message. Letterbox keeps only a hash of the token, so a lost link cannot be shown again and has to be revoked and replaced.
+
 ## Navigation without reload
 
 The module is a TYPO3 JavaScript module (`Resources/Public/JavaScript/inbox.js`). Mail rows, pagination, quick filters, the width switch and "Load remote images" replace only the list or the detail view, and search does the same after 300 ms of typing or on Enter. The browser history and the backend URL follow, so back and reload work as usual. Typing in the search field replaces the current history entry instead of adding one per keystroke; Enter adds one.

@@ -343,6 +343,13 @@ final readonly class InboxController
             ->setDataAttributes(['letterbox-reload' => '1']);
         $buttonBar->addButton($reload, 'right');
 
+        $access = GeneralUtility::makeInstance(LinkButton::class)
+            ->setHref((string) $this->uriBuilder->buildUriFromRoute(self::MODULE.'.access'))
+            ->setTitle($this->translate('inbox.externalAccess'))
+            ->setShowLabelText(true)
+            ->setIcon($this->iconFactory->getIcon('actions-lock', IconSize::SMALL));
+        $buttonBar->addButton($access);
+
         if (!$hasMails) {
             return;
         }
