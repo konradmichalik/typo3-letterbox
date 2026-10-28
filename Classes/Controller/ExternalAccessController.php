@@ -38,7 +38,6 @@ use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function count;
-use function in_array;
 use function is_array;
 use function is_int;
 use function is_string;
@@ -63,8 +62,6 @@ final readonly class ExternalAccessController
     private const TOKEN_FIELD = 'letterboxToken';
     private const LANGUAGE_FILE = 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:';
     private const MAX_LABEL_LENGTH = 255;
-    private const DAYS = [1, 7, 30];
-    private const DEFAULT_DAYS = 7;
     private const CSS_FILE = 'EXT:typo3_letterbox/Resources/Public/Css/inbox.css';
 
     public function __construct(
@@ -102,16 +99,7 @@ final readonly class ExternalAccessController
             return $this->noStore($this->page($request, $form, $errors, null));
         }
 
-        $issued = $this->repository->issue(
-            $form['label'],
-            $scope,
-            $form['unrestricted'],
-            $form['canDownload'],
-            $form['canDelete'],
-            $form['days'],
-            $this->backendUserId(),
-            $this->now()->getTimestamp(),
-        );
+        $issued = $this->repository->issue($form['label'], $scope, $this->backendUserId(), $this->now()->getTimestamp());
         $params = $request->getAttribute('normalizedParams');
         $siteUrl = $params instanceof NormalizedParams ? $params->getSiteUrl() : '/';
         $created = [
@@ -146,9 +134,9 @@ final readonly class ExternalAccessController
     }
 
     /**
-     * @param array{label: string, scope: string, unrestricted: bool, canDownload: bool, canDelete: bool, days: int} $form
-     * @param list<array{field: string, text: string}>                                                               $errors
-     * @param array{url: string, label: string, expires: string}|null                                                $created
+     * @param array{label: string, scope: string}                     $form
+     * @param list<array{field: string, text: string}>                $errors
+     * @param array{url: string, label: string, expires: string}|null $created
      */
     private function page(ServerRequestInterface $request, array $form, array $errors, ?array $created): ResponseInterface
     {
@@ -183,7 +171,7 @@ final readonly class ExternalAccessController
             'errors' => $errors,
             'errorFields' => array_fill_keys(array_column($errors, 'field'), true),
             'created' => $created,
-            'days' => self::DAYS,
+            'lifetimeDays' => TesterLinkRepository::LIFETIME_DAYS,
             'token' => $this->formProtectionFactory->createFromRequest($request)->generateToken(self::TOKEN_FORM),
         ]);
 
@@ -220,13 +208,8 @@ final readonly class ExternalAccessController
             $rows[] = [
                 'uid' => $link->uid,
                 'label' => $link->label,
-                'unrestricted' => $link->unrestricted && $link->scopeValid,
                 'scope' => array_map(static fn (RecipientPattern $pattern): string => $pattern->value(), $link->scope),
-                'scopeValid' => $link->scopeValid,
-                'canDownload' => $link->canDownload,
-                'canDelete' => $link->canDelete,
                 'expires' => $this->formatTime($link->expires),
-                'lastUsed' => 0 === $link->lastUsed ? '' : $this->formatTime($link->lastUsed),
                 'createdBy' => $users[$link->createdBy] ?? '',
                 'state' => $state,
                 'revocable' => 'revoked' !== $state,
@@ -268,35 +251,30 @@ final readonly class ExternalAccessController
     }
 
     /**
-     * @return array{label: string, scope: string, unrestricted: bool, canDownload: bool, canDelete: bool, days: int}
+     * @return array{label: string, scope: string}
      */
     private function emptyForm(): array
     {
-        return ['label' => '', 'scope' => '', 'unrestricted' => false, 'canDownload' => false, 'canDelete' => false, 'days' => self::DEFAULT_DAYS];
+        return ['label' => '', 'scope' => ''];
     }
 
     /**
      * @param array<array-key, mixed> $body
      *
-     * @return array{label: string, scope: string, unrestricted: bool, canDownload: bool, canDelete: bool, days: int}
+     * @return array{label: string, scope: string}
      */
     private function formFrom(array $body): array
     {
         $text = static fn (string $name): string => is_string($body[$name] ?? null) ? $body[$name] : '';
-        $days = $text('days');
 
         return [
             'label' => trim($text('label')),
             'scope' => $text('scope'),
-            'unrestricted' => '' !== $text('unrestricted'),
-            'canDownload' => '' !== $text('canDownload'),
-            'canDelete' => '' !== $text('canDelete'),
-            'days' => 1 === preg_match('/^\d{1,3}$/D', $days) ? (int) $days : 0,
         ];
     }
 
     /**
-     * @param array{label: string, scope: string, unrestricted: bool, canDownload: bool, canDelete: bool, days: int} $form
+     * @param array{label: string, scope: string} $form
      *
      * @return array{list<RecipientPattern>, list<array{field: string, text: string}>}
      */
@@ -308,18 +286,12 @@ final readonly class ExternalAccessController
         } elseif (mb_strlen($form['label']) > self::MAX_LABEL_LENGTH) {
             $errors[] = ['field' => 'label', 'text' => $this->translate('access.error.labelLength')];
         }
-        if (!in_array($form['days'], self::DAYS, true)) {
-            $errors[] = ['field' => 'days', 'text' => $this->translate('access.error.days')];
-        }
 
         [$scope, $lineErrors] = $this->parseScope($form['scope']);
         $errors = [...$errors, ...$lineErrors];
 
-        if ([] === $scope && [] === $lineErrors && !$form['unrestricted']) {
+        if ([] === $scope && [] === $lineErrors) {
             $errors[] = ['field' => 'scope', 'text' => $this->translate('access.error.scopeEmpty')];
-        }
-        if ([] !== $scope && $form['unrestricted']) {
-            $errors[] = ['field' => 'scope', 'text' => $this->translate('access.error.unrestrictedWithScope')];
         }
 
         return [$scope, $errors];

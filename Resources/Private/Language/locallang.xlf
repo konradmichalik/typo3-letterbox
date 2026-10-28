@@ -342,32 +342,8 @@
 			<trans-unit id="access.create.scope.help" resname="access.create.scope.help">
 				<source>One address or pattern per line, for example anna@example.org or *@customer.example. Display names are ignored.</source>
 			</trans-unit>
-			<trans-unit id="access.create.unrestricted" resname="access.create.unrestricted">
-				<source>Unrestricted: show every mail external access allows</source>
-			</trans-unit>
-			<trans-unit id="access.create.unrestricted.warning" resname="access.create.unrestricted.warning">
-				<source>An unrestricted link shows all caught mails, including those of other people. Use it only for a trusted tester.</source>
-			</trans-unit>
-			<trans-unit id="access.create.permissions" resname="access.create.permissions">
-				<source>Tester may</source>
-			</trans-unit>
-			<trans-unit id="access.create.download" resname="access.create.download">
-				<source>download attachments</source>
-			</trans-unit>
-			<trans-unit id="access.create.delete" resname="access.create.delete">
-				<source>delete mails</source>
-			</trans-unit>
-			<trans-unit id="access.create.days" resname="access.create.days">
-				<source>Valid for</source>
-			</trans-unit>
-			<trans-unit id="access.create.days.1" resname="access.create.days.1">
-				<source>1 day</source>
-			</trans-unit>
-			<trans-unit id="access.create.days.7" resname="access.create.days.7">
-				<source>7 days</source>
-			</trans-unit>
-			<trans-unit id="access.create.days.30" resname="access.create.days.30">
-				<source>30 days</source>
+			<trans-unit id="access.create.lifetime" resname="access.create.lifetime">
+				<source>The link is valid for %s days.</source>
 			</trans-unit>
 			<trans-unit id="access.create.submit" resname="access.create.submit">
 				<source>Create link</source>
@@ -390,17 +366,11 @@
 			<trans-unit id="access.error.labelLength" resname="access.error.labelLength">
 				<source>The label can have at most 255 characters.</source>
 			</trans-unit>
-			<trans-unit id="access.error.days" resname="access.error.days">
-				<source>Choose how long the link is valid.</source>
-			</trans-unit>
 			<trans-unit id="access.error.scopeEmpty" resname="access.error.scopeEmpty">
-				<source>Enter at least one address or pattern, or mark the link as unrestricted.</source>
+				<source>Enter at least one address or pattern.</source>
 			</trans-unit>
 			<trans-unit id="access.error.scopeLine" resname="access.error.scopeLine">
 				<source>Line %s is not a valid address or pattern.</source>
-			</trans-unit>
-			<trans-unit id="access.error.unrestrictedWithScope" resname="access.error.unrestrictedWithScope">
-				<source>Remove the patterns or clear the unrestricted option.</source>
 			</trans-unit>
 			<trans-unit id="access.links.heading" resname="access.links.heading">
 				<source>Tester links</source>
@@ -423,14 +393,8 @@
 			<trans-unit id="access.links.col.scope" resname="access.links.col.scope">
 				<source>Sees mails to</source>
 			</trans-unit>
-			<trans-unit id="access.links.col.permissions" resname="access.links.col.permissions">
-				<source>Permissions</source>
-			</trans-unit>
 			<trans-unit id="access.links.col.expires" resname="access.links.col.expires">
 				<source>Expires</source>
-			</trans-unit>
-			<trans-unit id="access.links.col.lastUsed" resname="access.links.col.lastUsed">
-				<source>Last used</source>
 			</trans-unit>
 			<trans-unit id="access.links.col.createdBy" resname="access.links.col.createdBy">
 				<source>Created by</source>
@@ -441,26 +405,11 @@
 			<trans-unit id="access.links.col.actions" resname="access.links.col.actions">
 				<source>Actions</source>
 			</trans-unit>
-			<trans-unit id="access.links.unrestricted" resname="access.links.unrestricted">
-				<source>All mails</source>
-			</trans-unit>
 			<trans-unit id="access.links.invalidScope" resname="access.links.invalidScope">
 				<source>Invalid scope</source>
 			</trans-unit>
-			<trans-unit id="access.links.never" resname="access.links.never">
-				<source>Never</source>
-			</trans-unit>
 			<trans-unit id="access.links.unknownUser" resname="access.links.unknownUser">
 				<source>Unknown user</source>
-			</trans-unit>
-			<trans-unit id="access.links.permission.read" resname="access.links.permission.read">
-				<source>Read only</source>
-			</trans-unit>
-			<trans-unit id="access.links.permission.download" resname="access.links.permission.download">
-				<source>Attachments</source>
-			</trans-unit>
-			<trans-unit id="access.links.permission.delete" resname="access.links.permission.delete">
-				<source>Delete</source>
 			</trans-unit>
 			<trans-unit id="access.links.state.active" resname="access.links.state.active">
 				<source>Active</source>

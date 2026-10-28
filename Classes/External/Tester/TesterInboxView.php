@@ -68,9 +68,6 @@ final readonly class TesterInboxView
         'viewText' => 'detail.viewText',
         'noText' => 'detail.noText',
         'resetLink' => 'links.reset',
-        'deleteHeading' => 'delete.heading',
-        'deleteText' => 'delete.text',
-        'deleteSubmit' => 'delete.submit',
     ];
 
     public function __construct(
@@ -93,7 +90,7 @@ final readonly class TesterInboxView
         return $this->render($request, 'List', 200, $language, [
             'title' => $heading,
             'heading' => $heading,
-            'scope' => sprintf($this->label($language, 'scope.mailsFor'), $this->scopeSummary($language, $link)),
+            'scope' => sprintf($this->label($language, 'scope.mailsFor'), $this->scopeSummary($link)),
             'validUntil' => sprintf($this->label($language, 'scope.validUntil'), $this->localTime($link->expires)),
             'basePath' => $basePath,
             'query' => $query,
@@ -114,9 +111,8 @@ final readonly class TesterInboxView
      * only ever a sandboxed srcdoc document without remote content.
      *
      * @param MailFilter $filter the link filter, it decides which recipients are visible
-     * @param string     $csrf   the delete form token, empty when the link cannot delete
      */
-    public function show(ServerRequestInterface $request, TesterLink $link, MailFilter $filter, Mail $mail, string $basePath, bool $textView, string $csrf): ResponseInterface
+    public function show(ServerRequestInterface $request, MailFilter $filter, Mail $mail, string $basePath, bool $textView): ResponseInterface
     {
         $language = $this->languageServiceFactory->create('default');
         $subject = '' !== trim($mail->subject) ? $mail->subject : $this->label($language, 'row.noSubject');
@@ -146,10 +142,8 @@ final readonly class TesterInboxView
             'textSegments' => '' !== trim($mail->text) ? TextSegments::split($mail->text) : [],
             'links' => $mail->links,
             'linksHeading' => sprintf($this->label($language, 'links.heading'), count($mail->links)),
-            'attachments' => $link->canDownload ? array_map(fn (Attachment $attachment): array => $this->attachment($attachment, $detailUrl), $mail->attachments) : [],
+            'attachments' => array_map(fn (Attachment $attachment): array => $this->attachment($attachment, $detailUrl), $mail->attachments),
             'attachmentsHeading' => sprintf($this->label($language, 'attachments.heading'), count($mail->attachments)),
-            'deleteUrl' => $detailUrl.'/delete',
-            'csrf' => $csrf,
         ]);
     }
 
@@ -249,12 +243,8 @@ final readonly class TesterInboxView
         return [] === $parameters ? $basePath : $basePath.'?'.http_build_query($parameters);
     }
 
-    private function scopeSummary(LanguageService $language, TesterLink $link): string
+    private function scopeSummary(TesterLink $link): string
     {
-        if ([] === $link->scope) {
-            return $this->label($language, 'scope.all');
-        }
-
         return implode(', ', array_map(static fn (RecipientPattern $pattern): string => $pattern->value(), $link->scope));
     }
 

@@ -37,7 +37,7 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
     #[Test]
     public function issueStoresOnlyTheHash(): void
     {
-        $issued = $this->subject()->issue('Review', [RecipientPattern::fromString('*@Customer.example')], false, true, false, 7, 3, 1000);
+        $issued = $this->subject()->issue('Review', [RecipientPattern::fromString('*@Customer.example')], 3, 1000);
 
         self::assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $issued->token);
         $rows = $this->connection()->select(['*'], self::TABLE)->fetchAllAssociative();
@@ -45,43 +45,42 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
         self::assertSame(hash('sha256', $issued->token), $rows[0]['token_hash']);
         self::assertStringNotContainsString($issued->token, json_encode($rows, \JSON_THROW_ON_ERROR));
         self::assertSame('*@customer.example', $rows[0]['scope']);
-        self::assertSame(1000 + 7 * 86400, $issued->link->expires);
-        self::assertTrue($issued->link->canDownload);
-        self::assertFalse($issued->link->canDelete);
         self::assertSame(3, $issued->link->createdBy);
     }
 
     #[Test]
-    public function issueRejectsEmptyScopeUnlessUnrestricted(): void
+    public function issueRejectsAnEmptyScope(): void
     {
-        $this->subject()->issue('Open', [], true, false, false, 1, 1, 1000);
-
         $this->expectException(InvalidArgumentException::class);
-        $this->subject()->issue('Closed', [], false, false, false, 1, 1, 1000);
+
+        $this->subject()->issue('Closed', [], 1, 1000);
     }
 
     #[Test]
-    public function issueRejectsOtherDurations(): void
+    public function linksAreValidForSevenDays(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $issued = $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], 1, 1000);
+        $found = $this->subject()->findByToken($issued->token);
 
-        $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], false, false, false, 14, 1, 1000);
+        self::assertNotNull($found);
+        self::assertSame(1000 + 7 * 86400, $issued->link->expires);
+        self::assertSame($issued->link->expires, $found->expires);
+        self::assertTrue($found->isUsable(1000 + 7 * 86400 - 1));
+        self::assertFalse($found->isUsable(1000 + 7 * 86400));
     }
 
     #[Test]
     public function findByTokenIgnoresRevokedAndExpiredViaIsUsable(): void
     {
         $scope = [RecipientPattern::fromString('a@example.org'), RecipientPattern::fromString('*@example.com')];
-        $issued = $this->subject()->issue('Review', $scope, false, false, true, 1, 1, 1000);
+        $issued = $this->subject()->issue('Review', $scope, 1, 1000);
 
         $found = $this->subject()->findByToken($issued->token);
         self::assertNotNull($found);
         self::assertSame($issued->link->uid, $found->uid);
-        self::assertTrue($found->canDelete);
         self::assertCount(2, $found->scope);
         self::assertTrue($found->scope[1]->matches('x@example.com'));
-        self::assertTrue($found->isUsable(1000 + 86399));
-        self::assertFalse($found->isUsable(1000 + 86400));
+        self::assertTrue($found->isUsable(1001));
 
         $this->subject()->revoke($found->uid, 1500);
         $revoked = $this->subject()->findByToken($issued->token);
@@ -93,7 +92,7 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
     #[Test]
     public function findByTokenRejectsMalformedAndUnknownTokens(): void
     {
-        $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], false, false, false, 1, 1, 1000);
+        $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], 1, 1000);
 
         self::assertNull($this->subject()->findByToken(''));
         self::assertNull($this->subject()->findByToken(str_repeat('A', 64)));
@@ -104,7 +103,7 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
     #[Test]
     public function aStoredUnparsableScopeMakesTheLinkUnusable(): void
     {
-        $issued = $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], false, false, false, 1, 1, 1000);
+        $issued = $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], 1, 1000);
         $this->connection()->update(self::TABLE, ['scope' => "a@example.org\n*"], ['uid' => $issued->link->uid]);
 
         $found = $this->subject()->findByToken($issued->token);
@@ -114,9 +113,9 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function aStoredEmptyScopeWithoutTheFlagMakesTheLinkUnusable(): void
+    public function aStoredEmptyScopeMakesTheLinkUnusable(): void
     {
-        $issued = $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], false, false, false, 1, 1, 1000);
+        $issued = $this->subject()->issue('Review', [RecipientPattern::fromString('a@example.org')], 1, 1000);
         $this->connection()->update(self::TABLE, ['scope' => ''], ['uid' => $issued->link->uid]);
 
         $found = $this->subject()->findByToken($issued->token);
@@ -128,24 +127,11 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
     #[Test]
     public function findAllReturnsNewestFirst(): void
     {
-        $first = $this->subject()->issue('First', [], true, false, false, 1, 1, 1000);
-        $second = $this->subject()->issue('Second', [], true, false, false, 1, 1, 2000);
+        $scope = [RecipientPattern::fromString('a@example.org')];
+        $first = $this->subject()->issue('First', $scope, 1, 1000);
+        $second = $this->subject()->issue('Second', $scope, 1, 2000);
 
         self::assertSame([$second->link->uid, $first->link->uid], array_map(static fn ($link): int => $link->uid, $this->subject()->findAll()));
-    }
-
-    #[Test]
-    public function touchThrottlesWrites(): void
-    {
-        $uid = $this->subject()->issue('Review', [], true, false, false, 1, 1, 100)->link->uid;
-
-        $seen = [];
-        foreach ([1000, 1060, 1061] as $now) {
-            $this->subject()->touch($uid, $now);
-            $seen[] = $this->lastUsed($uid);
-        }
-
-        self::assertSame([1000, 1000, 1061], $seen);
     }
 
     private function connection(): Connection
@@ -156,13 +142,5 @@ final class TesterLinkRepositoryTest extends FunctionalTestCase
     private function subject(): TesterLinkRepository
     {
         return new TesterLinkRepository(GeneralUtility::makeInstance(ConnectionPool::class));
-    }
-
-    private function lastUsed(int $uid): int
-    {
-        $row = $this->connection()->select(['last_used'], self::TABLE, ['uid' => $uid])->fetchAssociative();
-        self::assertIsArray($row);
-
-        return (int) $row['last_used'];
     }
 }

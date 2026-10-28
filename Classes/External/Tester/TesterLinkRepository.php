@@ -17,7 +17,6 @@ use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
 use TYPO3\CMS\Core\Database\{Connection, ConnectionPool};
 
-use function in_array;
 use function is_string;
 
 /**
@@ -31,13 +30,7 @@ final readonly class TesterLinkRepository
 {
     public const TABLE = 'tx_typo3letterbox_tester_link';
 
-    private const DAYS = [1, 7, 30];
-
-    private const PERMISSION_DOWNLOAD = 1;
-
-    private const PERMISSION_DELETE = 2;
-
-    private const TOUCH_INTERVAL = 60;
+    public const LIFETIME_DAYS = 7;
 
     public function __construct(
         private ConnectionPool $connectionPool,
@@ -46,33 +39,25 @@ final readonly class TesterLinkRepository
     /**
      * @param list<RecipientPattern> $scope
      */
-    public function issue(string $label, array $scope, bool $unrestricted, bool $canDownload, bool $canDelete, int $days, int $createdBy, int $now): IssuedLink
+    public function issue(string $label, array $scope, int $createdBy, int $now): IssuedLink
     {
-        if (!in_array($days, self::DAYS, true)) {
-            throw new InvalidArgumentException('A tester link is valid for 1, 7 or 30 days.', 1761561700);
-        }
-        if ([] === $scope && !$unrestricted) {
-            throw new InvalidArgumentException('A tester link without recipient patterns must be marked unrestricted.', 1761561701);
-        }
-        if ([] !== $scope && $unrestricted) {
-            throw new InvalidArgumentException('An unrestricted tester link cannot carry recipient patterns.', 1761561702);
+        if ([] === $scope) {
+            throw new InvalidArgumentException('A tester link needs at least one recipient pattern.', 1761561701);
         }
 
         $token = bin2hex(random_bytes(32));
-        $expires = $now + $days * 86400;
+        $expires = $now + self::LIFETIME_DAYS * 86400;
         $connection = $this->connection();
         $connection->insert(self::TABLE, [
             'token_hash' => hash('sha256', $token),
             'label' => $label,
             'scope' => implode("\n", array_map(static fn (RecipientPattern $pattern): string => $pattern->value(), $scope)),
-            'unrestricted' => $unrestricted ? 1 : 0,
-            'permissions' => ($canDownload ? self::PERMISSION_DOWNLOAD : 0) | ($canDelete ? self::PERMISSION_DELETE : 0),
             'expires' => $expires,
             'created' => $now,
             'created_by' => $createdBy,
         ]);
 
-        $link = new TesterLink((int) $connection->lastInsertId(), $label, $scope, $unrestricted, $canDownload, $canDelete, $expires, $now, $createdBy, 0, 0);
+        $link = new TesterLink((int) $connection->lastInsertId(), $label, $scope, $expires, $now, $createdBy, 0);
 
         return new IssuedLink($link, $token);
     }
@@ -122,22 +107,6 @@ final readonly class TesterLinkRepository
     }
 
     /**
-     * Writes only when the last use is older than a minute, so polling does not cause a write per request.
-     */
-    public function touch(int $uid, int $now): void
-    {
-        $queryBuilder = $this->connection()->createQueryBuilder();
-        $queryBuilder
-            ->update(self::TABLE)
-            ->set('last_used', $now, true, Connection::PARAM_INT)
-            ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)),
-                $queryBuilder->expr()->lt('last_used', $queryBuilder->createNamedParameter($now - self::TOUCH_INTERVAL, Connection::PARAM_INT)),
-            )
-            ->executeStatement();
-    }
-
-    /**
      * @param array<string, mixed> $row
      */
     private function hydrate(array $row): TesterLink
@@ -154,19 +123,14 @@ final readonly class TesterLinkRepository
                 $scopeValid = false;
             }
         }
-        $permissions = (int) $row['permissions'];
 
         return new TesterLink(
             (int) $row['uid'],
             (string) $row['label'],
             $scopeValid ? $scope : [],
-            0 !== (int) $row['unrestricted'],
-            0 !== ($permissions & self::PERMISSION_DOWNLOAD),
-            0 !== ($permissions & self::PERMISSION_DELETE),
             (int) $row['expires'],
             (int) $row['created'],
             (int) $row['created_by'],
-            (int) $row['last_used'],
             (int) $row['revoked'],
             $scopeValid,
         );

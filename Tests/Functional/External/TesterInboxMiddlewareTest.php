@@ -168,7 +168,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     public function expiredLinkClearsCookie(): void
     {
         $this->append('In scope', 'anna@example.org');
-        $issued = $this->repository()->issue('Old', [RecipientPattern::fromString('*@example.org')], false, false, false, 1, 1, time() - 2 * 86400);
+        $issued = $this->repository()->issue('Old', [RecipientPattern::fromString('*@example.org')], 1, time() - 8 * 86400);
 
         $middleware = $this->middleware();
         $this->assertClearedCookie($this->send($middleware, '/_letterbox/inbox', ['letterbox_inbox' => $issued->token]));
@@ -227,19 +227,6 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame(0, $this->rows($this->send($middleware, '/_letterbox/inbox?q=Scoped+2'.str_repeat('x', 200), $cookie)), 'the query is capped, not dropped');
         $paged = (string) $this->send($middleware, '/_letterbox/inbox?q=Scoped&p=1', $cookie)->getBody();
         self::assertStringContainsString('href="/_letterbox/inbox?q=Scoped&amp;p=2"', $paged);
-    }
-
-    #[Test]
-    public function lastUsedIsTouched(): void
-    {
-        $issued = $this->issue();
-        self::assertSame(0, $issued->link->lastUsed);
-
-        $this->send($this->middleware(), '/_letterbox/inbox', ['letterbox_inbox' => $issued->token]);
-
-        $link = $this->repository()->findByToken($issued->token);
-        self::assertNotNull($link);
-        self::assertGreaterThan(0, $link->lastUsed);
     }
 
     #[Test]
@@ -410,7 +397,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function attachmentNeedsPermission(): void
+    public function attachmentIsAvailableInScope(): void
     {
         $id = $this->appendRaw(
             "From: s@example.org\nTo: anna@example.org\nSubject: With file\nMessage-ID: <file@example.org>\nMIME-Version: 1.0\n"
@@ -423,12 +410,9 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
             ."--b\nContent-Type: text/plain; name=\"secret.txt\"\nContent-Disposition: attachment; filename=\"secret.txt\"\n\nsecret content\n--b--\n",
         );
         $middleware = $this->middleware();
-        $denied = ['letterbox_inbox' => $this->issue()->token];
-        $allowed = ['letterbox_inbox' => $this->issue('Files', true)->token];
+        $allowed = ['letterbox_inbox' => $this->issue()->token];
 
-        self::assertStringNotContainsString('/attachments/', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $denied)->getBody());
-        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$id.'/attachments/0', $denied)->getStatusCode());
-
+        self::assertStringNotContainsString('secret.txt', (string) $this->send($middleware, '/_letterbox/inbox/'.$outside, $allowed)->getBody());
         $detail = (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $allowed)->getBody();
         self::assertStringContainsString('href="/_letterbox/inbox/'.$id.'/attachments/0"', $detail);
         self::assertStringContainsString('notes.txt', $detail);
@@ -449,50 +433,20 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function deleteNeedsPermissionPostAndCsrf(): void
+    public function deleteRouteIsGone(): void
     {
-        $id = $this->append('Delete me', 'anna@example.org');
+        $id = $this->append('Keep me', 'anna@example.org');
+        $cookie = ['letterbox_inbox' => $this->issue()->token];
         $middleware = $this->middleware();
-        $denied = $this->issue();
-        $allowed = $this->issue('Cleaner', false, true);
-        $deniedCookie = ['letterbox_inbox' => $denied->token];
-        $allowedCookie = ['letterbox_inbox' => $allowed->token];
-        $path = '/_letterbox/inbox/'.$id.'/delete';
 
-        self::assertStringNotContainsString('/delete', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $deniedCookie)->getBody());
-        self::assertSame(404, $this->send($middleware, $path, $deniedCookie, 'POST', [], ['letterboxCsrf' => $this->csrf($denied->link->uid, $id)])->getStatusCode());
-        self::assertSame(404, $this->send($middleware, $path, $allowedCookie)->getStatusCode(), 'GET');
-        self::assertSame(404, $this->send($middleware, $path, $allowedCookie, 'POST')->getStatusCode(), 'missing token');
-        self::assertSame(404, $this->send($middleware, $path, $allowedCookie, 'POST', [], ['letterboxCsrf' => 'nope'])->getStatusCode(), 'wrong token');
-        self::assertSame(404, $this->send($middleware, $path, $allowedCookie, 'POST', [], ['letterboxCsrf' => ['x']])->getStatusCode(), 'array token');
-        self::assertSame(404, $this->send($middleware, $path, $allowedCookie, 'POST', [], ['letterboxCsrf' => $this->csrf($denied->link->uid, $id)])->getStatusCode(), 'token of another link');
-        self::assertSame(404, $this->send($middleware, $path, [], 'POST', [], ['letterboxCsrf' => $this->csrf($allowed->link->uid, $id)])->getStatusCode(), 'no cookie');
+        foreach (['POST', 'GET'] as $method) {
+            $response = $this->send($middleware, '/_letterbox/inbox/'.$id.'/delete', $cookie, $method, [], ['letterboxCsrf' => 'x']);
+            self::assertSame(404, $response->getStatusCode(), $method);
+            self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
+        }
         self::assertNotNull($this->get(MailRepository::class)->findById($id, MailFilter::all()));
-
-        $detail = (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $allowedCookie)->getBody();
-        self::assertStringContainsString('action="'.$path.'"', $detail);
-        self::assertStringContainsString('method="post"', $detail);
-        self::assertStringContainsString('name="letterboxCsrf" value="'.$this->csrf($allowed->link->uid, $id).'"', $detail);
-
-        $response = $this->send($middleware, $path, $allowedCookie, 'POST', [], ['letterboxCsrf' => $this->csrf($allowed->link->uid, $id)]);
-        self::assertSame(303, $response->getStatusCode());
-        self::assertSame('/_letterbox/inbox', $response->getHeaderLine('Location'));
-        self::assertSame(self::PAGE_CSP, $response->getHeaderLine('Content-Security-Policy'));
-        self::assertNull($this->get(MailRepository::class)->findById($id, MailFilter::all()));
-        self::assertSame(404, $this->send($middleware, $path, $allowedCookie, 'POST', [], ['letterboxCsrf' => $this->csrf($allowed->link->uid, $id)])->getStatusCode(), 'already gone');
-    }
-
-    #[Test]
-    public function deleteCannotReachMailOutsideScope(): void
-    {
-        $outside = $this->append('For Carl', 'carl@other.test');
-        $allowed = $this->issue('Cleaner', false, true);
-
-        $response = $this->send($this->middleware(), '/_letterbox/inbox/'.$outside.'/delete', ['letterbox_inbox' => $allowed->token], 'POST', [], ['letterboxCsrf' => $this->csrf($allowed->link->uid, $outside)]);
-
-        self::assertSame(404, $response->getStatusCode());
-        self::assertNotNull($this->get(MailRepository::class)->findById($outside, MailFilter::all()));
-        self::assertSame(1, $this->get(MailRepository::class)->count(MailFilter::all()));
+        self::assertStringNotContainsString('/delete', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $cookie)->getBody());
+        self::assertStringNotContainsString('<form method="post"', (string) $this->send($middleware, '/_letterbox/inbox/'.$id, $cookie)->getBody());
     }
 
     private function assertClearedCookie(ResponseInterface $response): void
@@ -509,14 +463,9 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertArrayHasKey('httponly', $attributes);
     }
 
-    private function issue(string $label = 'QA', bool $canDownload = false, bool $canDelete = false): IssuedLink
+    private function issue(string $label = 'QA'): IssuedLink
     {
-        return $this->repository()->issue($label, [RecipientPattern::fromString('*@example.org')], false, $canDownload, $canDelete, 7, 1, time());
-    }
-
-    private function csrf(int $uid, string $id): string
-    {
-        return hash_hmac('sha256', $uid.'|'.$id, $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey']);
+        return $this->repository()->issue($label, [RecipientPattern::fromString('*@example.org')], 1, time());
     }
 
     private function repository(): TesterLinkRepository
@@ -529,14 +478,12 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         $variables = new EnvironmentVariables(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing']);
         $responseFactory = new ResponseFactory();
         $streamFactory = new StreamFactory();
-        $links = $this->repository();
 
         return new TesterInboxMiddleware(
             new ExternalAccessGuard($variables, $this->get(ExtensionConfiguration::class)),
             new AuthenticationThrottle(new RateLimitStorage($this->get(CacheManager::class)->getCache('typo3_letterbox_ratelimit'))),
             new ExternalResponses($responseFactory, $streamFactory),
-            new TesterSession($links, GeneralUtility::makeInstance(Context::class)),
-            $links,
+            new TesterSession($this->repository(), GeneralUtility::makeInstance(Context::class)),
             $this->get(MailRepository::class),
             new TesterInboxView($this->get(ViewFactoryInterface::class), GeneralUtility::makeInstance(LanguageServiceFactory::class), $responseFactory, $streamFactory, new MailHtmlDocument()),
             $responseFactory,

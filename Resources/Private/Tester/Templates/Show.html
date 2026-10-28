@@ -78,14 +78,4 @@
             </ul>
         </section>
     </f:if>
-    <f:if condition="{csrf}">
-        <section class="tester-card tester-card--padded" aria-labelledby="tester-delete-heading">
-            <h2 id="tester-delete-heading" class="tester-card__title">{labels.deleteHeading}</h2>
-            <p>{labels.deleteText}</p>
-            <form method="post" action="{deleteUrl}">
-                <input type="hidden" name="letterboxCsrf" value="{csrf}">
-                <button class="tester-button tester-button--danger" type="submit">{labels.deleteSubmit}</button>
-            </form>
-        </section>
-    </f:if>
 </f:section>

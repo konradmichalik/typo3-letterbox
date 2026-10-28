@@ -123,47 +123,7 @@
                     <div class="form-text" id="letterbox-access-scope-help"><f:translate key="access.create.scope.help" extensionName="Typo3Letterbox" /></div>
                 </div>
 
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="letterbox-access-unrestricted" name="unrestricted" value="1" aria-describedby="letterbox-access-unrestricted-warning"{f:if(condition: form.unrestricted, then: ' checked')} />
-                        <label class="form-check-label" for="letterbox-access-unrestricted"><f:translate key="access.create.unrestricted" extensionName="Typo3Letterbox" /></label>
-                    </div>
-                    <div class="callout callout-warning mt-2 mb-0" id="letterbox-access-unrestricted-warning">
-                        <div class="callout-icon" aria-hidden="true">
-                            <span class="icon-emphasized"><core:icon identifier="actions-exclamation" /></span>
-                        </div>
-                        <div class="callout-content">
-                            <div class="callout-body"><f:translate key="access.create.unrestricted.warning" extensionName="Typo3Letterbox" /></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-sm-6">
-                        <fieldset>
-                            <legend class="form-label fs-6"><f:translate key="access.create.days" extensionName="Typo3Letterbox" /></legend>
-                            <f:for each="{days}" as="day">
-                                <div class="form-check">
-                                    <input type="radio" class="form-check-input" id="letterbox-access-days-{day}" name="days" value="{day}"{f:if(condition: '{form.days} == {day}', then: ' checked')} />
-                                    <label class="form-check-label" for="letterbox-access-days-{day}"><f:translate key="access.create.days.{day}" extensionName="Typo3Letterbox" /></label>
-                                </div>
-                            </f:for>
-                        </fieldset>
-                    </div>
-                    <div class="col-sm-6">
-                        <fieldset>
-                            <legend class="form-label fs-6"><f:translate key="access.create.permissions" extensionName="Typo3Letterbox" /></legend>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="letterbox-access-download" name="canDownload" value="1"{f:if(condition: form.canDownload, then: ' checked')} />
-                                <label class="form-check-label" for="letterbox-access-download"><f:translate key="access.create.download" extensionName="Typo3Letterbox" /></label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="letterbox-access-delete" name="canDelete" value="1"{f:if(condition: form.canDelete, then: ' checked')} />
-                                <label class="form-check-label" for="letterbox-access-delete"><f:translate key="access.create.delete" extensionName="Typo3Letterbox" /></label>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
+                <p class="form-text"><f:translate key="access.create.lifetime" extensionName="Typo3Letterbox" arguments="{0: lifetimeDays}" /></p>
 
                 <button type="submit" class="btn btn-primary"><f:translate key="access.create.submit" extensionName="Typo3Letterbox" /></button>
             </form>
@@ -186,9 +146,7 @@
                             <tr>
                                 <th scope="col"><f:translate key="access.links.col.label" extensionName="Typo3Letterbox" /></th>
                                 <th scope="col"><f:translate key="access.links.col.scope" extensionName="Typo3Letterbox" /></th>
-                                <th scope="col"><f:translate key="access.links.col.permissions" extensionName="Typo3Letterbox" /></th>
                                 <th scope="col"><f:translate key="access.links.col.expires" extensionName="Typo3Letterbox" /></th>
-                                <th scope="col"><f:translate key="access.links.col.lastUsed" extensionName="Typo3Letterbox" /></th>
                                 <th scope="col"><f:translate key="access.links.col.createdBy" extensionName="Typo3Letterbox" /></th>
                                 <th scope="col"><f:translate key="access.links.col.state" extensionName="Typo3Letterbox" /></th>
                                 <th scope="col"><span class="visually-hidden"><f:translate key="access.links.col.actions" extensionName="Typo3Letterbox" /></span></th>
@@ -199,28 +157,12 @@
                                 <tr>
                                     <th scope="row" class="text-break">{link.label}</th>
                                     <td class="text-break">
-                                        <f:if condition="{link.unrestricted}">
-                                            <f:then><f:translate key="access.links.unrestricted" extensionName="Typo3Letterbox" /></f:then>
-                                            <f:else>
-                                                <f:if condition="{link.scopeValid}">
-                                                    <f:then><f:for each="{link.scope}" as="pattern" iteration="iterator"><code>{pattern}</code>{f:if(condition: '{iterator.isLast}', else: ', ')}</f:for></f:then>
-                                                    <f:else><f:translate key="access.links.invalidScope" extensionName="Typo3Letterbox" /></f:else>
-                                                </f:if>
-                                            </f:else>
-                                        </f:if>
-                                    </td>
-                                    <td>
-                                        <f:if condition="{link.canDownload} || {link.canDelete}">
-                                            <f:then>
-                                                <f:if condition="{link.canDownload}"><f:translate key="access.links.permission.download" extensionName="Typo3Letterbox" /></f:if>
-                                                <f:if condition="{link.canDownload} && {link.canDelete}">, </f:if>
-                                                <f:if condition="{link.canDelete}"><f:translate key="access.links.permission.delete" extensionName="Typo3Letterbox" /></f:if>
-                                            </f:then>
-                                            <f:else><f:translate key="access.links.permission.read" extensionName="Typo3Letterbox" /></f:else>
+                                        <f:if condition="{link.scope}">
+                                            <f:then><f:for each="{link.scope}" as="pattern" iteration="iterator"><code>{pattern}</code>{f:if(condition: '{iterator.isLast}', else: ', ')}</f:for></f:then>
+                                            <f:else><f:translate key="access.links.invalidScope" extensionName="Typo3Letterbox" /></f:else>
                                         </f:if>
                                     </td>
                                     <td>{link.expires}</td>
-                                    <td><f:if condition="{link.lastUsed}"><f:then>{link.lastUsed}</f:then><f:else><f:translate key="access.links.never" extensionName="Typo3Letterbox" /></f:else></f:if></td>
                                     <td><f:if condition="{link.createdBy}"><f:then>{link.createdBy}</f:then><f:else><f:translate key="access.links.unknownUser" extensionName="Typo3Letterbox" /></f:else></f:if></td>
                                     <td><f:translate key="access.links.state.{link.state}" extensionName="Typo3Letterbox" /></td>
                                     <td>

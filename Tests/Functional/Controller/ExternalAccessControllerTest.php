@@ -16,7 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Controller;
 use KonradMichalik\Typo3Letterbox\Controller\ExternalAccessController;
 use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard};
 use KonradMichalik\Typo3Letterbox\External\Tester\TesterLinkRepository;
-use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
+use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, RecipientPattern};
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use TYPO3\CMS\Backend\Module\ModuleProvider;
@@ -106,7 +106,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     #[Test]
     public function createShowsUrlOnceAndStoresHash(): void
     {
-        $request = $this->post('system_letterbox.access_create', ['label' => 'Test link', 'scope' => '*@example.org', 'days' => '7', 'canDownload' => '1']);
+        $request = $this->post('system_letterbox.access_create', ['label' => 'Test link', 'scope' => '*@example.org']);
 
         $response = $this->controller()->createAction($request);
 
@@ -115,11 +115,10 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
         $token = $this->tokenFrom((string) $response->getBody());
         self::assertSame(64, strlen($token));
         self::assertStringContainsString('typo3-copy-to-clipboard', (string) $response->getBody());
+        self::assertStringContainsString('The link is valid for 7 days.', (string) $response->getBody());
         $links = $this->repository()->findAll();
         self::assertCount(1, $links);
         self::assertSame('Test link', $links[0]->label);
-        self::assertTrue($links[0]->canDownload);
-        self::assertFalse($links[0]->canDelete);
         self::assertSame($links[0]->uid, $this->repository()->findByToken($token)?->uid);
         self::assertStringNotContainsString($token, json_encode($this->rows(), \JSON_THROW_ON_ERROR));
 
@@ -132,7 +131,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     #[Test]
     public function issuedUrlUsesSitePath(): void
     {
-        $request = $this->post('system_letterbox.access_create', ['label' => 'Sub', 'scope' => '*@example.org', 'days' => '1'], ['SCRIPT_NAME' => '/sub/index.php']);
+        $request = $this->post('system_letterbox.access_create', ['label' => 'Sub', 'scope' => '*@example.org'], ['SCRIPT_NAME' => '/sub/index.php']);
 
         $body = (string) $this->controller()->createAction($request)->getBody();
 
@@ -142,7 +141,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     #[Test]
     public function createRejectsInvalidPatternWithMessage(): void
     {
-        $request = $this->post('system_letterbox.access_create', ['label' => 'Bad', 'scope' => "ok@example.org\nnot an address", 'days' => '7']);
+        $request = $this->post('system_letterbox.access_create', ['label' => 'Bad', 'scope' => "ok@example.org\nnot an address"]);
 
         $response = $this->controller()->createAction($request);
 
@@ -157,39 +156,30 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function createRejectsEmptyScopeWithoutUnrestricted(): void
+    public function createRejectsEmptyScope(): void
     {
-        $body = (string) $this->controller()->createAction($this->post('system_letterbox.access_create', ['label' => 'None', 'scope' => '  ', 'days' => '7']))->getBody();
+        $empty = (string) $this->controller()->createAction($this->post('system_letterbox.access_create', ['label' => 'None', 'scope' => '  ']))->getBody();
+        $flag = (string) $this->controller()->createAction($this->post('system_letterbox.access_create', ['label' => 'All', 'scope' => '', 'unrestricted' => '1']))->getBody();
 
-        self::assertStringContainsString('Enter at least one address or pattern', $body);
+        self::assertStringContainsString('Enter at least one address or pattern', $empty);
+        self::assertStringContainsString('Enter at least one address or pattern', $flag, 'a stale unrestricted field changes nothing');
         self::assertSame([], $this->repository()->findAll());
     }
 
     #[Test]
-    public function createRejectsMissingLabelAndUnrestrictedWithPatterns(): void
+    public function createRejectsMissingLabel(): void
     {
-        $missing = (string) $this->controller()->createAction($this->post('system_letterbox.access_create', ['label' => ' ', 'scope' => 'a@example.org', 'days' => '7']))->getBody();
-        $mixed = (string) $this->controller()->createAction($this->post('system_letterbox.access_create', ['label' => 'Mix', 'scope' => 'a@example.org', 'unrestricted' => '1', 'days' => '7']))->getBody();
+        $missing = (string) $this->controller()->createAction($this->post('system_letterbox.access_create', ['label' => ' ', 'scope' => 'a@example.org']))->getBody();
 
         self::assertStringContainsString('Enter a label', $missing);
-        self::assertStringContainsString('Remove the patterns or clear', $mixed);
         self::assertSame([], $this->repository()->findAll());
-    }
-
-    #[Test]
-    public function createAcceptsUnrestrictedWithoutPatterns(): void
-    {
-        $response = $this->controller()->createAction($this->post('system_letterbox.access_create', ['label' => 'All', 'scope' => '', 'unrestricted' => '1', 'days' => '30']));
-
-        self::assertSame(64, strlen($this->tokenFrom((string) $response->getBody())));
-        self::assertTrue($this->repository()->findAll()[0]->unrestricted);
     }
 
     #[Test]
     public function createAndRevokeRequirePostAndFormToken(): void
     {
         $controller = $this->controller();
-        $body = ['label' => 'X', 'scope' => 'a@example.org', 'days' => '7', 'uid' => '1'];
+        $body = ['label' => 'X', 'scope' => 'a@example.org', 'uid' => '1'];
 
         self::assertSame(405, $controller->createAction($this->request('system_letterbox.access_create'))->getStatusCode());
         self::assertSame(405, $controller->revokeAction($this->request('system_letterbox.access_revoke'))->getStatusCode());
@@ -202,7 +192,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     public function revokeMarksLinkRevoked(): void
     {
         $repository = $this->repository();
-        $issued = $repository->issue('Gone', [], true, false, false, 7, 1, time());
+        $issued = $repository->issue('Gone', [RecipientPattern::fromString('a@example.org')], 1, time());
 
         $response = $this->controller()->revokeAction($this->post('system_letterbox.access_revoke', ['uid' => (string) $issued->link->uid]));
 
@@ -213,19 +203,20 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function tableShowsStateScopeAndPermissions(): void
+    public function tableShowsStateAndScope(): void
     {
         $repository = $this->repository();
-        $repository->issue('Active one', [], true, true, true, 7, 1, time());
-        $revoked = $repository->issue('Revoked one', [], true, false, false, 7, 1, time());
+        $scope = [RecipientPattern::fromString('*@example.org')];
+        $repository->issue('Active one', $scope, 1, time());
+        $revoked = $repository->issue('Revoked one', $scope, 1, time());
         $repository->revoke($revoked->link->uid, time());
-        $repository->issue('Expired one', [], true, false, false, 1, 1, time() - 3 * 86400);
+        $repository->issue('Expired one', $scope, 1, time() - 8 * 86400);
 
         $body = (string) $this->controller()->indexAction($this->request('system_letterbox.access'))->getBody();
 
         self::assertStringContainsString('Active one', $body);
         self::assertSame(1, preg_match_all('/<th scope="row"[^>]*>\s*Active one/', $body));
-        self::assertStringContainsString('All mails', $body);
+        self::assertStringContainsString('<code>*@example.org</code>', $body);
         self::assertStringContainsString('Revoked', $body);
         self::assertStringContainsString('Expired', $body);
         self::assertSame(2, substr_count($body, 'name="uid"'));

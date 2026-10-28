@@ -31,24 +31,16 @@ final readonly class TesterLink
         public int $uid,
         public string $label,
         public array $scope,
-        public bool $unrestricted,
-        public bool $canDownload,
-        public bool $canDelete,
         public int $expires,
         public int $created,
         public int $createdBy,
-        public int $lastUsed,
         public int $revoked,
         public bool $scopeValid = true,
     ) {}
 
     public function isUsable(int $now): bool
     {
-        if (!$this->scopeValid || 0 !== $this->revoked || $now >= $this->expires) {
-            return false;
-        }
-
-        return $this->unrestricted ? [] === $this->scope : [] !== $this->scope;
+        return $this->scopeValid && [] !== $this->scope && 0 === $this->revoked && $now < $this->expires;
     }
 
     /**
@@ -56,6 +48,6 @@ final readonly class TesterLink
      */
     public function filter(MailFilter $base): MailFilter
     {
-        return $this->unrestricted && $this->scopeValid ? $base : $base->withAdditionalScope($this->scope);
+        return $base->withAdditionalScope($this->scope);
     }
 }

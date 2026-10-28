@@ -23,7 +23,6 @@ use TYPO3\CMS\Core\Http\NormalizedParams;
 
 use function array_slice;
 use function count;
-use function is_array;
 use function is_string;
 use function strlen;
 
@@ -44,14 +43,12 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
     private const MAX_QUERY_LENGTH = 200;
     private const ID_PATTERN = '/^[0-9a-f]{32}$/D';
     private const INDEX_PATTERN = '/^(?:0|[1-9]\d{0,5})$/D';
-    private const CSRF_FIELD = 'letterboxCsrf';
 
     public function __construct(
         private ExternalAccessGuard $guard,
         private AuthenticationThrottle $throttle,
         private ExternalResponses $responses,
         private TesterSession $session,
-        private TesterLinkRepository $links,
         private MailRepository $repository,
         private TesterInboxView $view,
         private ResponseFactoryInterface $responseFactory,
@@ -77,7 +74,7 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
      */
     private function answer(ServerRequestInterface $request, array $segments, string $basePath): ResponseInterface
     {
-        if ($request->getMethod() !== ($this->isDeletePath($segments) ? 'POST' : 'GET')) {
+        if ('GET' !== $request->getMethod()) {
             return $this->view->notFound($request);
         }
         $state = $this->guard->evaluate($request);
@@ -98,7 +95,6 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
 
             return $this->view->notFound($request)->withAddedHeader('Set-Cookie', $this->session->expiredCookie($basePath));
         }
-        $this->links->touch($link->uid, $this->session->now());
 
         return $this->route($request, $segments, $link, $state->baseFilter, $basePath);
     }
@@ -118,22 +114,13 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         $filter = $link->filter($baseFilter);
 
         return match (true) {
-            1 === count($segments) => $this->show($request, $link, $filter, $id, $basePath),
-            $this->isDeletePath($segments) => $this->delete($request, $link, $filter, $id, $basePath),
-            3 === count($segments) && 'attachments' === $segments[1] => $this->attachment($request, $link, $filter, $id, $segments[2]),
+            1 === count($segments) => $this->show($request, $filter, $id, $basePath),
+            3 === count($segments) && 'attachments' === $segments[1] => $this->attachment($request, $filter, $id, $segments[2]),
             default => $this->view->notFound($request),
         };
     }
 
-    /**
-     * @param list<string> $segments
-     */
-    private function isDeletePath(array $segments): bool
-    {
-        return 2 === count($segments) && 'delete' === $segments[1];
-    }
-
-    private function show(ServerRequestInterface $request, TesterLink $link, MailFilter $filter, string $id, string $basePath): ResponseInterface
+    private function show(ServerRequestInterface $request, MailFilter $filter, string $id, string $basePath): ResponseInterface
     {
         $mail = $this->repository->findById($id, $filter);
         if (null === $mail) {
@@ -141,39 +128,14 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         }
         $textView = 'text' === ($request->getQueryParams()['view'] ?? '');
 
-        return $this->view->show($request, $link, $filter, $mail, $basePath, $textView, $link->canDelete ? $this->csrf($link, $id) : '');
+        return $this->view->show($request, $filter, $mail, $basePath, $textView);
     }
 
-    private function attachment(ServerRequestInterface $request, TesterLink $link, MailFilter $filter, string $id, string $index): ResponseInterface
+    private function attachment(ServerRequestInterface $request, MailFilter $filter, string $id, string $index): ResponseInterface
     {
-        $attachment = $link->canDownload && 1 === preg_match(self::INDEX_PATTERN, $index) ? $this->repository->attachment($id, (int) $index, $filter) : null;
+        $attachment = 1 === preg_match(self::INDEX_PATTERN, $index) ? $this->repository->attachment($id, (int) $index, $filter) : null;
 
         return null === $attachment ? $this->view->notFound($request) : $this->downloads->attachment($attachment);
-    }
-
-    /**
-     * An authenticated tester with a wrong form token is no attack on the link, so it is a plain 404 without throttling.
-     */
-    private function delete(ServerRequestInterface $request, TesterLink $link, MailFilter $filter, string $id, string $basePath): ResponseInterface
-    {
-        $body = $request->getParsedBody();
-        $given = is_array($body) ? ($body[self::CSRF_FIELD] ?? null) : null;
-        $expected = $this->csrf($link, $id);
-        if (!$link->canDelete || '' === $expected || !is_string($given) || !hash_equals($expected, $given) || !$this->repository->delete($id, $filter)) {
-            return $this->view->notFound($request);
-        }
-
-        return $this->responseFactory->createResponse(303)->withHeader('Location', $basePath);
-    }
-
-    /**
-     * Binds the delete form to the link and the mail, empty without an encryption key so no form can pass.
-     */
-    private function csrf(TesterLink $link, string $id): string
-    {
-        $key = $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] ?? '';
-
-        return is_string($key) && '' !== $key ? hash_hmac('sha256', $link->uid.'|'.$id, $key) : '';
     }
 
     /**
@@ -205,7 +167,6 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
 
             return $this->view->notFound($request);
         }
-        $this->links->touch($link->uid, $this->session->now());
 
         return $this->responseFactory->createResponse(303)
             ->withHeader('Location', $basePath)

@@ -18,9 +18,6 @@
 			<trans-unit id="scope.mailsFor" resname="scope.mailsFor">
 				<source>Mails for %s</source>
 			</trans-unit>
-			<trans-unit id="scope.all" resname="scope.all">
-				<source>all recipients</source>
-			</trans-unit>
 			<trans-unit id="scope.validUntil" resname="scope.validUntil">
 				<source>Link valid until %s</source>
 			</trans-unit>
@@ -125,15 +122,6 @@
 			</trans-unit>
 			<trans-unit id="attachments.heading" resname="attachments.heading">
 				<source>Attachments (%d)</source>
-			</trans-unit>
-			<trans-unit id="delete.heading" resname="delete.heading">
-				<source>Delete mail</source>
-			</trans-unit>
-			<trans-unit id="delete.text" resname="delete.text">
-				<source>The mail is removed for everyone who can see it. This cannot be undone.</source>
-			</trans-unit>
-			<trans-unit id="delete.submit" resname="delete.submit">
-				<source>Delete mail</source>
 			</trans-unit>
 			<trans-unit id="notFound.heading" resname="notFound.heading">
 				<source>Page not found</source>

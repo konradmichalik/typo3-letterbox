@@ -20,8 +20,6 @@
   --tester-callout-border: light-dark(#e2b53e, #8a6a14);
   --tester-focus: light-dark(#412aa2, #b8aaf0);
   --tester-reset-bg: light-dark(#ebe8f7, #2a2442);
-  --tester-danger: light-dark(#b3261e, #f2b8b5);
-  --tester-danger-bg: light-dark(#b3261e, #8c1d18);
   --tester-radius: 9px;
 }
 
@@ -311,18 +309,6 @@ dd {
 
 .tester-pagination__status {
   padding: 0 0.5rem;
-}
-
-.tester-button--danger {
-  background: var(--tester-danger-bg);
-  border-color: var(--tester-danger-bg);
-  color: var(--tester-on-primary);
-  font-weight: bold;
-}
-
-.tester-button--danger:hover {
-  background: var(--tester-danger-bg);
-  filter: brightness(1.1);
 }
 
 .tester-back {
