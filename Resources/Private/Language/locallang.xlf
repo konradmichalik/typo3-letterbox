@@ -510,6 +510,12 @@
 			<trans-unit id="toolbar.notConfigured" resname="toolbar.notConfigured">
 				<source>Letterbox is active but no mbox file is configured.</source>
 			</trans-unit>
+			<trans-unit id="toolbar.invalidSettings" resname="toolbar.invalidSettings">
+				<source>The Letterbox mail settings are invalid. Sending mails fails until they are fixed.</source>
+			</trans-unit>
+			<trans-unit id="toolbar.unreadable" resname="toolbar.unreadable">
+				<source>The mbox file could not be read. Check that it is a readable file.</source>
+			</trans-unit>
 			<trans-unit id="toolbar.empty" resname="toolbar.empty">
 				<source>No mails caught yet.</source>
 			</trans-unit>

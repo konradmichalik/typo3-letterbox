@@ -127,7 +127,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
         $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
         $settings = $this->settings(is_array($mail) ? $mail : []);
         $variables = [
-            'configured' => false,
+            'state' => null === $settings ? 'invalid' : 'noFile',
             'listed' => DeliveryMode::Listed === $settings?->mode,
             'catchCount' => null === $settings ? 0 : count($settings->catch),
             'count' => 0,
@@ -139,21 +139,25 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
         if (null === $settings || !$this->mailRepository->isConfigured()) {
             return $variables;
         }
+        if (!$this->mailRepository->isReadable()) {
+            return ['state' => 'unreadable'] + $variables;
+        }
 
         try {
             $readIds = $this->readState->readIds();
-            $variables['count'] = $this->mailRepository->count(MailFilter::create('', QuickFilter::Unread, $readIds));
-            $variables['total'] = $this->mailRepository->count(MailFilter::all());
-            $variables['mails'] = $this->latestMails($variables['moduleEnabled'], array_flip($readIds));
-            $variables['openUrl'] = $variables['moduleEnabled'] ? (string) $this->uriBuilder->buildUriFromRoute('system_letterbox') : '';
-            $variables['configured'] = true;
+
+            return [
+                'state' => 'ok',
+                'count' => $this->mailRepository->count(MailFilter::create('', QuickFilter::Unread, $readIds)),
+                'total' => $this->mailRepository->count(MailFilter::all()),
+                'mails' => $this->latestMails($variables['moduleEnabled'], array_flip($readIds)),
+                'openUrl' => $variables['moduleEnabled'] ? (string) $this->uriBuilder->buildUriFromRoute('system_letterbox') : '',
+            ] + $variables;
         } catch (Throwable $exception) {
             $this->warn($exception);
 
-            return array_merge($variables, ['configured' => false, 'count' => 0, 'mails' => []]);
+            return ['state' => 'unreadable'] + $variables;
         }
-
-        return $variables;
     }
 
     /**

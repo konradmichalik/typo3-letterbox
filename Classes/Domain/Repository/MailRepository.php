@@ -174,6 +174,16 @@ final readonly class MailRepository
         return '' !== $this->mailbox->path();
     }
 
+    /**
+     * A missing file is an empty mailbox. Anything else at the path has to be a readable file.
+     */
+    public function isReadable(): bool
+    {
+        $path = $this->mailbox->path();
+
+        return !file_exists($path) || (is_file($path) && is_readable($path));
+    }
+
     public function path(): string
     {
         return $this->mailbox->path();

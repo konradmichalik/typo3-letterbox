@@ -219,18 +219,39 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
 
         self::assertTrue($item->checkAccess());
         self::assertStringContainsString('Mail catcher active', $item->getItem());
-        self::assertStringContainsString('Letterbox is active but no mbox file is configured.', $item->getDropDown());
+        $html = $item->getDropDown();
+        self::assertStringContainsString('Letterbox is active but no mbox file is configured.', $html);
+        self::assertStringNotContainsString('settings are invalid', $html);
     }
 
     #[Test]
-    public function invalidSettingsRenderNotConfiguredWithoutException(): void
+    public function invalidSettingsRenderInvalidSettingsWithoutException(): void
     {
         $this->useMailSettings(['transport_letterbox_mode' => 'bogus']);
         $item = $this->item();
 
         self::assertTrue($item->checkAccess());
-        self::assertStringContainsString('Letterbox is active but no mbox file is configured.', $item->getDropDown());
+        $html = $item->getDropDown();
+        self::assertStringContainsString('The Letterbox mail settings are invalid.', $html);
+        self::assertStringNotContainsString('no mbox file is configured', $html);
         self::assertNotSame('', $item->getItem());
+    }
+
+    #[Test]
+    public function unreadableMailboxRendersReadError(): void
+    {
+        // A directory at the path cannot be read as an mbox file.
+        GeneralUtility::mkdir_deep($this->path);
+
+        try {
+            $html = $this->item()->getDropDown();
+        } finally {
+            rmdir($this->path);
+        }
+
+        self::assertStringContainsString('The mbox file could not be read.', $html);
+        self::assertStringNotContainsString('no mbox file is configured', $html);
+        self::assertStringNotContainsString('settings are invalid', $html);
     }
 
     #[Test]

@@ -113,6 +113,7 @@ Administrators see a Letterbox button in the backend toolbar while mails are bei
 * The label is "Mail catcher active" in mode `all` and "Catching 3 addresses" in mode `listed`.
 * The badge counts the mails the current backend user has not opened yet, see [unread state](backend-module.md). At 0 there is no badge. It is yellow in mode `all` and blue in mode `listed`.
 * The dropdown explains what happens to mails, lists the subjects of the latest 5 mails with their arrival time (unread ones in bold), each linking to the mail, and has an "Open Letterbox" button. Without the backend module (`enableBackendModule` off) the subjects are plain text and the button is missing.
+* Instead of the mails the dropdown names the problem: no mbox file configured, invalid mail settings (sending fails until they are fixed), or an mbox file that cannot be read, for example a directory or a file without read permission.
 
 ## Reports status
 
