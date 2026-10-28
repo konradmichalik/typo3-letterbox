@@ -73,7 +73,7 @@ A tester who can read a mailbox could read the reset link of a backend user. Set
 Open System › Letterbox › External access to issue a link. The form takes a label and at least one recipient pattern (one per line). Every link is read-only and valid for 7 days.
 
 * The link (`<site URL>_letterbox/inbox?t=<token>`) is shown once. Letterbox keeps only a hash, so a lost link cannot be shown again. Revoke it and issue a new one.
-* Opening the link exchanges the token for a `Strict`, `HttpOnly`, `Secure` cookie and redirects to the clean URL. Revoking a link takes effect on the next request.
+* Opening the link exchanges the token for an `HttpOnly`, `Secure`, `SameSite=Lax` cookie and redirects to the clean URL. `Lax` keeps the cookie on the redirect when the link is clicked in webmail, chat or a ticket. The inbox only answers GET and changes nothing. Revoking a link takes effect on the next request.
 * A pattern is an exact address or `*@domain`. A mail is visible when one of its recipients (To, Cc or envelope) matches the scope. Display names never match, and a Bcc header never widens the scope. In root `Production`, one recipient must match both the link and the catch list.
 * The tester sees only the matching recipients and "and N more" for the rest. Addresses written in the mail body are not masked.
 * The inbox shows subject, sender, date, an HTML view and a text view, the links in the mail, and a button for the first password reset link. It never shows headers, the source or `.eml` files, loads no remote images and runs no JavaScript. It lists the attachments of a mail and lets the tester download them. A tester cannot delete mails.

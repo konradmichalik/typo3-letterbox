@@ -112,7 +112,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function cookieAttributesAreStrict(): void
+    public function cookieAttributesAreLax(): void
     {
         $issued = $this->issue();
 
@@ -124,7 +124,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame('/_letterbox/inbox', $attributes['path']);
         self::assertArrayHasKey('secure', $attributes);
         self::assertArrayHasKey('httponly', $attributes);
-        self::assertSame('strict', strtolower($attributes['samesite']));
+        self::assertSame('lax', strtolower($attributes['samesite']), 'Lax, so the cookie survives the 303 after a click from another site');
         self::assertArrayNotHasKey('domain', $attributes);
         self::assertSame($issued->link->expires, strtotime($attributes['expires']));
     }
@@ -461,6 +461,7 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         self::assertSame('/_letterbox/inbox', $attributes['path']);
         self::assertArrayHasKey('secure', $attributes);
         self::assertArrayHasKey('httponly', $attributes);
+        self::assertSame('lax', strtolower($attributes['samesite']));
     }
 
     private function issue(string $label = 'QA'): IssuedLink

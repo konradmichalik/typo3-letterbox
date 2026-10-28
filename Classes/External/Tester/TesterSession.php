@@ -23,7 +23,7 @@ use function is_string;
 /**
  * TesterSession.
  *
- * The tester inbox session is the raw link token in a strict cookie. Every request looks the link up
+ * The tester inbox session is the raw link token in a SameSite=Lax cookie (Lax, so a link clicked in webmail or chat survives the 303). Every request looks the link up
  * by the token hash again, so revoking or expiring a link ends every session at once.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
@@ -61,7 +61,7 @@ final readonly class TesterSession
 
     public function cookie(string $token, TesterLink $link, string $path): string
     {
-        return (string) new Cookie(self::COOKIE_NAME, $token, $link->expires, $path, null, true, true, false, Cookie::SAMESITE_STRICT);
+        return (string) new Cookie(self::COOKIE_NAME, $token, $link->expires, $path, null, true, true, false, Cookie::SAMESITE_LAX);
     }
 
     /**
@@ -69,7 +69,7 @@ final readonly class TesterSession
      */
     public function expiredCookie(string $path): string
     {
-        return (string) new Cookie(self::COOKIE_NAME, '', 1, $path, null, true, true, false, Cookie::SAMESITE_STRICT);
+        return (string) new Cookie(self::COOKIE_NAME, '', 1, $path, null, true, true, false, Cookie::SAMESITE_LAX);
     }
 
     public function now(): int
