@@ -261,7 +261,8 @@ const swapList = (inbox, node) => {
 };
 
 /**
- * Returns whether another mail was opened, which moves focus to its subject and is announced.
+ * Returns whether another mail was opened. Focus moves to its subject, which screen readers read out, so the
+ * swap is not announced as well.
  */
 const swapDetail = (inbox, node, url) => {
   const old = region(inbox, 'detail');
@@ -276,7 +277,7 @@ const swapDetail = (inbox, node, url) => {
   if (id === null || heading === null) {
     return false;
   }
-  initTabs(node);
+  initTabs(node).catch(() => window.location.assign(url.href));
   markOpened(inbox, id);
   // Width, remote images and the headers link keep the mail, their control keeps focus where it still exists.
   if (memory !== null && previousId === id) {
@@ -286,7 +287,6 @@ const swapDetail = (inbox, node, url) => {
     return false;
   }
   heading.focus();
-  announce(inbox, status(inbox).dataset.letterboxOpenedLabel.replace('%s', heading.textContent.trim()));
 
   return true;
 };
@@ -326,9 +326,22 @@ const syncBackendUrl = (url) => {
   moduleElement.dispatchEvent(new frame.ownerDocument.defaultView.CustomEvent('typo3-iframe-loaded', { detail, bubbles: true, composed: true }));
 };
 
-const commit = (url, push) => {
-  if (push) {
-    window.history.pushState({ letterbox: true }, '', url.href);
+// Links and form submits order their parameters differently, so the order is ignored.
+const isCurrentUrl = (url) => {
+  const [next, current] = [new URL(url.href), new URL(window.location.href)];
+  next.searchParams.sort();
+  current.searchParams.sort();
+
+  return next.href === current.href;
+};
+
+/**
+ * "push" adds a history entry, "replace" updates the current one (search while typing), "none" leaves it alone
+ * (back and forward). The same URL never adds an entry, e.g. clicking the active row or filter.
+ */
+const commit = (url, history) => {
+  if (history !== 'none' && !isCurrentUrl(url)) {
+    window.history[history === 'replace' ? 'replaceState' : 'pushState']({ letterbox: true }, '', url.href);
   }
   document.querySelectorAll('[data-letterbox-reload]').forEach((link) => {
     link.href = url.href;
@@ -351,7 +364,7 @@ const createNavigator = (inbox) => {
   let controller = null;
   let spinnerTimer = 0;
 
-  return async (url, names, push = true) => {
+  return async (url, names, history = 'push') => {
     controller?.abort();
     const current = new AbortController();
     controller = current;
@@ -364,7 +377,7 @@ const createNavigator = (inbox) => {
     try {
       const nodes = await Promise.all(names.map((name) => fetchFragment(url, name, current.signal)));
       swap(inbox, Object.fromEntries(names.map((name, index) => [name, nodes[index]])), url);
-      commit(url, push);
+      commit(url, history);
     } catch (error) {
       // An aborted request was overtaken by a newer one, anything else falls back to a full page load.
       if (error.name !== 'AbortError') {
@@ -402,7 +415,7 @@ const onClick = (inbox, navigate, event) => {
 };
 
 // A GET form replaces the query of its action. POST forms (delete, clear) always submit normally.
-const onSubmit = (inbox, navigate, event) => {
+const onSubmit = (inbox, navigate, event, history) => {
   const form = event.target;
   if (event.defaultPrevented || form.method !== 'get') {
     return;
@@ -414,7 +427,7 @@ const onSubmit = (inbox, navigate, event) => {
   }
   event.preventDefault();
   url.search = new URLSearchParams(new FormData(form, event.submitter)).toString();
-  navigate(url, [name]);
+  navigate(url, [name], history);
 };
 
 const bindInbox = (inbox) => {
@@ -426,11 +439,15 @@ const bindInbox = (inbox) => {
 
   const navigate = createNavigator(inbox);
   let searchTimer = 0;
+  // Set only for the submit the typing timer triggers, Enter and buttons add a history entry.
+  let typed = false;
   // Delegated on the inbox, so controls inside swapped regions keep working.
   inbox.addEventListener('click', (event) => onClick(inbox, navigate, event));
   inbox.addEventListener('submit', (event) => {
     window.clearTimeout(searchTimer);
-    onSubmit(inbox, navigate, event);
+    const history = typed ? 'replace' : 'push';
+    typed = false;
+    onSubmit(inbox, navigate, event, history);
   });
   inbox.addEventListener('input', (event) => {
     if (event.target.id !== 'letterbox-search') {
@@ -438,12 +455,16 @@ const bindInbox = (inbox) => {
     }
     window.clearTimeout(searchTimer);
     // Looked up when the timer fires, the list may have been replaced in between.
-    searchTimer = window.setTimeout(() => inbox.querySelector('#letterbox-search')?.form.requestSubmit(), DELAY);
+    searchTimer = window.setTimeout(() => {
+      typed = true;
+      inbox.querySelector('#letterbox-search')?.form.requestSubmit();
+      typed = false;
+    }, DELAY);
   });
   window.addEventListener('popstate', () => {
     const url = moduleUrl(inbox, window.location.href);
     if (url !== null) {
-      navigate(url, ['list', 'detail'], false);
+      navigate(url, ['list', 'detail'], 'none');
     }
   });
 };
