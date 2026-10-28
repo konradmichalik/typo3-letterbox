@@ -61,6 +61,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 - Doc header: core breadcrumb row, core button bar with reload and "Clear all". Sub pages (External access) use the core breadcrumb, never an own back bar.
 - Every mail has its own URL. The list is a list of links, not buttons.
 - The mail list hides from a button in its own header ("Mails 38"); hidden, it leaves a rail with a show button. The state is stored per backend user. A resizable splitter is the alternative under review.
+- While the current user has unread mails, the list header also holds an icon-only "Mark all as read" button (core `actions-check-square`, `btn-sm`), a POST form with the form token. It is not in the toolbar dropdown.
 
 ## Mail list
 

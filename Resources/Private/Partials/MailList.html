@@ -20,9 +20,20 @@
                     <span class="fw-bold" id="letterbox-list-label"><f:translate key="inbox.mailList" extensionName="Typo3Letterbox" /></span>
                     <span class="text-variant">{total}</span>
                 </div>
-                <button type="button" class="btn btn-sm btn-default" data-letterbox-list-toggle="hide" aria-expanded="true" aria-controls="letterbox-list" aria-label="{hideLabel}" title="{hideLabel}" hidden>
-                    <span aria-hidden="true"><core:icon identifier="actions-menu-sidebar-expanded" size="small" /></span>
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <f:if condition="{hasUnread}">
+                        <f:variable name="markAllReadLabel" value="{f:translate(key: 'inbox.markAllRead', extensionName: 'Typo3Letterbox')}" />
+                        <form method="post" action="{markAllReadUrl}">
+                            <input type="hidden" name="letterboxToken" value="{token}" />
+                            <button type="submit" class="btn btn-sm btn-default" aria-label="{markAllReadLabel}" title="{markAllReadLabel}">
+                                <span aria-hidden="true"><core:icon identifier="actions-check-square" size="small" /></span>
+                            </button>
+                        </form>
+                    </f:if>
+                    <button type="button" class="btn btn-sm btn-default" data-letterbox-list-toggle="hide" aria-expanded="true" aria-controls="letterbox-list" aria-label="{hideLabel}" title="{hideLabel}" hidden>
+                        <span aria-hidden="true"><core:icon identifier="actions-menu-sidebar-expanded" size="small" /></span>
+                    </button>
+                </div>
             </div>
             <form method="get" action="{search.action}" role="search">
                 <f:for each="{search.fields}" as="fieldValue" key="fieldName">

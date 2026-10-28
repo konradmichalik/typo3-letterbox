@@ -33,6 +33,7 @@ final readonly class MailListView
     private const ROUTE_SHOW = 'system_letterbox.show';
     private const ROUTE_PREVIEW = 'system_letterbox.preview';
     private const ROUTE_DELETE = 'system_letterbox.delete';
+    private const ROUTE_MARK_ALL_READ = 'system_letterbox.markAllRead';
 
     public function __construct(
         private UriBuilder $uriBuilder,
@@ -61,6 +62,15 @@ final readonly class MailListView
             'search' => $this->form($query->toParameters(['q' => null, 'page' => null])),
             'deleteUrl' => $this->deleteUrl($query),
         ];
+    }
+
+    /**
+     * Keeps search, filter and page like the delete route. The selected mail is left out: a detail swap in inbox.js
+     * does not update this form, so its id could be stale.
+     */
+    public function markAllReadUrl(InboxQuery $query): string
+    {
+        return (string) $this->uriBuilder->buildUriFromRoute(self::ROUTE_MARK_ALL_READ, $query->toParameters(['id' => null, 'tab' => null]));
     }
 
     /**

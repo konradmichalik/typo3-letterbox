@@ -50,6 +50,10 @@ return [
                 'target' => InboxController::class.'::clearAction',
                 'methods' => ['POST'],
             ],
+            'markAllRead' => [
+                'target' => InboxController::class.'::markAllReadAction',
+                'methods' => ['POST'],
+            ],
             'access' => [
                 'target' => ExternalAccessController::class.'::indexAction',
                 'methods' => ['GET'],

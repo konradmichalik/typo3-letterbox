@@ -56,6 +56,25 @@ final class ReadState
     }
 
     /**
+     * Adds all ids with one write of uc. The cap drops the oldest entries, so the ids come newest first,
+     * as the repository lists mails, and are stored oldest first like markRead() does.
+     *
+     * @param list<string> $ids newest first
+     */
+    public function markAllRead(array $ids): void
+    {
+        $read = $this->readIds();
+        $new = array_values(array_diff(array_reverse(array_unique($ids)), $read));
+        if ([] === $new) {
+            return;
+        }
+
+        $backendUser = $this->backendUser();
+        $backendUser->uc['letterbox']['read'] = array_slice([...$read, ...$new], -self::MAX_IDS);
+        $backendUser->writeUC();
+    }
+
+    /**
      * inbox.js writes the flag through core's persistent storage, where the key "letterbox.listCollapsed"
      * lands in uc['letterbox']['listCollapsed'] as a string. Reading it here paints the first frame correctly.
      */

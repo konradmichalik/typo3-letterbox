@@ -93,6 +93,37 @@ final class ReadStateTest extends FunctionalTestCase
         self::assertSame(['letterbox' => ['read' => ['a']]], array_intersect_key($uc, ['letterbox' => true]));
     }
 
+    #[Test]
+    public function markAllReadAddsTheIdsWithOneWriteAndKeepsTheNewest(): void
+    {
+        $state = new ReadState();
+        $state->markRead('old');
+
+        // Newest first, as the repository lists mails.
+        $state->markAllRead(['c', 'b', 'old', 'a']);
+
+        self::assertSame(['old', 'a', 'b', 'c'], $state->readIds());
+        $uc = unserialize((string) $this->storedUc(), ['allowed_classes' => false]);
+        self::assertSame(['old', 'a', 'b', 'c'], $uc['letterbox']['read']);
+    }
+
+    #[Test]
+    public function markAllReadRespectsTheCap(): void
+    {
+        $state = new ReadState();
+        $ids = [];
+        for ($i = 2001; $i >= 1; --$i) {
+            $ids[] = 'id'.$i;
+        }
+
+        $state->markAllRead($ids);
+
+        $read = $state->readIds();
+        self::assertCount(2000, $read);
+        self::assertNotContains('id1', $read);
+        self::assertSame('id2001', $read[1999]);
+    }
+
     private function storedUc(): mixed
     {
         return $this->get(ConnectionPool::class)

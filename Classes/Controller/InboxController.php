@@ -201,6 +201,26 @@ final readonly class InboxController
     }
 
     /**
+     * Marks every caught mail as read for the current backend user and returns to the same list.
+     */
+    public function markAllReadAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $rejected = $this->rejectUnsafeMutation($request);
+        if (null !== $rejected) {
+            return $rejected;
+        }
+
+        $all = MailFilter::all();
+        $ids = array_map(
+            static fn (MessageIndexEntry $entry): string => $entry->id,
+            $this->repository->findEntries($all, 0, $this->repository->count($all)),
+        );
+        $this->readState->markAllRead($ids);
+
+        return $this->redirectWithFlash('flash.markedAllRead', ContextualFeedbackSeverity::OK, $this->mailListView->url(InboxQuery::fromRequest($request)));
+    }
+
+    /**
      * @param array<string, mixed> $variables
      */
     private function page(ServerRequestInterface $request, InboxQuery $query, string $template, array $variables): ResponseInterface
@@ -238,6 +258,7 @@ final readonly class InboxController
         $filter = MailFilter::create($query->query, $query->quick, $readIds);
         $counts = $this->repository->quickFilterCounts($filter);
         $total = '' === $filter->query() ? $counts[QuickFilter::All->value] : $this->repository->count(MailFilter::all());
+        $unread = '' === $filter->query() ? $counts[QuickFilter::Unread->value] : $this->repository->count(MailFilter::create('', QuickFilter::Unread, $readIds));
         $paginator = new MailPaginator($this->repository, $filter, $query->page, $this->mailsPerPage(), $counts[$filter->quick()->value]);
         $pagination = new SlidingWindowPagination($paginator, self::PAGE_LINKS);
 
@@ -250,6 +271,8 @@ final readonly class InboxController
             'selectedId' => $query->id ?? '',
             'token' => $this->token($request),
             'clearFormId' => self::CLEAR_FORM_ID,
+            'hasUnread' => $unread > 0,
+            'markAllReadUrl' => $this->mailListView->markAllReadUrl($query),
             'listCollapsed' => $this->readState->isListCollapsed(),
         ];
     }

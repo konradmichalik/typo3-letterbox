@@ -17,7 +17,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use KonradMichalik\Typo3Letterbox\Controller\InboxController;
-use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
+use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use PHPUnit\Framework\Attributes\Test;
@@ -28,6 +28,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Context\{Context, DateTimeAspect};
 use TYPO3\CMS\Core\Core\{Environment, SystemEnvironmentBuilder};
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\{NormalizedParams, ServerRequest};
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -1152,6 +1153,57 @@ final class InboxControllerTest extends FunctionalTestCase
             self::assertSame(1, substr_count($body, 'data-letterbox-reload'));
             self::assertSame(1, substr_count($body, 'title="Reload"'));
         }
+    }
+
+    #[Test]
+    public function markAllReadNeedsPostAndToken(): void
+    {
+        $this->append('Unread');
+
+        $get = $this->controller()->markAllReadAction($this->request('system_letterbox.markAllRead'));
+        $invalid = $this->controller()->markAllReadAction($this->request('system_letterbox.markAllRead', [], 'POST', ['letterboxToken' => 'invalid']));
+
+        self::assertSame(405, $get->getStatusCode());
+        self::assertSame(403, $invalid->getStatusCode());
+        self::assertSame([], $this->get(ReadState::class)->readIds());
+    }
+
+    #[Test]
+    public function markAllReadClearsUnreadForCurrentUserOnly(): void
+    {
+        $this->get(ConnectionPool::class)->getConnectionForTable('be_users')
+            ->insert('be_users', ['uid' => 2, 'pid' => 0, 'username' => 'second', 'password' => 'not-a-real-hash', 'admin' => 1]);
+        $this->append('One');
+        $this->append('Two');
+        $request = $this->request('system_letterbox.markAllRead', ['q' => 'One', 'filter' => 'unread'], 'POST');
+        $request = $request->withParsedBody(['letterboxToken' => $this->token($request)]);
+
+        $response = $this->controller()->markAllReadAction($request);
+
+        self::assertSame(303, $response->getStatusCode());
+        $location = $response->getHeaderLine('Location');
+        self::assertStringContainsString('q=One', $location);
+        self::assertStringContainsString('filter=unread', $location);
+        $this->assertFlashMessage(ContextualFeedbackSeverity::OK, 'All mails marked as read.');
+        self::assertSame(0, $this->get(MailRepository::class)->count(MailFilter::create('', QuickFilter::Unread, $this->get(ReadState::class)->readIds())));
+        self::assertCount(2, $this->get(ReadState::class)->readIds());
+
+        $this->setUpBackendUser(2);
+        self::assertSame([], $this->get(ReadState::class)->readIds());
+    }
+
+    #[Test]
+    public function buttonHiddenWithoutUnread(): void
+    {
+        $this->append('One');
+
+        $before = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+        $this->get(ReadState::class)->markRead($this->firstId());
+        $after = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertStringContainsString('Mark all as read', $before);
+        self::assertMatchesRegularExpression('/<form[^>]+method="post"[^>]+action="[^"]*letterbox\/markAllRead[^"]*"/', $before);
+        self::assertStringNotContainsString('Mark all as read', $after);
     }
 
     private function assertFragmentHeaders(ResponseInterface $response): void

@@ -10,6 +10,7 @@ The module is under System › Letterbox and is available to administrators only
 * Each row shows the subject and "sender to recipient", using names where the mail has them and addresses otherwise.
 * The search field finds mails by sender, recipient (name or address) and subject. The quick filters All, Unread and Attachments show their counts for the current search. Search, filter and page stay in every link, also while a mail is open.
 * Unread mails carry a dot. A mail counts as read once its detail view has been opened, separately for each backend user. With the Unread filter active, an opened mail stays in the list until the list is fetched again.
+* While the current user has unread mails, the list header has a "Mark all as read" button. It marks every caught mail as read for this user only, keeps search, filter and page, and reloads the module. The read state holds at most the 2000 most recently read mails per user.
 * The detail view has these tabs:
   * HTML: the sandboxed preview, with a Preview and Code switch (icon buttons) on the right above it. Code shows the HTML part as the sender sent it, escaped and unsanitised. It is also shown, without the switch, when no preview can be built (HTML over 2 MiB, too many elements or a parse failure).
   * Text: the plain text part, with `http` and `https` URLs linked
