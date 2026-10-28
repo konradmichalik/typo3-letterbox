@@ -293,10 +293,12 @@ final readonly class InboxController
         // Remote mode frames the preview route, which builds the document itself. The code view needs no document.
         $codeView = 'code' === $query->view;
         $skipDocument = $query->remote || $codeView;
+        // The checks and the cid references read the parsed HTML that build() then changes, so they come first.
+        $findings = $this->mailChecker->check($mail, $this->siteHosts->all());
+        $unresolvedContentIds = $this->htmlDocument->unresolvedContentIds($mail);
         $htmlDocument = $skipDocument ? '' : $this->htmlDocument->build($mail);
         $hasPreview = $skipDocument ? $this->htmlDocument->canBuild($mail) : '' !== $htmlDocument;
         $hasHtml = '' !== trim($mail->html);
-        $findings = $this->mailChecker->check($mail, $this->siteHosts->all());
 
         return $this->mailListView->previewControls($query) + [
             'mail' => $mail,
@@ -306,7 +308,7 @@ final readonly class InboxController
             'hasHtml' => $hasHtml,
             'htmlDocument' => $htmlDocument,
             'hasPreview' => $hasPreview,
-            'unresolvedContentIds' => $this->htmlDocument->unresolvedContentIds($mail),
+            'unresolvedContentIds' => $unresolvedContentIds,
             'previewWidth' => $query->width,
             'remote' => $query->remote,
             'view' => $query->view,

@@ -227,6 +227,25 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
+    public function readersShareOneParseUntilBuildChangesTheDocument(): void
+    {
+        $document = new MailHtmlDocument();
+        $mail = $this->mailWithHtml('<p>x</p><script>a()</script><img src="cid:gone">');
+
+        $first = $document->parse($mail);
+        self::assertTrue($document->canBuild($mail));
+        self::assertSame(['gone'], $document->unresolvedContentIds($mail));
+        self::assertSame($first, $document->parse($mail));
+
+        self::assertStringNotContainsString('<script', $document->build($mail));
+        $after = $document->parse($mail);
+
+        self::assertNotSame($first, $after);
+        self::assertSame(1, $after?->getElementsByTagName('script')->length);
+        self::assertNotSame($document->parse($this->mailWithHtml('<p>x</p>')), $document->parse($this->mailWithHtml('<p>x</p>')));
+    }
+
+    #[Test]
     public function canBuildAgreesWithBuild(): void
     {
         $builder = new MailHtmlDocument();

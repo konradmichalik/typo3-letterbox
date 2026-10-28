@@ -24,6 +24,7 @@ use DOMXPath;
 use KonradMichalik\Typo3Letterbox\Domain\Model\Mail;
 use Masterminds\HTML5;
 use Throwable;
+use WeakMap;
 
 use function in_array;
 use function strlen;
@@ -47,13 +48,22 @@ final readonly class MailHtmlDocument
     private const REMOVED_TAGS = ['script', 'xmp', 'plaintext', 'noembed', 'noframes', 'iframe', 'object', 'embed', 'link', 'base', 'meta'];
     private const WRAPPER_TAGS = ['html', 'head', 'body'];
 
+    /** @var WeakMap<Mail, array{HTML5, DOMDocument}|false> one parse per mail, shared by the read-only callers */
+    private WeakMap $parsed;
+
     public function __construct(
         private InlineImages $inlineImages = new InlineImages(),
-    ) {}
+    ) {
+        $this->parsed = new WeakMap();
+    }
 
+    /**
+     * Changes the parsed document, so call it after the read-only methods: a later one parses the mail again.
+     */
     public function build(Mail $mail, bool $allowRemoteImages = false): string
     {
         $loaded = $this->load($mail);
+        unset($this->parsed[$mail]);
         if (null === $loaded) {
             return '';
         }
@@ -108,11 +118,21 @@ final readonly class MailHtmlDocument
     }
 
     /**
+     * @return array{HTML5, DOMDocument}|null
+     */
+    private function load(Mail $mail): ?array
+    {
+        $this->parsed[$mail] ??= $this->parseHtml($mail) ?? false;
+
+        return false === $this->parsed[$mail] ? null : $this->parsed[$mail];
+    }
+
+    /**
      * Parses the HTML part, or returns null when it is empty, too large, has too many elements or does not parse.
      *
      * @return array{HTML5, DOMDocument}|null
      */
-    private function load(Mail $mail): ?array
+    private function parseHtml(Mail $mail): ?array
     {
         if ('' === trim($mail->html) || strlen($mail->html) > self::MAX_BYTES) {
             return null;
