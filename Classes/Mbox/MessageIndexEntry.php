@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Mbox;
 
 use DateTimeImmutable;
+use KonradMichalik\Typo3Letterbox\Domain\Model\Address;
 
 /**
  * MessageIndexEntry.
@@ -27,6 +28,8 @@ final readonly class MessageIndexEntry
      * @param list<string>       $recipientLabels    per recipient, its display name or else its address
      * @param list<string>       $recipientAddresses lowercase addresses from To, Cc and the envelope, never from the Bcc header
      * @param ?DateTimeImmutable $received           arrival time from the separator line, unlike $date not set by the sender
+     * @param list<Address>      $to
+     * @param list<Address>      $cc
      */
     public function __construct(
         public MessageSpan $span,
@@ -40,5 +43,8 @@ final readonly class MessageIndexEntry
         public string $subject,
         public int $attachmentCount,
         public ?DateTimeImmutable $received = null,
+        public string $messageId = '',
+        public array $to = [],
+        public array $cc = [],
     ) {}
 }

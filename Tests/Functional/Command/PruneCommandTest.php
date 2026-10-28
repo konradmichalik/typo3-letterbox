@@ -136,7 +136,7 @@ final class PruneCommandTest extends MailboxCommandTestCase
         $this->get(MailRepository::class)->count(MailFilter::all());
         // Index entries whose IDs no longer match the file look like a rewrite by another process on every attempt.
         $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
-        $key = 'v6_'.hash('sha256', $this->path);
+        $key = 'v7_'.hash('sha256', $this->path);
         $cached = $cache->get($key);
         self::assertIsArray($cached);
         $cached['entries'] = array_map(

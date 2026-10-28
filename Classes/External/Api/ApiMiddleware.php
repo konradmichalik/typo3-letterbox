@@ -17,6 +17,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\{ExternalAccessGuard, ExternalResponses};
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
+use KonradMichalik\Typo3Letterbox\Mbox\MessageIndexEntry;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
 use Psr\Log\LoggerInterface;
@@ -177,16 +178,26 @@ final readonly class ApiMiddleware implements MiddlewareInterface
 
         return $this->responses->json([
             'total' => $this->repository->count($filter),
-            'items' => array_map($this->mailJson->summary(...), $this->repository->find($filter, $offset, $limit)),
+            'items' => array_map($this->entrySummary(...), $this->repository->findEntries($filter, $offset, $limit)),
         ]);
     }
 
     private function latest(ServerRequestInterface $request, MailFilter $filter): ?ResponseInterface
     {
         $to = $this->stringParameter($request, 'to');
-        $mail = null === $to ? null : $this->repository->latest($filter->withRecipient($to));
+        $entry = null === $to ? null : ($this->repository->findEntries($filter->withRecipient($to), 0, 1)[0] ?? null);
 
-        return null === $mail ? null : $this->responses->json($this->mailJson->summary($mail));
+        return null === $entry ? null : $this->responses->json($this->entrySummary($entry));
+    }
+
+    /**
+     * One mail at a time is read for its links, so a page of large mails never sits in memory at once.
+     *
+     * @return array<string, mixed>
+     */
+    private function entrySummary(MessageIndexEntry $entry): array
+    {
+        return $this->mailJson->entrySummary($entry, $this->repository->links($entry));
     }
 
     private function detail(string $id): ?ResponseInterface

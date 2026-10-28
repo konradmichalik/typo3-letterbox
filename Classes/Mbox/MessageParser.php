@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailLink};
 use ZBateson\MailMimeParser\Header\{AddressHeader, DateHeader};
 use ZBateson\MailMimeParser\{IMessage, MailMimeParser};
+use ZBateson\MailMimeParser\Message\IMessagePart;
 
 use function strlen;
 
@@ -30,6 +31,7 @@ final readonly class MessageParser
     public const ENVELOPE_HEADER = 'X-Letterbox-Envelope-To';
     public const URL_PATTERN = '#https?://[^\s<>"\']+#i';
     public const URL_TRAILING_PUNCTUATION = '.,;:!?)]}';
+    private const READ_CHUNK_BYTES = 65536;
 
     private MailMimeParser $parser;
 
@@ -38,6 +40,9 @@ final readonly class MessageParser
         $this->parser = new MailMimeParser();
     }
 
+    /**
+     * Attachment content stays in the parsed message until it is asked for, so views never hold attachment bodies.
+     */
     public function parse(string $raw): Mail
     {
         $message = $this->message($raw);
@@ -60,8 +65,20 @@ final readonly class MessageParser
             $this->headers($message),
             strlen($raw),
             $raw,
-            $this->links($text, $html),
+            $this->linksIn($text, $html),
         );
+    }
+
+    /**
+     * The links of the text and HTML part, without touching attachments.
+     *
+     * @return list<MailLink>
+     */
+    public function links(string $raw): array
+    {
+        $message = $this->message($raw);
+
+        return $this->linksIn($message->getTextContent() ?? '', $message->getHtmlContent() ?? '');
     }
 
     public function summarize(string $raw, MessageSpan $span, ?DateTimeImmutable $received = null): MessageIndexEntry
@@ -71,8 +88,9 @@ final readonly class MessageParser
         // Lowercase address => display name, the first non-empty name wins.
         $names = [];
         $scope = [];
-        foreach (['To', 'Cc', 'Bcc'] as $header) {
-            foreach ($this->addresses($message, $header) as $address) {
+        $listed = ['To' => $this->addresses($message, 'To'), 'Cc' => $this->addresses($message, 'Cc'), 'Bcc' => $this->addresses($message, 'Bcc')];
+        foreach ($listed as $header => $addresses) {
+            foreach ($addresses as $address) {
                 $key = strtolower($address->address);
                 $names[$key] = ($names[$key] ?? '') ?: trim($address->name);
                 if ('Bcc' !== $header) {
@@ -102,6 +120,9 @@ final readonly class MessageParser
             $message->getSubject() ?? '',
             $message->getAttachmentCount(),
             $received,
+            $message->getHeaderValue('Message-ID') ?? '',
+            $listed['To'],
+            $listed['Cc'],
         );
     }
 
@@ -147,18 +168,31 @@ final readonly class MessageParser
     {
         $attachments = [];
         foreach ($message->getAllAttachmentParts() as $index => $part) {
-            $content = $part->getBinaryContentStream()?->getContents() ?? '';
             $attachments[] = new Attachment(
                 $index,
                 $part->getFilename() ?? '',
                 trim($part->getContentId() ?? '', '<>'),
                 $part->getContentType(),
-                strlen($content),
-                $content,
+                self::decodedSize($part),
+                static fn (): string => $part->getBinaryContentStream()?->getContents() ?? '',
             );
         }
 
         return $attachments;
+    }
+
+    /**
+     * Decodes in chunks to count the bytes, so the content itself is never held.
+     */
+    private static function decodedSize(IMessagePart $part): int
+    {
+        $stream = $part->getBinaryContentStream();
+        $size = 0;
+        while (null !== $stream && !$stream->eof()) {
+            $size += strlen($stream->read(self::READ_CHUNK_BYTES));
+        }
+
+        return $size;
     }
 
     /**
@@ -177,7 +211,7 @@ final readonly class MessageParser
     /**
      * @return list<MailLink>
      */
-    private function links(string $text, string $html): array
+    private function linksIn(string $text, string $html): array
     {
         $links = [];
         if (0 < (int) preg_match_all(self::URL_PATTERN, $text, $matches)) {

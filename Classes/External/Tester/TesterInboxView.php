@@ -16,7 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\External\Tester;
 use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailLink};
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
-use KonradMichalik\Typo3Letterbox\Mbox\TextSegments;
+use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, TextSegments};
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface, StreamFactoryInterface};
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Localization\{LanguageService, LanguageServiceFactory};
@@ -77,7 +77,7 @@ final readonly class TesterInboxView
     ) {}
 
     /**
-     * @param list<Mail> $mails
+     * @param list<MessageIndexEntry> $mails
      */
     public function list(ServerRequestInterface $request, string $basePath, string $query, int $page, int $pages, int $total, array $mails): ResponseInterface
     {
@@ -92,7 +92,7 @@ final readonly class TesterInboxView
             'listHeading' => sprintf($this->label($language, 'list.heading'), $total),
             'emptyText' => $this->label($language, '' === $query ? 'list.empty' : 'list.emptySearch'),
             'refreshUrl' => $this->url($basePath, $query, $page),
-            'rows' => array_map(fn (Mail $mail): array => $this->row($language, $mail, $basePath), $mails),
+            'rows' => array_map(fn (MessageIndexEntry $mail): array => $this->row($language, $mail, $basePath), $mails),
             'pagination' => $pages > 1 ? [
                 'status' => sprintf($this->label($language, 'pagination.status'), $page, $pages),
                 'previous' => $page > 1 ? $this->url($basePath, $query, $page - 1) : '',
@@ -172,10 +172,11 @@ final readonly class TesterInboxView
     /**
      * @return array<string, mixed>
      */
-    private function row(LanguageService $language, Mail $mail, string $basePath): array
+    private function row(LanguageService $language, MessageIndexEntry $mail, string $basePath): array
     {
         $recipients = self::recipients([...$mail->to, ...$mail->cc]);
-        $meta = sprintf($this->label($language, 'row.from'), $this->sender($language, $mail->from, false));
+        $from = '' === $mail->sender && '' === $mail->fromName ? null : new Address($mail->sender, $mail->fromName);
+        $meta = sprintf($this->label($language, 'row.from'), $this->sender($language, $from, false));
         $date = $mail->date?->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
         return [
@@ -184,7 +185,7 @@ final readonly class TesterInboxView
             'meta' => '' === $recipients ? $meta : $meta.' '.sprintf($this->label($language, 'row.to'), $recipients),
             'date' => $date?->format('Y-m-d H:i') ?? '',
             'isoDate' => $date?->format(\DATE_ATOM) ?? '',
-            'hasAttachments' => [] !== $mail->attachments,
+            'hasAttachments' => $mail->attachmentCount > 0,
         ];
     }
 

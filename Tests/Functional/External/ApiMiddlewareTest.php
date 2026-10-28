@@ -233,6 +233,60 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function listAndLatestSummariesMatchTheDetail(): void
+    {
+        $this->appendRaw("From: \"Example Shop\" <shop@example.org>\nTo: \"Anna Example\" <anna@example.org>, bob@example.org\nCc: Team <team@example.org>\n"
+            ."Subject: Reset\nDate: Tue, 27 Oct 2026 10:00:00 +0100\nMessage-ID: <reset-1@example.org>\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"b\"\n\n"
+            ."--b\nContent-Type: text/plain; charset=utf-8\n\nReset https://stage.example.org/login?tx_felogin_login%5Bhash%5D=abc\n"
+            ."--b\nContent-Type: text/html; charset=utf-8\n\n<a href=\"https://stage.example.org/imprint\">Imprint</a>\n"
+            ."--b\nContent-Type: application/pdf; name=\"a.pdf\"\nContent-Disposition: attachment; filename=\"a.pdf\"\n\n%PDF-1.\n--b--\n");
+        $this->appendRaw("To: carl@example.org\nSubject: Bare\n\nNo links\n");
+        $api = $this->middleware();
+
+        $items = $this->json($this->send($api, '/_letterbox/api/v1/messages'))['items'];
+        $latest = $this->json($this->send($api, '/_letterbox/api/v1/messages/latest?to=anna@example.org'));
+
+        self::assertCount(2, $items);
+        foreach ($items as $item) {
+            $detail = $this->json($this->send($api, '/_letterbox/api/v1/messages/'.$item['id']));
+            self::assertSame(array_intersect_key($detail, $item), $item);
+            self::assertSame(['id', 'messageId', 'date', 'subject', 'from', 'to', 'cc', 'attachmentCount', 'links'], array_keys($item));
+        }
+        self::assertSame($items[1], $latest);
+        self::assertSame('reset-1@example.org', $latest['messageId']);
+        self::assertSame([['address' => 'team@example.org', 'name' => 'Team']], $latest['cc']);
+        self::assertTrue($latest['links'][0]['isPasswordReset']);
+        self::assertNull($items[0]['from']);
+    }
+
+    #[Test]
+    public function listOverMailsWithLargeAttachmentsStaysWithinAMemoryBudget(): void
+    {
+        $attachment = chunk_split(base64_encode(random_bytes(6 * 1024 * 1024)), 76, "\n");
+        for ($i = 0; $i < 4; ++$i) {
+            $this->appendRaw("From: s@example.org\nTo: anna@example.org\nSubject: Big {$i}\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"b\"\n\n"
+                ."--b\nContent-Type: text/plain\n\nhttps://stage.example.org/{$i}\n--b\nContent-Type: application/zip; name=\"a.zip\"\n"
+                ."Content-Disposition: attachment; filename=\"a.zip\"\nContent-Transfer-Encoding: base64\n\n{$attachment}--b--\n");
+        }
+        $storedPerMail = intdiv((int) filesize($this->path), 4);
+        unset($attachment);
+        $api = $this->middleware();
+        $this->get(MailRepository::class)->count(MailFilter::all());
+
+        gc_collect_cycles();
+        $before = memory_get_usage();
+        memory_reset_peak_usage();
+        $list = $this->json($this->send($api, '/_letterbox/api/v1/messages'));
+        $latest = $this->json($this->send($api, '/_letterbox/api/v1/messages/latest?to=anna@example.org'));
+        $growth = memory_get_peak_usage() - $before;
+
+        self::assertCount(4, $list['items']);
+        self::assertSame(1, $list['items'][0]['attachmentCount']);
+        self::assertSame('https://stage.example.org/3', $latest['links'][0]['url']);
+        self::assertLessThan(2 * $storedPerMail, $growth, 'The list keeps at most one mail in memory at a time.');
+    }
+
+    #[Test]
     public function detailCarriesLinksWithResetFlag(): void
     {
         $this->append('Reset your password', 'anna@example.org', '<p><a href="https://stage.example.org/login?tx_felogin_login%5Baction%5D=showChangePassword&amp;tx_felogin_login%5Bhash%5D=abc">Reset</a> <a href="https://stage.example.org/imprint">Imprint</a></p>');

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Domain\Model;
 
+use Closure;
+
 /**
  * Attachment.
  *
@@ -20,12 +22,20 @@ namespace KonradMichalik\Typo3Letterbox\Domain\Model;
  */
 final readonly class Attachment
 {
+    /**
+     * @param string|(Closure(): string) $content a closure decodes the part only when the content is asked for
+     */
     public function __construct(
         public int $index,
         public string $filename,
         public string $contentId,
         public string $mimeType,
         public int $size,
-        public string $content,
+        private string|Closure $content,
     ) {}
+
+    public function content(): string
+    {
+        return $this->content instanceof Closure ? ($this->content)() : $this->content;
+    }
 }

@@ -178,7 +178,7 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
             $page,
             $pages,
             $total,
-            $this->repository->find($filter, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
+            $this->repository->findEntries($filter, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
         );
     }
 

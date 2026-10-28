@@ -85,21 +85,23 @@ final readonly class Mailbox
 
         try {
             fseek($handle, $span->offset);
-            $bytes = $span->length > 0 ? fread($handle, $span->length) : '';
+            $separator = $span->length > 0 ? (string) fgets($handle, $span->length + 1) : '';
+            if (!str_ends_with($separator, "\n")) {
+                return [$this->format->decode(''), null];
+            }
+
+            // Leaving the final newline of a stored message unread is what decode() would cut, without copying the mail.
+            $length = $span->length - strlen($separator);
+            if ($length >= 2 && 0 === fseek($handle, $span->offset + $span->length - 2) && "\n\n" === fread($handle, 2)) {
+                --$length;
+            }
+            fseek($handle, $span->offset + strlen($separator));
+            $stored = $length > 0 ? (string) fread($handle, $length) : '';
         } finally {
             fclose($handle);
         }
 
-        $bytes = false === $bytes ? '' : $bytes;
-        $separatorEnd = strpos($bytes, "\n");
-        if (false === $separatorEnd) {
-            return [$this->format->decode(''), null];
-        }
-
-        return [
-            $this->format->decode(substr($bytes, $separatorEnd + 1)),
-            $this->format->received(substr($bytes, 0, $separatorEnd + 1)),
-        ];
+        return [$this->format->unescape($stored), $this->format->received($separator)];
     }
 
     public function fingerprint(): string

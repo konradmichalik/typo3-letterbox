@@ -240,6 +240,35 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function listOverMailsWithLargeAttachmentsStaysWithinAMemoryBudget(): void
+    {
+        $attachment = chunk_split(base64_encode(random_bytes(6 * 1024 * 1024)), 76, "\n");
+        for ($i = 0; $i < 4; ++$i) {
+            (new MailboxWriter($this->path, new MboxFormat(), new MailboxLock($this->get(LockFactory::class))))->append(
+                's@example.org',
+                new DateTimeImmutable('2026-10-27 10:00:00'),
+                "From: s@example.org\nTo: anna@example.org\nCc: Bob <bob@other.test>\nSubject: Big {$i}\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"b\"\n\n"
+                ."--b\nContent-Type: text/plain\n\nbody\n--b\nContent-Type: application/zip; name=\"a.zip\"\n"
+                ."Content-Disposition: attachment; filename=\"a.zip\"\nContent-Transfer-Encoding: base64\n\n{$attachment}--b--\n",
+            );
+        }
+        $storedPerMail = intdiv((int) filesize($this->path), 4);
+        unset($attachment);
+        $middleware = $this->middleware();
+        $this->get(MailRepository::class)->count(MailFilter::all());
+
+        gc_collect_cycles();
+        $before = memory_get_usage();
+        memory_reset_peak_usage();
+        $body = (string) $this->send($middleware, '/_letterbox/inbox', $this->cookie())->getBody();
+        $growth = memory_get_peak_usage() - $before;
+
+        self::assertSame(4, preg_match_all('#href="/_letterbox/inbox/[0-9a-f]{32}"#', $body));
+        self::assertStringContainsString('anna@example.org, bob@other.test', $body);
+        self::assertLessThan($storedPerMail, $growth, 'The list reads no mail, only the index.');
+    }
+
+    #[Test]
     public function searchAndPaging(): void
     {
         for ($i = 1; $i <= 25; ++$i) {

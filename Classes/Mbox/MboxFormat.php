@@ -70,10 +70,14 @@ final class MboxFormat
 
     public function decode(string $stored): string
     {
-        if (str_ends_with($stored, "\n\n")) {
-            $stored = substr($stored, 0, -1);
-        }
+        return $this->unescape(str_ends_with($stored, "\n\n") ? substr($stored, 0, -1) : $stored);
+    }
 
+    /**
+     * decode() without dropping the newline of the blank line that ends a stored message.
+     */
+    public function unescape(string $stored): string
+    {
         return preg_replace('/^>(>*From )/m', '$1', $stored) ?? $stored;
     }
 

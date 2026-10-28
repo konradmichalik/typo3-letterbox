@@ -67,6 +67,8 @@ A summary:
 
 The detail adds `text`, `html`, `headers` (an object of header name to list of values) and `attachments` (`index`, `filename`, `mimeType`, `size`, `contentId`). `date` and `from` can be `null`. `to` and `cc` list every recipient, Bcc is not part of the shape. Invalid UTF-8 in a mail is substituted, so the JSON is always valid.
 
+`GET messages` and `messages/latest` take every summary field from the mail index. Only `links` needs the text and HTML part, which are read one mail at a time, so a page of mails with large attachments costs the memory of one mail. Attachment content is decoded only for the attachment download.
+
 ## Example with Playwright
 
 The goal: one suite that runs against DDEV Mailpit locally and against Letterbox on stage. The helper hides which one is behind it, the test does not know. Because every refusal is a `404`, a wrong token looks like a mail that never arrives: the helper then ends in its timeout.

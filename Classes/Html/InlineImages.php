@@ -48,7 +48,7 @@ final class InlineImages
             $id = $this->contentId($element->getAttribute('src'));
             $attachment = null === $id ? null : ($byId[$id] ?? null);
             if (null !== $attachment) {
-                $element->setAttribute('src', 'data:'.$attachment->mimeType.';base64,'.base64_encode($attachment->content));
+                $element->setAttribute('src', 'data:'.$attachment->mimeType.';base64,'.base64_encode($attachment->content()));
             }
         }
     }

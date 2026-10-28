@@ -15,7 +15,7 @@ namespace KonradMichalik\Typo3Letterbox\Domain\Repository;
 
 use DateInterval;
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail, MailFilter, QuickFilter};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail, MailFilter, MailLink, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxWriter, MessageIndexEntry, MessageParser, MessageSpan};
 use RuntimeException;
 
@@ -92,6 +92,22 @@ final readonly class MailRepository
     public function findEntries(MailFilter $filter, int $offset, int $limit): array
     {
         return array_slice($this->matching($filter), max(0, $offset), max(0, $limit));
+    }
+
+    /**
+     * The links of one mail, read from its text and HTML part. Empty when the file changed after the index was read.
+     *
+     * @return list<MailLink>
+     */
+    public function links(MessageIndexEntry $entry): array
+    {
+        try {
+            $raw = $this->mailbox->read($entry->span);
+        } catch (RuntimeException) {
+            return [];
+        }
+
+        return MessageParser::idOf($raw) === $entry->id ? $this->parser->links($raw) : [];
     }
 
     public function findById(string $id): ?Mail

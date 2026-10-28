@@ -127,10 +127,31 @@ final class MessageParserTest extends TestCase
         self::assertCount(2, $mail->attachments);
         self::assertSame([0, 1], [$mail->attachments[0]->index, $mail->attachments[1]->index]);
         self::assertSame(['report.txt', 'report.txt'], [$mail->attachments[0]->filename, $mail->attachments[1]->filename]);
-        self::assertSame('first', trim($mail->attachments[0]->content));
-        self::assertSame('second content', trim($mail->attachments[1]->content));
+        self::assertSame('first', trim($mail->attachments[0]->content()));
+        self::assertSame('second content', trim($mail->attachments[1]->content()));
         self::assertSame('text/plain', $mail->attachments[1]->mimeType);
-        self::assertSame(strlen($mail->attachments[1]->content), $mail->attachments[1]->size);
+        self::assertSame(strlen($mail->attachments[1]->content()), $mail->attachments[1]->size);
+    }
+
+    #[Test]
+    public function summarizeCarriesMessageIdAndToAndCcLikeParse(): void
+    {
+        $raw = $this->fixture('html-with-attachment.eml');
+        $mail = (new MessageParser())->parse($raw);
+        $entry = (new MessageParser())->summarize($raw, new MessageSpan(0, 10));
+
+        self::assertSame($mail->messageId, $entry->messageId);
+        self::assertEquals($mail->to, $entry->to);
+        self::assertEquals($mail->cc, $entry->cc);
+        self::assertSame('Rec One', $entry->to[0]->name);
+    }
+
+    #[Test]
+    public function linksAreReadFromTheBodiesLikeParse(): void
+    {
+        $raw = $this->fixture('html-with-attachment.eml');
+
+        self::assertEquals((new MessageParser())->parse($raw)->links, (new MessageParser())->links($raw));
     }
 
     #[Test]

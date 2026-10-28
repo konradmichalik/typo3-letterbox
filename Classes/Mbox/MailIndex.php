@@ -25,7 +25,7 @@ use function is_string;
  */
 final readonly class MailIndex
 {
-    private const CACHE_VERSION = 'v6_';
+    private const CACHE_VERSION = 'v7_';
 
     public function __construct(
         private Mailbox $mailbox,
