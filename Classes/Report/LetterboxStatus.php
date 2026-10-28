@@ -80,7 +80,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         if ($settings->deliveryLoops) {
             $statuses['delivery'] = $this->status('delivery', 'status.delivery.loops', 'status.delivery.loopsMessage', ContextualFeedbackSeverity::ERROR);
         }
-        $statuses['file'] = $this->file();
+        $statuses['file'] = $this->file($settings);
         $statuses['retention'] = $this->retention();
         $statuses['external'] = $this->external();
 
@@ -120,7 +120,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         };
     }
 
-    private function file(): Status
+    private function file(LetterboxSettings $settings): Status
     {
         $title = $this->translate('status.file.title');
         if (!$this->mailRepository->isConfigured()) {
@@ -129,6 +129,9 @@ final readonly class LetterboxStatus implements StatusProviderInterface
 
         $path = $this->mailRepository->path();
         $escapedPath = $this->escape($path);
+        if ($settings->isMailboxPublic(Environment::getPublicPath(), Environment::getVarPath())) {
+            return new Status($title, $this->translate('status.file.public'), sprintf($this->escape($this->translate('status.file.publicMessage')), $escapedPath), ContextualFeedbackSeverity::ERROR);
+        }
         $exists = is_file($path);
         if ($exists && !is_writable($path)) {
             return new Status($title, '-', sprintf($this->escape($this->translate('status.file.notWritable')), $escapedPath), ContextualFeedbackSeverity::WARNING);

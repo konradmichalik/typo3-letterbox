@@ -21,11 +21,11 @@ use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccess
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
+use KonradMichalik\Typo3Letterbox\Tests\Functional\Fixtures\RecordingLogger;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
-use Psr\Log\{AbstractLogger, LoggerInterface, NullLogger};
-use Stringable;
+use Psr\Log\{LoggerInterface, NullLogger};
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
@@ -316,15 +316,7 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     {
         $this->append('One', 'anna@example.org');
         $id = $this->mails()[0]->id;
-        $logger = new class extends AbstractLogger {
-            /** @var list<string> */
-            public array $lines = [];
-
-            public function log($level, string|Stringable $message, array $context = []): void
-            {
-                $this->lines[] = $level.' '.strtr((string) $message, ['{exception}' => (string) ($context['exception'] ?? '')]);
-            }
-        };
+        $logger = new RecordingLogger();
         $api = $this->middleware(['LETTERBOX_EXTERNAL_ACCESS' => 'Testing', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN], $logger);
         chmod($this->path, 0444);
 

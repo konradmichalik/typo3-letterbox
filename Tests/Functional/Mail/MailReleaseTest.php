@@ -19,11 +19,10 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepositoryFactory;
 use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, MailRelease};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
+use KonradMichalik\Typo3Letterbox\Tests\Functional\Fixtures\RecordingLogger;
 use KonradMichalik\Typo3Letterbox\Tests\Functional\Mail\Fixtures\RecordingTransport;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
-use Psr\Log\AbstractLogger;
 use RuntimeException;
-use Stringable;
 use Symfony\Component\Mime\Email;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Core\Environment;
@@ -209,7 +208,7 @@ final class MailReleaseTest extends FunctionalTestCase
     public function releaseIsLoggedWithDomainOnly(): void
     {
         $mail = $this->catch((new Email())->from('shop@example.org')->to('anna@example.org')->subject('Secret subject')->text('Body'));
-        $logger = $this->recordingLogger();
+        $logger = new RecordingLogger();
 
         (new MailRelease($this->get(TransportFactory::class), new MboxFormat(), $logger))->release($mail, 'anna@example.org', 7);
 
@@ -222,7 +221,7 @@ final class MailReleaseTest extends FunctionalTestCase
         $mail = $this->catch((new Email())->from('shop@example.org')->to('anna@example.org')->subject('Secret subject')->text('Secret body'));
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_letterbox_delivery'] = 'smtp';
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_smtp_server'] = '127.0.0.1:1';
-        $logger = $this->recordingLogger();
+        $logger = new RecordingLogger();
 
         try {
             (new MailRelease($this->get(TransportFactory::class), new MboxFormat(), $logger))->release($mail, 'anna@example.org', 7);
@@ -282,26 +281,6 @@ final class MailReleaseTest extends FunctionalTestCase
         self::assertNotNull($mail);
 
         return $mail;
-    }
-
-    /**
-     * @return AbstractLogger&object{lines: list<string>}
-     */
-    private function recordingLogger(): AbstractLogger
-    {
-        return new class extends AbstractLogger {
-            /** @var list<string> */
-            public array $lines = [];
-
-            public function log($level, string|Stringable $message, array $context = []): void
-            {
-                $replacements = [];
-                foreach ($context as $key => $value) {
-                    $replacements['{'.$key.'}'] = (string) $value;
-                }
-                $this->lines[] = $level.' '.strtr((string) $message, $replacements);
-            }
-        };
     }
 
     private function release(): MailRelease

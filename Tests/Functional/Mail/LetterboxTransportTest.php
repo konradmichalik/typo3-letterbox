@@ -18,6 +18,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
+use KonradMichalik\Typo3Letterbox\Tests\Functional\Fixtures\RecordingLogger;
 use KonradMichalik\Typo3Letterbox\Tests\Functional\Mail\Fixtures\RecordingTransport;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
@@ -151,6 +152,25 @@ final class LetterboxTransportTest extends FunctionalTestCase
         $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Caught anyway')->text('Body'));
 
         self::assertSame(['Caught anyway'], $this->subjects());
+    }
+
+    #[Test]
+    public function mailboxInsideThePublicPathIsCaughtWithAWarning(): void
+    {
+        $public = Environment::getPublicPath().'/letterbox-transport-test.mbox';
+        $logger = new RecordingLogger();
+        $transport = new LetterboxTransport(['transport_mbox_file' => $public, 'transport_letterbox_mode' => 'all'], null, $logger);
+
+        try {
+            $transport->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Public')->text('Body'));
+            self::assertFileExists($public);
+        } finally {
+            if (is_file($public)) {
+                unlink($public);
+            }
+        }
+
+        self::assertContains('warning The Letterbox mailbox is inside the public web path, everyone can download it. Move MAIL/transport_mbox_file out of the web root.', $logger->lines);
     }
 
     #[Test]

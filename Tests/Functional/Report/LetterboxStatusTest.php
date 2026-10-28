@@ -152,6 +152,22 @@ final class LetterboxStatusTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function fileInsideThePublicPathIsAnError(): void
+    {
+        $public = Environment::getPublicPath().'/letterbox-public-test/../mails.mbox';
+        $this->useMailSettings(['transport_mbox_file' => $public]);
+
+        $status = $this->provider()->getStatus()['file'];
+
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $status->getSeverity());
+        self::assertStringContainsString('web root', $status->getMessage());
+        self::assertStringContainsString(htmlspecialchars($public, \ENT_QUOTES), $status->getMessage());
+
+        $this->useMailSettings(['transport_mbox_file' => Environment::getVarPath().'/letterbox-test/status.mbox']);
+        self::assertNotSame(ContextualFeedbackSeverity::ERROR, $this->provider()->getStatus()['file']->getSeverity(), 'the var path is protected even when it sits below the public path');
+    }
+
+    #[Test]
     public function missingDirectoryWarns(): void
     {
         $this->useMailSettings(['transport_mbox_file' => Environment::getVarPath().'/letterbox-test/no-such-dir/status.mbox']);

@@ -156,4 +156,19 @@ final class LetterboxSettingsTest extends TestCase
             self::assertFalse(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/sbin/sendmail -t -i')->deliveryLoops, $delivery);
         }
     }
+
+    #[Test]
+    public function knowsWhenTheMailboxIsInsideThePublicPath(): void
+    {
+        $settings = static fn (string $file): LetterboxSettings => LetterboxSettings::fromMailSettings(['transport_mbox_file' => $file], 'Development');
+
+        self::assertTrue($settings('/srv/site/public/mails.mbox')->isMailboxPublic('/srv/site/public', '/srv/site/var'));
+        self::assertTrue($settings('/srv/site/public/fileadmin/../mails.mbox')->isMailboxPublic('/srv/site/public/', '/srv/site/var'));
+        self::assertTrue($settings('/srv/site/public/a/b/mails.mbox')->isMailboxPublic('/srv/site/public', '/srv/site/var'));
+        self::assertFalse($settings('/srv/site/var/mails.mbox')->isMailboxPublic('/srv/site/public', '/srv/site/var'));
+        self::assertFalse($settings('/srv/site/public-old/mails.mbox')->isMailboxPublic('/srv/site/public', '/srv/site/var'));
+        self::assertFalse($settings('/srv/site/public/../mails.mbox')->isMailboxPublic('/srv/site/public', '/srv/site/var'));
+        self::assertFalse($settings('/srv/site/typo3temp/var/mails.mbox')->isMailboxPublic('/srv/site', '/srv/site/typo3temp/var'), 'classic mode: the var path below the web root is protected by TYPO3');
+        self::assertTrue($settings('/srv/site/mails.mbox')->isMailboxPublic('/srv/site', '/srv/site/typo3temp/var'));
+    }
 }

@@ -38,6 +38,7 @@ use function sprintf;
 final class LetterboxTransport extends AbstractTransport implements Stringable
 {
     private readonly LetterboxSettings $settings;
+    private readonly LoggerInterface $logger;
 
     /**
      * @param array<string, mixed> $mailSettings the MAIL section of TYPO3_CONF_VARS
@@ -48,7 +49,8 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         ?LoggerInterface $logger = null,
     ) {
         // TransportFactory passes no logger to custom transports.
-        parent::__construct($dispatcher, $logger ?? GeneralUtility::makeInstance(LogManager::class)->getLogger(self::class));
+        $this->logger = $logger ?? GeneralUtility::makeInstance(LogManager::class)->getLogger(self::class);
+        parent::__construct($dispatcher, $this->logger);
 
         $this->settings = LetterboxSettings::fromMailSettings($mailSettings, (string) Environment::getContext());
         if ('' === $this->settings->mboxFile) {
@@ -82,27 +84,46 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
             }
         }
 
-        if ([] !== $delivered && '' === $this->settings->delivery) {
-            throw new RuntimeException(sprintf('Letterbox needs MAIL/transport_letterbox_delivery for mode %s.', $this->settings->mode->value), 1761561614);
+        if ([] !== $delivered) {
+            $this->assertDeliverable();
         }
-        if ([] !== $delivered && $this->settings->deliveryLoops) {
-            throw new RuntimeException(sprintf('MAIL/transport_letterbox_delivery "%s" hands mails back to Letterbox, refusing to deliver in mode %s.', $this->settings->delivery, $this->settings->mode->value), 1761561615);
-        }
-
         if ([] !== $caught) {
-            $this->writer()->append(
-                $envelope->getSender()->getAddress(),
-                new DateTimeImmutable(),
-                'X-Letterbox-Envelope-To: '.implode(', ', $caught)."\r\n".$message->toString(),
-            );
-            // After append() released the lock: the lock is not re-entrant, pruning takes it again.
-            GeneralUtility::makeInstance(RetentionService::class)->afterAppend($this->settings->mboxFile);
+            $this->store($message, $caught);
         }
-
         if ([] !== $delivered) {
             GeneralUtility::makeInstance(TransportFactory::class)
                 ->get([...$this->mailSettings, 'transport' => $this->settings->delivery])
                 ->send($message->getOriginalMessage(), new Envelope($envelope->getSender(), $delivered));
+        }
+    }
+
+    /**
+     * Checked before anything is stored, so a refused delivery never leaves half a send behind.
+     */
+    private function assertDeliverable(): void
+    {
+        if ('' === $this->settings->delivery) {
+            throw new RuntimeException(sprintf('Letterbox needs MAIL/transport_letterbox_delivery for mode %s.', $this->settings->mode->value), 1761561614);
+        }
+        if ($this->settings->deliveryLoops) {
+            throw new RuntimeException(sprintf('MAIL/transport_letterbox_delivery "%s" hands mails back to Letterbox, refusing to deliver in mode %s.', $this->settings->delivery, $this->settings->mode->value), 1761561615);
+        }
+    }
+
+    /**
+     * @param non-empty-list<string> $caught
+     */
+    private function store(SentMessage $message, array $caught): void
+    {
+        $this->writer()->append(
+            $message->getEnvelope()->getSender()->getAddress(),
+            new DateTimeImmutable(),
+            'X-Letterbox-Envelope-To: '.implode(', ', $caught)."\r\n".$message->toString(),
+        );
+        // After append() released the lock: the lock is not re-entrant, pruning takes it again.
+        GeneralUtility::makeInstance(RetentionService::class)->afterAppend($this->settings->mboxFile);
+        if ($this->settings->isMailboxPublic(Environment::getPublicPath(), Environment::getVarPath())) {
+            $this->logger->warning('The Letterbox mailbox is inside the public web path, everyone can download it. Move MAIL/transport_mbox_file out of the web root.');
         }
     }
 

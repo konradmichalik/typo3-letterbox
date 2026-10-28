@@ -651,6 +651,12 @@
 			<trans-unit id="status.file.directoryNotWritable" resname="status.file.directoryNotWritable">
 				<source>The directory of %s does not exist or is not writable, so mails cannot be caught.</source>
 			</trans-unit>
+			<trans-unit id="status.file.public" resname="status.file.public">
+				<source>Inside the web root</source>
+			</trans-unit>
+			<trans-unit id="status.file.publicMessage" resname="status.file.publicMessage">
+				<source>The file %s is inside the web root, so everyone can download every caught mail. Move MAIL/transport_mbox_file to a directory outside the web root, for example /var/www/mbox/mails.mbox.</source>
+			</trans-unit>
 			<trans-unit id="status.file.notConfigured" resname="status.file.notConfigured">
 				<source>No mbox file is configured.</source>
 			</trans-unit>
