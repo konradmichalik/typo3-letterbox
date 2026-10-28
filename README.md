@@ -25,8 +25,9 @@ Catches TYPO3 mails in an mbox file and shows them in the backend, for local, st
 
 * [Mail transport](docs/delivery-modes.md) that appends every caught mail to a local mbox file (RFC 4155)
 * Three [delivery modes](docs/delivery-modes.md): `all` catches everything, `listed` catches only chosen recipients and delivers the rest, `off` delivers everything
-* [Backend module](docs/backend-module.md) under System › Letterbox with list, detail view, source, attachment download and delete
-* Sandboxed HTML preview that blocks remote content
+* [Backend module](docs/backend-module.md) under System › Letterbox with search, quick filters, per-user unread state, detail tabs (HTML, text, headers, source, links, attachments) and delete
+* Sandboxed HTML preview with a width switch (desktop, tablet, mobile) that blocks remote images until you load them per mail
+* Collapsible mail list and navigation without page reload, with a full-page fallback when JavaScript is off
 * [Test mail command](docs/test-mails.md) for development (`letterbox:testmails:send`, needs `debugMode`)
 * Works from Composer and from TER (parser libraries are bundled), see [configuration](docs/configuration.md)
 
@@ -74,7 +75,7 @@ Then open System › Letterbox as an administrator. Outside the exact root conte
 |------|---------------|
 | [Configuration](docs/configuration.md) | Transport settings and extension settings |
 | [Delivery modes](docs/delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
-| [Backend module](docs/backend-module.md) | Inbox, preview, downloads, delete and clear |
+| [Backend module](docs/backend-module.md) | Search, filters, tabs, preview, navigation, delete and clear |
 | [Test mails](docs/test-mails.md) | Console command `letterbox:testmails:send` |
 | [Migration from EXT:mbox](docs/migration-from-mbox.md) | Switching from `t3/mbox` to Letterbox |
 | [Design rules](docs/design/rules.md) | Binding rules for every UI change |

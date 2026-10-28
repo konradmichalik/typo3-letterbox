@@ -6,7 +6,7 @@ These rules are binding for every change to Letterbox's backend module, the test
 
 The screens these rules produce are listed in [screens.md](screens.md).
 
-Phases 1 and 2 implement the inbox, detail view, empty state and the "No mail selected" state; the other screens are the target design for later phases.
+Phase 2 is implemented: inbox, detail view, empty state and the "No mail selected" state. The other screens are the target design for later phases.
 
 ## Principles
 
