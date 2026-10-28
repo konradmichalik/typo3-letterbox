@@ -1,0 +1,13 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:comment>One region of the inbox for inbox.js, rendered by the same partials as the full page.</f:comment>
+<f:switch expression="{fragment}">
+    <f:case value="list"><f:render partial="MailList" arguments="{_all}" /></f:case>
+    <f:case value="detail"><f:render partial="MailDetail" arguments="{_all}" /></f:case>
+    <f:defaultCase><f:render partial="MailPlaceholder" /></f:defaultCase>
+</f:switch>
+
+</html>

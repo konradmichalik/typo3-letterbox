@@ -21,7 +21,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use PHPUnit\Framework\Attributes\Test;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\{Router, UriBuilder};
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -218,7 +218,8 @@ final class InboxControllerTest extends FunctionalTestCase
         foreach ($rows[1] as $href) {
             self::assertStringNotContainsString('remote', $href);
         }
-        self::assertStringNotContainsString('remote=1', preg_replace('/<form[^>]*letterbox-preview-width.*?<\/form>/s', '', $remote) ?? '');
+        // The width form keeps remote loading for the same mail, and reload repeats the current view as it is.
+        self::assertStringNotContainsString('remote=1', preg_replace(['/<form[^>]*letterbox-preview-width.*?<\/form>/s', '/<a[^>]*data-letterbox-reload[^>]*>/'], '', $remote) ?? '');
     }
 
     #[Test]
@@ -871,6 +872,129 @@ final class InboxControllerTest extends FunctionalTestCase
 
         preg_match_all('/<button[^>]*role="tab"[^>]*>(.*?)<\/button>/s', $body, $labels);
         self::assertSame(['HTML', 'Text', 'Headers', 'Source', 'Links (0)', 'Attachments (1)'], array_map(static fn (string $label): string => trim((string) preg_replace('/\s+/', ' ', $label)), $labels[1]));
+    }
+
+    #[Test]
+    public function detailFragmentContainsOnlyTheDetail(): void
+    {
+        $this->append('Other');
+        $this->append('Fragment', '<p>Hello</p><script>alert(1)</script>');
+        $id = $this->firstId();
+
+        $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id])->withHeader('X-Letterbox-Fragment', 'detail'));
+
+        self::assertSame(200, $response->getStatusCode());
+        $this->assertFragmentHeaders($response);
+        $body = (string) $response->getBody();
+        self::assertStringStartsWith('<article', trim($body));
+        self::assertStringContainsString('data-letterbox-region="detail"', $body);
+        self::assertMatchesRegularExpression('/<h2 id="letterbox-subject"[^>]*tabindex="-1"[^>]*>Fragment<\/h2>/', $body);
+        self::assertStringContainsString('sandbox="allow-popups allow-popups-to-escape-sandbox"', $body);
+        self::assertStringNotContainsString('<script>alert', $body);
+        self::assertStringNotContainsString('module-docheader', $body);
+        self::assertStringNotContainsString('id="letterbox-list"', $body);
+        self::assertStringNotContainsString('Other', $body);
+        self::assertStringNotContainsString('<h1', $body);
+        self::assertTrue($this->get(ReadState::class)->isRead($id));
+    }
+
+    #[Test]
+    public function listFragmentContainsOnlyTheList(): void
+    {
+        $this->append('First');
+        $this->append('Second');
+        $id = $this->firstId();
+
+        $index = $this->controller()->indexAction($this->request('system_letterbox', ['filter' => 'unread'])->withHeader('X-Letterbox-Fragment', 'list'));
+        $show = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id])->withHeader('X-Letterbox-Fragment', 'list'));
+
+        self::assertSame(200, $index->getStatusCode());
+        $this->assertFragmentHeaders($index);
+        $body = (string) $index->getBody();
+        self::assertStringStartsWith('<div class="letterbox-listcol"', trim($body));
+        self::assertStringContainsString('data-letterbox-region="list"', $body);
+        self::assertStringContainsString('data-letterbox-count="2"', $body);
+        self::assertStringContainsString('id="letterbox-list"', $body);
+        self::assertStringContainsString('First', $body);
+        self::assertStringContainsString('Second', $body);
+        self::assertStringNotContainsString('module-docheader', $body);
+        self::assertStringNotContainsString('letterbox-detail', $body);
+        self::assertStringNotContainsString('<h1', $body);
+
+        self::assertSame(200, $show->getStatusCode());
+        $this->assertFragmentHeaders($show);
+        $showBody = (string) $show->getBody();
+        self::assertStringNotContainsString('letterbox-detail', $showBody);
+        self::assertSame(1, substr_count($showBody, 'aria-current="true" data-letterbox-id="'.$id.'"'));
+    }
+
+    #[Test]
+    public function detailFragmentWithoutMailIsThePlaceholder(): void
+    {
+        $this->append('Waiting');
+
+        $response = $this->controller()->indexAction($this->request('system_letterbox')->withHeader('X-Letterbox-Fragment', 'detail'));
+
+        self::assertSame(200, $response->getStatusCode());
+        $this->assertFragmentHeaders($response);
+        $body = (string) $response->getBody();
+        self::assertStringContainsString('data-letterbox-region="detail"', $body);
+        self::assertStringContainsString('Select a mail', $body);
+        self::assertStringNotContainsString('Waiting', $body);
+    }
+
+    #[Test]
+    public function detailFragmentForUnknownMailIsNotFound(): void
+    {
+        $this->append('Known');
+
+        $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => str_repeat('a', 32)])->withHeader('X-Letterbox-Fragment', 'detail'));
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function fragmentHeaderWithoutValidValueReturnsFullPage(): void
+    {
+        $this->append('Full');
+        $id = $this->firstId();
+
+        foreach (['', 'nonsense', 'LIST'] as $value) {
+            $response = $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id])->withHeader('X-Letterbox-Fragment', $value));
+
+            self::assertSame(200, $response->getStatusCode());
+            self::assertContains('X-Letterbox-Fragment', $response->getHeader('Vary'));
+            $body = (string) $response->getBody();
+            self::assertStringContainsString('module-docheader', $body);
+            self::assertStringContainsString('id="letterbox-list"', $body);
+            self::assertStringContainsString('letterbox-detail', $body);
+        }
+    }
+
+    #[Test]
+    public function fullPageCarriesLiveRegionSpinnerAndScriptHooks(): void
+    {
+        $this->append('Hooks');
+
+        $index = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+        $show = $this->show($this->firstId());
+
+        foreach ([$index, $show] as $body) {
+            self::assertMatchesRegularExpression('/<div[^>]*data-letterbox-status[^>]*aria-live="polite"[^>]*><\/div>/', $body);
+            self::assertMatchesRegularExpression('/<div[^>]*data-letterbox-spinner[^>]*hidden/', $body);
+            self::assertStringContainsString('data-letterbox-opened-label="Mail opened: %s"', $body);
+            self::assertMatchesRegularExpression('/data-letterbox-index="[^"]*\/module\/system\/letterbox[?"]/', $body);
+            self::assertMatchesRegularExpression('/data-letterbox-show="[^"]*\/module\/system\/letterbox\/show[?"]/', $body);
+            self::assertSame(1, substr_count($body, 'data-letterbox-reload'));
+            self::assertSame(1, substr_count($body, 'title="Reload"'));
+        }
+    }
+
+    private function assertFragmentHeaders(ResponseInterface $response): void
+    {
+        self::assertContains('X-Letterbox-Fragment', $response->getHeader('Vary'));
+        self::assertSame('no-store', $response->getHeaderLine('Cache-Control'));
+        self::assertStringStartsWith('text/html', $response->getHeaderLine('Content-Type'));
     }
 
     /**

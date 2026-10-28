@@ -13,15 +13,10 @@
 
         <f:if condition="{configured} && {total} > 0">
             <f:then>
-                <div class="letterbox-inbox{f:if(condition: listCollapsed, then: ' letterbox-inbox--collapsed')}">
-                    <div class="letterbox-listcol">
-                        <f:render partial="MailList" arguments="{_all}" />
-                    </div>
-                    <div class="card">
-                        <div class="card-body text-variant">
-                            <f:translate key="inbox.selectMail" extensionName="Typo3Letterbox" />
-                        </div>
-                    </div>
+                <div class="letterbox-inbox{f:if(condition: listCollapsed, then: ' letterbox-inbox--collapsed')}" data-letterbox-index="{f:be.uri(route: 'system_letterbox')}" data-letterbox-show="{f:be.uri(route: 'system_letterbox.show')}">
+                    <f:render partial="InboxStatus" />
+                    <f:render partial="MailList" arguments="{_all}" />
+                    <f:render partial="MailPlaceholder" />
                 </div>
             </f:then>
             <f:else>

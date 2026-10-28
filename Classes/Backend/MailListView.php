@@ -59,9 +59,16 @@ final readonly class MailListView
             'quickFilters' => $this->quickFilters($query, $counts),
             'resetUrl' => $this->url($query, ['q' => null, 'filter' => null, 'page' => null]),
             'search' => $this->form($query->toParameters(['q' => null, 'page' => null])),
-            // The delete route keeps search, filter and page, so the redirect after deleting returns to the same list.
-            'deleteUrl' => (string) $this->uriBuilder->buildUriFromRoute(self::ROUTE_DELETE, $query->toParameters(['id' => null, 'tab' => null])),
+            'deleteUrl' => $this->deleteUrl($query),
         ];
+    }
+
+    /**
+     * The delete route keeps search, filter and page, so the redirect after deleting returns to the same list.
+     */
+    public function deleteUrl(InboxQuery $query): string
+    {
+        return (string) $this->uriBuilder->buildUriFromRoute(self::ROUTE_DELETE, $query->toParameters(['id' => null, 'tab' => null]));
     }
 
     /**

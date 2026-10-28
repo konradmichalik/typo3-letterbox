@@ -1,0 +1,21 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:comment>Both exist from the first render: screen readers do not reliably announce a live region that is added later.</f:comment>
+<div
+    class="visually-hidden"
+    data-letterbox-status
+    aria-live="polite"
+    aria-atomic="true"
+    data-letterbox-opened-label="{f:translate(key: 'inbox.opened', extensionName: 'Typo3Letterbox')}"
+    data-letterbox-count-label="{f:translate(key: 'inbox.count', extensionName: 'Typo3Letterbox')}"
+    data-letterbox-count-one-label="{f:translate(key: 'inbox.count.one', extensionName: 'Typo3Letterbox')}"
+></div>
+<div class="letterbox-spinner" data-letterbox-spinner aria-hidden="true" hidden>
+    <core:icon identifier="spinner-circle" />
+</div>
+
+</html>

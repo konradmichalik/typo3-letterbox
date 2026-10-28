@@ -45,6 +45,9 @@
 			<trans-unit id="inbox.selectMail" resname="inbox.selectMail">
 				<source>Select a mail on the left to read it.</source>
 			</trans-unit>
+			<trans-unit id="inbox.opened" resname="inbox.opened">
+				<source>Mail opened: %s</source>
+			</trans-unit>
 			<trans-unit id="inbox.pagination" resname="inbox.pagination">
 				<source>Mail pages</source>
 			</trans-unit>

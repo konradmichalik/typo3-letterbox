@@ -27,6 +27,7 @@ use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\Buttons\{InputButton, LinkButton};
 use TYPO3\CMS\Backend\Template\{ModuleTemplate, ModuleTemplateFactory};
+use TYPO3\CMS\Backend\View\BackendViewFactory;
 use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotConfiguredException, ExtensionConfigurationPathDoesNotExistException};
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Context\Context;
@@ -61,6 +62,8 @@ final readonly class InboxController
     private const LANGUAGE_FILE = 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:';
     private const DEFAULT_MAILS_PER_PAGE = 10;
     private const PAGE_LINKS = 5;
+    // inbox.js asks for one region of the page with this header and swaps it in place.
+    private const FRAGMENT_HEADER = 'X-Letterbox-Fragment';
     private const PREVIEW_POLICY = "default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; sandbox allow-popups allow-popups-to-escape-sandbox";
 
     public function __construct(
@@ -79,16 +82,28 @@ final readonly class InboxController
         private FlashMessageService $flashMessageService,
         private ReadState $readState,
         private MailListView $mailListView,
+        private BackendViewFactory $backendViewFactory,
     ) {}
 
     public function indexAction(ServerRequestInterface $request): ResponseInterface
     {
-        return $this->createView($request, InboxQuery::fromRequest($request))->renderResponse('Inbox/Index');
+        $query = InboxQuery::fromRequest($request);
+
+        return match ($this->requestedFragment($request)) {
+            'list' => $this->fragment($request, 'list', $this->listVariables($request, $query)),
+            'detail' => $this->fragment($request, 'placeholder', []),
+            default => $this->page($request, $query, 'Inbox/Index', []),
+        };
     }
 
     public function showAction(ServerRequestInterface $request): ResponseInterface
     {
         $query = InboxQuery::fromRequest($request);
+        $fragment = $this->requestedFragment($request);
+        if ('list' === $fragment) {
+            return $this->fragment($request, 'list', $this->listVariables($request, $query));
+        }
+
         // The selected mail opens even when it does not match the current search or quick filter.
         $mail = null === $query->id ? null : $this->repository->findById($query->id, MailFilter::all());
         if (null === $mail) {
@@ -96,24 +111,9 @@ final readonly class InboxController
         }
 
         $this->readState->markRead($mail->id);
-        $htmlDocument = $this->htmlDocument->build($mail, $query->remote);
-        $hasHtml = '' !== trim($mail->html);
-        $view = $this->createView($request, $query);
-        $view->assignMultiple([
-            'mail' => $mail,
-            'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
-            'hasHtml' => $hasHtml,
-            'htmlDocument' => $htmlDocument,
-            'unresolvedContentIds' => '' === $htmlDocument ? [] : $this->htmlDocument->unresolvedContentIds($mail),
-            'previewWidth' => $query->width,
-            'remote' => $query->remote,
-            'textSegments' => TextSegments::split($mail->text),
-            'headersUrl' => $this->mailListView->url($query, ['id' => $mail->id, 'tab' => 'headers']),
-            'defaultTab' => $this->defaultTab($query->tab, $hasHtml, '' !== $htmlDocument),
-        ]);
-        $view->assignMultiple($this->mailListView->previewControls($query));
+        $detail = $this->detailVariables($request, $query, $mail);
 
-        return $view->renderResponse('Inbox/Show');
+        return 'detail' === $fragment ? $this->fragment($request, 'detail', $detail) : $this->page($request, $query, 'Inbox/Show', $detail);
     }
 
     /**
@@ -200,7 +200,38 @@ final readonly class InboxController
         return $this->redirectWithFlash('flash.cleared', ContextualFeedbackSeverity::OK);
     }
 
-    private function createView(ServerRequestInterface $request, InboxQuery $query): ModuleTemplate
+    /**
+     * @param array<string, mixed> $variables
+     */
+    private function page(ServerRequestInterface $request, InboxQuery $query, string $template, array $variables): ResponseInterface
+    {
+        $this->pageRenderer->addCssFile('EXT:typo3_letterbox/Resources/Public/Css/inbox.css');
+        $this->pageRenderer->loadJavaScriptModule('@konradmichalik/typo3-letterbox/inbox.js');
+        $this->pageRenderer->loadJavaScriptModule('@typo3/backend/modal.js');
+        $this->pageRenderer->loadJavaScriptModule('@typo3/backend/copy-to-clipboard.js');
+        $this->pageRenderer->loadJavaScriptModule($this->typo3Version->getMajorVersion() >= 14 ? '@typo3/backend/tab.js' : '@typo3/backend/tabs.js');
+
+        $list = $this->listVariables($request, $query);
+        $view = $this->moduleTemplateFactory->create($request);
+        $view->setTitle($this->translate('module.title'));
+        $this->addDocHeaderButtons($view, $request, $list['total'] > 0);
+        $view->assignMultiple($list + $variables + [
+            'configured' => $this->repository->isConfigured(),
+            'path' => $this->repository->path(),
+            'size' => $this->repository->sizeInBytes(),
+            'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
+        ]);
+
+        // The same URL answers with a fragment or the full page, depending on the request header.
+        return $view->renderResponse($template)->withAddedHeader('Vary', self::FRAGMENT_HEADER);
+    }
+
+    /**
+     * Everything the mail list partial renders, for the full page and the list fragment alike.
+     *
+     * @return array<string, mixed>&array{total: int}
+     */
+    private function listVariables(ServerRequestInterface $request, InboxQuery $query): array
     {
         $readIds = $this->readState->readIds();
         $filter = MailFilter::create($query->query, $query->quick, $readIds);
@@ -208,35 +239,75 @@ final readonly class InboxController
         $total = '' === $filter->query() ? $counts[QuickFilter::All->value] : $this->repository->count(MailFilter::all());
         $paginator = new MailPaginator($this->repository, $filter, $query->page, $this->mailsPerPage(), $counts[$filter->quick()->value]);
         $pagination = new SlidingWindowPagination($paginator, self::PAGE_LINKS);
-        $token = $this->formProtectionFactory->createFromRequest($request)->generateToken(self::TOKEN_FORM);
 
-        $this->pageRenderer->addCssFile('EXT:typo3_letterbox/Resources/Public/Css/inbox.css');
-        $this->pageRenderer->loadJavaScriptModule('@konradmichalik/typo3-letterbox/inbox.js');
-        $this->pageRenderer->loadJavaScriptModule('@typo3/backend/modal.js');
-        $this->pageRenderer->loadJavaScriptModule('@typo3/backend/copy-to-clipboard.js');
-        $this->pageRenderer->loadJavaScriptModule($this->typo3Version->getMajorVersion() >= 14 ? '@typo3/backend/tab.js' : '@typo3/backend/tabs.js');
-
-        $view = $this->moduleTemplateFactory->create($request);
-        $view->setTitle($this->translate('module.title'));
-        $this->addDocHeaderButtons($view, $request, $total > 0);
-        $view->assignMultiple([
-            'configured' => $this->repository->isConfigured(),
-            'path' => $this->repository->path(),
-            'size' => $this->repository->sizeInBytes(),
+        return $this->mailListView->build($query, $paginator->getPaginatedItems(), $pagination, $counts, array_flip($readIds)) + [
             'total' => $total,
             'mails' => $paginator->getPaginatedItems(),
             'listDates' => $this->listDates($paginator->getPaginatedItems()),
             'paginator' => $paginator,
             'pagination' => $pagination,
             'selectedId' => $query->id ?? '',
-            'token' => $token,
+            'token' => $this->token($request),
             'clearFormId' => self::CLEAR_FORM_ID,
             'listCollapsed' => $this->readState->isListCollapsed(),
-            'debugMode' => '1' === (string) $this->extensionSetting('debugMode'),
-        ]);
-        $view->assignMultiple($this->mailListView->build($query, $paginator->getPaginatedItems(), $pagination, $counts, array_flip($readIds)));
+        ];
+    }
 
-        return $view;
+    /**
+     * Everything the mail detail partial renders, for the full page and the detail fragment alike.
+     *
+     * @return array<string, mixed>
+     */
+    private function detailVariables(ServerRequestInterface $request, InboxQuery $query, Mail $mail): array
+    {
+        $htmlDocument = $this->htmlDocument->build($mail, $query->remote);
+        $hasHtml = '' !== trim($mail->html);
+
+        return $this->mailListView->previewControls($query) + [
+            'mail' => $mail,
+            'mailDate' => $mail->date?->setTimezone($this->now()->getTimezone()),
+            'hasHtml' => $hasHtml,
+            'htmlDocument' => $htmlDocument,
+            'unresolvedContentIds' => '' === $htmlDocument ? [] : $this->htmlDocument->unresolvedContentIds($mail),
+            'previewWidth' => $query->width,
+            'remote' => $query->remote,
+            'textSegments' => TextSegments::split($mail->text),
+            'headersUrl' => $this->mailListView->url($query, ['id' => $mail->id, 'tab' => 'headers']),
+            'defaultTab' => $this->defaultTab($query->tab, $hasHtml, '' !== $htmlDocument),
+            'deleteUrl' => $this->mailListView->deleteUrl($query),
+            'token' => $this->token($request),
+        ];
+    }
+
+    private function requestedFragment(ServerRequestInterface $request): ?string
+    {
+        $value = $request->getHeaderLine(self::FRAGMENT_HEADER);
+
+        return in_array($value, ['list', 'detail'], true) ? $value : null;
+    }
+
+    /**
+     * Renders one region with the same partial the full page uses, without module layout and doc header.
+     *
+     * @param array<string, mixed> $variables
+     */
+    private function fragment(ServerRequestInterface $request, string $fragment, array $variables): ResponseInterface
+    {
+        $view = $this->backendViewFactory->create($request);
+        $view->assignMultiple($variables + ['fragment' => $fragment]);
+
+        $response = $this->responseFactory->createResponse(200)
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withHeader('Cache-Control', 'no-store')
+            ->withHeader('Vary', self::FRAGMENT_HEADER);
+        $response->getBody()->write($view->render('Inbox/Fragment'));
+
+        return $response;
+    }
+
+    private function token(ServerRequestInterface $request): string
+    {
+        return $this->formProtectionFactory->createFromRequest($request)->generateToken(self::TOKEN_FORM);
     }
 
     private function defaultTab(?string $requested, bool $hasHtml, bool $hasPreview): string
@@ -253,14 +324,17 @@ final readonly class InboxController
     {
         $buttonBar = $view->getDocHeaderComponent()->getButtonBar();
 
-        // TYPO3 v14 adds a reload button to every module on its own.
-        if ($this->typo3Version->getMajorVersion() < 14) {
-            $reload = GeneralUtility::makeInstance(LinkButton::class)
-                ->setHref((string) $request->getUri())
-                ->setTitle($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.reload'))
-                ->setIcon($this->iconFactory->getIcon('actions-refresh', IconSize::SMALL));
-            $buttonBar->addButton($reload, 'right');
+        // inbox.js keeps the reload link on the current URL after it switched mails, so the module brings its own
+        // instead of the automatic one TYPO3 v14 adds.
+        if ($this->typo3Version->getMajorVersion() >= 14) {
+            $view->getDocHeaderComponent()->disableAutomaticReloadButton();
         }
+        $reload = GeneralUtility::makeInstance(LinkButton::class)
+            ->setHref((string) $request->getUri())
+            ->setTitle($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.reload'))
+            ->setIcon($this->iconFactory->getIcon('actions-refresh', IconSize::SMALL))
+            ->setDataAttributes(['letterbox-reload' => '1']);
+        $buttonBar->addButton($reload, 'right');
 
         if (!$hasMails) {
             return;
