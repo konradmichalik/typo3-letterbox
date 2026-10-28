@@ -133,13 +133,21 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
 
             $repository = GeneralUtility::makeInstance(MailRepositoryFactory::class)->forPath($this->settings->mboxFile);
             $now = new DateTimeImmutable();
-            if ($repository->needsPruning($retention->maxMessages, $retention->maxAgeDays, $now)) {
+            // The count may exceed the limit by a slack, so a full file sees one rewrite per slack mails, not one per mail.
+            $overCount = $retention->maxMessages > 0
+                && $repository->needsPruning($retention->maxMessages + self::countSlack($retention->maxMessages), 0, $now);
+            if ($overCount || $repository->needsPruning(0, $retention->maxAgeDays, $now)) {
                 $repository->prune($retention->maxMessages, $retention->maxAgeDays, $now);
             }
         } catch (Throwable $e) {
             // The mail is already caught, so a failed cleanup must not fail the send.
             $this->getLogger()->warning('Letterbox could not apply the retention limits: {reason}', ['reason' => $e->getMessage()]);
         }
+    }
+
+    private static function countSlack(int $maxMessages): int
+    {
+        return max(1, intdiv($maxMessages, 10));
     }
 
     private function writer(): MailboxWriter

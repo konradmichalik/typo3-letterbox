@@ -154,10 +154,41 @@ final class LetterboxTransportTest extends FunctionalTestCase
 
         $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('One')->text('Body'));
         self::assertSame(['One'], $this->subjects());
+    }
 
+    #[Test]
+    public function transportPrunesOnlyAfterTheSlackIsExceeded(): void
+    {
+        $this->configure(['transport_letterbox_mode' => 'all']);
+        // A limit of 2 has a slack of 1: three mails stay, the fourth cuts back to two.
+        $this->retention(2, 0);
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('One')->text('Body'));
         $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Two')->text('Body'));
         $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Three')->text('Body'));
-        self::assertSame(['Three', 'Two'], $this->subjects());
+        self::assertSame(['Three', 'Two', 'One'], $this->subjects());
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Four')->text('Body'));
+        self::assertSame(['Four', 'Three'], $this->subjects());
+    }
+
+    #[Test]
+    public function transportCutsBackToMaxMessages(): void
+    {
+        $this->configure(['transport_letterbox_mode' => 'all']);
+        // A limit of 20 has a slack of 2: the 23rd mail triggers the cut.
+        $this->retention(20, 0);
+        for ($i = 1; $i <= 22; ++$i) {
+            $this->appendReceived('Old '.$i, new DateTimeImmutable());
+        }
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('New')->text('Body'));
+
+        $subjects = $this->subjects();
+        self::assertCount(20, $subjects);
+        self::assertSame('New', $subjects[0]);
+        self::assertNotContains('Old 3', $subjects);
+        self::assertContains('Old 4', $subjects);
     }
 
     #[Test]
