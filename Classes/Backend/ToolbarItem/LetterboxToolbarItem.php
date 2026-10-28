@@ -16,7 +16,8 @@ namespace KonradMichalik\Typo3Letterbox\Backend\ToolbarItem;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
-use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
+use KonradMichalik\Typo3Letterbox\Backend\ReadState;
+use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport};
 use Psr\Http\Message\ServerRequestInterface;
@@ -30,6 +31,7 @@ use TYPO3\CMS\Core\Configuration\Exception\{ExtensionConfigurationExtensionNotCo
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 
+use function array_flip;
 use function count;
 use function is_array;
 
@@ -54,6 +56,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
         private readonly MailRepository $mailRepository,
         private readonly ExtensionConfiguration $extensionConfiguration,
         private readonly UriBuilder $uriBuilder,
+        private readonly ReadState $readState,
     ) {}
 
     public function setRequest(ServerRequestInterface $request): void
@@ -130,7 +133,6 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
             'catchCount' => null === $settings ? 0 : count($settings->catch),
             'count' => 0,
             'mails' => [],
-            'path' => '',
             'moduleEnabled' => '0' !== (string) $this->setting('enableBackendModule', '1'),
             'openUrl' => '',
         ];
@@ -139,9 +141,9 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
         }
 
         try {
-            $variables['count'] = $this->mailRepository->count(MailFilter::all());
-            $variables['mails'] = $this->latestMails($variables['moduleEnabled']);
-            $variables['path'] = $this->mailRepository->path();
+            $readIds = $this->readState->readIds();
+            $variables['count'] = $this->mailRepository->count(MailFilter::create('', QuickFilter::Unread, $readIds));
+            $variables['mails'] = $this->latestMails($variables['moduleEnabled'], array_flip($readIds));
             $variables['openUrl'] = $variables['moduleEnabled'] ? (string) $this->uriBuilder->buildUriFromRoute('system_letterbox') : '';
             $variables['configured'] = true;
         } catch (Throwable $exception) {
@@ -154,9 +156,11 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
     }
 
     /**
-     * @return list<array{subject: string, time: ?DateTimeImmutable, url: string}>
+     * @param array<string, int> $read
+     *
+     * @return list<array{subject: string, time: ?DateTimeImmutable, url: string, unread: bool}>
      */
-    private function latestMails(bool $withLinks): array
+    private function latestMails(bool $withLinks, array $read): array
     {
         $timezone = new DateTimeZone(date_default_timezone_get());
         $mails = [];
@@ -164,6 +168,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
             $mails[] = [
                 'subject' => $entry->subject,
                 'time' => $entry->received?->setTimezone($timezone),
+                'unread' => !isset($read[$entry->id]),
                 'url' => $withLinks ? (string) $this->uriBuilder->buildUriFromRoute('system_letterbox.show', ['id' => $entry->id]) : '',
             ];
         }

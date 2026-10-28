@@ -486,11 +486,11 @@
 			<trans-unit id="toolbar.catching.other" resname="toolbar.catching.other">
 				<source>Catching %d addresses</source>
 			</trans-unit>
-			<trans-unit id="toolbar.caught.one" resname="toolbar.caught.one">
-				<source>%s, %d mail caught</source>
+			<trans-unit id="toolbar.unread.one" resname="toolbar.unread.one">
+				<source>%s, %d unread mail</source>
 			</trans-unit>
-			<trans-unit id="toolbar.caught.other" resname="toolbar.caught.other">
-				<source>%s, %d mails caught</source>
+			<trans-unit id="toolbar.unread.other" resname="toolbar.unread.other">
+				<source>%s, %d unread mails</source>
 			</trans-unit>
 			<trans-unit id="toolbar.heading" resname="toolbar.heading">
 				<source>Letterbox</source>
@@ -512,9 +512,6 @@
 			</trans-unit>
 			<trans-unit id="toolbar.open" resname="toolbar.open">
 				<source>Open Letterbox</source>
-			</trans-unit>
-			<trans-unit id="toolbar.file" resname="toolbar.file">
-				<source>Mbox file</source>
 			</trans-unit>
 			<trans-unit id="widget.title" resname="widget.title">
 				<source>Recent mails</source>

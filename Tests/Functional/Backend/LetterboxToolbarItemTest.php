@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Backend;
 
 use DateTimeImmutable;
+use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use KonradMichalik\Typo3Letterbox\Backend\ToolbarItem\LetterboxToolbarItem;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
@@ -78,7 +79,61 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
         $html = $item->getItem();
         self::assertStringContainsString('Mail catcher active', $html);
         self::assertMatchesRegularExpression('/<span class="toolbar-item-badge[^"]*"[^>]*>\s*2\s*<\/span>/', $html);
-        self::assertStringContainsString('Mail catcher active, 2 mails caught', $html);
+        self::assertStringContainsString('Mail catcher active, 2 unread mails', $html);
+    }
+
+    #[Test]
+    public function badgeCountsUnreadOnly(): void
+    {
+        $this->append('First');
+        $this->append('Second');
+        $this->append('Third');
+        $this->markRead('Second');
+
+        $html = $this->item()->getItem();
+
+        self::assertMatchesRegularExpression('/<span class="toolbar-item-badge[^"]*"[^>]*>\s*2\s*<\/span>/', $html);
+        self::assertStringContainsString('Mail catcher active, 2 unread mails', $html);
+    }
+
+    #[Test]
+    public function noBadgeWithoutUnread(): void
+    {
+        $this->append('Only');
+        $this->markRead('Only');
+
+        $html = $this->item()->getItem();
+
+        self::assertStringNotContainsString('toolbar-item-badge', $html);
+        self::assertStringNotContainsString('unread', $html);
+        self::assertStringContainsString('Mail catcher active', $html);
+    }
+
+    #[Test]
+    public function badgeColourFollowsTheMode(): void
+    {
+        $this->append('Unread');
+        self::assertStringContainsString('badge-warning', $this->item()->getItem());
+
+        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => 'a@example.org']);
+        self::assertStringContainsString('badge-info', $this->item()->getItem());
+    }
+
+    #[Test]
+    public function dropdownMarksUnreadMailsAndSeparatesSections(): void
+    {
+        $this->append('Seen');
+        $this->append('Fresh');
+        $this->markRead('Seen');
+
+        $html = $this->item()->getDropDown();
+
+        self::assertSame(1, substr_count($html, 'Unread</span>'));
+        self::assertMatchesRegularExpression('/fw-bold[^>]*>\s*<span class="visually-hidden">Unread<\/span>\s*Fresh/', $html);
+        self::assertStringNotContainsString('toolbar.mbox', $html);
+        self::assertStringNotContainsString('Mbox file', $html);
+        self::assertGreaterThanOrEqual(2, substr_count($html, 'dropdown-divider'));
+        self::assertMatchesRegularExpression('/<a class="btn btn-default btn-sm[^"]*" href="[^"]*">Open Letterbox<\/a>/', $html);
     }
 
     #[Test]
@@ -86,7 +141,7 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     {
         $this->append('Only');
 
-        self::assertStringContainsString('Mail catcher active, 1 mail caught', $this->item()->getItem());
+        self::assertStringContainsString('Mail catcher active, 1 unread mail', $this->item()->getItem());
     }
 
     #[Test]
@@ -116,6 +171,7 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     public function listedModeWithOneAddressUsesTheSingular(): void
     {
         $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => 'a@example.org']);
+        $this->append('Caught');
 
         self::assertStringContainsString('Catching 1 address,', $this->item()->getItem());
     }
@@ -188,9 +244,8 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
         self::assertStringContainsString('Seven', $html);
         self::assertStringContainsString('Three', $html);
         self::assertStringNotContainsString('Two', $html);
-        self::assertSame(1, preg_match('/<a [^>]*href="[^"]*letterbox\/show[^"]*id='.$first->id.'[^"]*"[^>]*>\s*(?:<[^>]+>\s*)*Seven/', $html));
+        self::assertSame(1, preg_match('/<a [^>]*href="[^"]*letterbox\/show[^"]*id='.$first->id.'[^"]*"[^>]*>\s*(?:<[^>]+>\s*)*(?:Unread(?:<[^>]+>\s*)*)?Seven/', $html));
         self::assertStringContainsString('Open Letterbox', $html);
-        self::assertStringContainsString('toolbar.mbox', $html);
     }
 
     #[Test]
@@ -240,6 +295,7 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
             $this->get(MailRepository::class),
             $this->get(ExtensionConfiguration::class),
             $this->get(UriBuilder::class),
+            $this->get(ReadState::class),
         );
         $item->setRequest($this->request());
 
@@ -255,6 +311,15 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
         $GLOBALS['TYPO3_REQUEST'] = $request;
 
         return $request;
+    }
+
+    private function markRead(string $subject): void
+    {
+        foreach ($this->get(MailRepository::class)->find(MailFilter::all(), 0, 50) as $entry) {
+            if ($subject === $entry->subject) {
+                $this->get(ReadState::class)->markRead($entry->id);
+            }
+        }
     }
 
     private function append(string $subject): void

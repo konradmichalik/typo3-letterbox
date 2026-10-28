@@ -7,6 +7,7 @@
 <f:if condition="{configured}">
     <f:then>
         <p class="dropdown-item-text"><f:if condition="{listed}"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.introListed" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.intro" /></f:else></f:if></p>
+        <hr class="dropdown-divider" aria-hidden="true">
         <f:if condition="{mails}">
             <f:then>
                 <ul class="dropdown-list" aria-label="{f:translate(key: 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.latest')}">
@@ -33,14 +34,11 @@
             </f:else>
         </f:if>
         <f:if condition="{openUrl}">
-            <hr class="dropdown-divider">
-            <ul class="dropdown-list">
-                <li>
-                    <a class="dropdown-item" href="{openUrl}"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.open" /></a>
-                </li>
-            </ul>
+            <hr class="dropdown-divider" aria-hidden="true">
+            <div class="dropdown-item-text">
+                <a class="btn btn-default btn-sm" href="{openUrl}"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.open" /></a>
+            </div>
         </f:if>
-        <p class="dropdown-item-text text-variant"><small><span class="visually-hidden"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.file" />: </span>{path}</small></p>
     </f:then>
     <f:else>
         <p class="dropdown-item-text"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.notConfigured" /></p>
@@ -50,7 +48,7 @@
 <f:section name="Mail">
     <span class="dropdown-item-columns">
         <span class="dropdown-item-column dropdown-item-column-text">
-            <f:if condition="{mail.subject}"><f:then><f:format.crop maxCharacters="60" append="…">{mail.subject}</f:format.crop></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:inbox.noSubject" /></f:else></f:if>
+            <span{f:if(condition: mail.unread, then: ' class="fw-bold"')}><f:if condition="{mail.unread}"><span class="visually-hidden"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:inbox.unread" /></span> </f:if><f:if condition="{mail.subject}"><f:then><f:format.crop maxCharacters="60" append="…">{mail.subject}</f:format.crop></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:inbox.noSubject" /></f:else></f:if></span>
             <f:if condition="{mail.time}"><br><small class="text-variant"><f:format.date format="Y-m-d H:i">{mail.time}</f:format.date></small></f:if>
         </span>
     </span>
