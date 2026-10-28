@@ -15,14 +15,18 @@ namespace KonradMichalik\Typo3Letterbox\External\Tester;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Mail, MailFilter};
+use KonradMichalik\Typo3Letterbox\Domain\Model\{Address, Attachment, Mail, MailFilter, MailLink};
+use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use KonradMichalik\Typo3Letterbox\Mail\RecipientPattern;
+use KonradMichalik\Typo3Letterbox\Mbox\TextSegments;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface, StreamFactoryInterface};
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Localization\{LanguageService, LanguageServiceFactory};
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\View\{ViewFactoryData, ViewFactoryInterface};
 
 use function count;
+use function in_array;
 use function sprintf;
 
 /**
@@ -51,6 +55,22 @@ final readonly class TesterInboxView
         'next' => 'pagination.next',
         'notFoundHeading' => 'notFound.heading',
         'notFoundText' => 'notFound.text',
+        'back' => 'detail.back',
+        'from' => 'detail.from',
+        'to' => 'detail.to',
+        'cc' => 'detail.cc',
+        'date' => 'detail.date',
+        'resetFound' => 'reset.found',
+        'resetText' => 'reset.text',
+        'resetOpen' => 'reset.open',
+        'views' => 'detail.views',
+        'viewHtml' => 'detail.viewHtml',
+        'viewText' => 'detail.viewText',
+        'noText' => 'detail.noText',
+        'resetLink' => 'links.reset',
+        'deleteHeading' => 'delete.heading',
+        'deleteText' => 'delete.text',
+        'deleteSubmit' => 'delete.submit',
     ];
 
     public function __construct(
@@ -58,6 +78,7 @@ final readonly class TesterInboxView
         private LanguageServiceFactory $languageServiceFactory,
         private ResponseFactoryInterface $responseFactory,
         private StreamFactoryInterface $streamFactory,
+        private MailHtmlDocument $htmlDocument,
     ) {}
 
     /**
@@ -85,6 +106,50 @@ final readonly class TesterInboxView
                 'previous' => $page > 1 ? $this->url($basePath, $query, $page - 1) : '',
                 'next' => $page < $pages ? $this->url($basePath, $query, $page + 1) : '',
             ] : null,
+        ]);
+    }
+
+    /**
+     * The detail page shows no headers, no source and no recipient outside the link scope. The HTML part is
+     * only ever a sandboxed srcdoc document without remote content.
+     *
+     * @param MailFilter $filter the link filter, it decides which recipients are visible
+     * @param string     $csrf   the delete form token, empty when the link cannot delete
+     */
+    public function show(ServerRequestInterface $request, TesterLink $link, MailFilter $filter, Mail $mail, string $basePath, bool $textView, string $csrf): ResponseInterface
+    {
+        $language = $this->languageServiceFactory->create('default');
+        $subject = '' !== trim($mail->subject) ? $mail->subject : $this->label($language, 'row.noSubject');
+        $detailUrl = $basePath.'/'.$mail->id;
+        $html = $textView ? '' : $this->htmlDocument->build($mail);
+        $hasHtml = '' !== $html || ($textView && $this->htmlDocument->canBuild($mail));
+        $visible = $filter->visibleRecipients($mail);
+        $date = $mail->date?->setTimezone(new DateTimeZone(date_default_timezone_get()));
+        $reset = array_values(array_filter($mail->links, static fn (MailLink $mailLink): bool => $mailLink->isPasswordReset))[0] ?? null;
+
+        return $this->render($request, 'Show', 200, $language, [
+            'title' => $subject,
+            'subject' => $subject,
+            'backUrl' => $basePath,
+            'from' => $this->sender($language, $mail->from, true),
+            'to' => $this->recipients($language, $mail->to, $visible),
+            'cc' => $this->recipients($language, $mail->cc, $visible),
+            'date' => $date?->format('Y-m-d H:i') ?? '',
+            'isoDate' => $date?->format(\DATE_ATOM) ?? '',
+            'resetUrl' => $reset->url ?? '',
+            'hasHtml' => $hasHtml,
+            'showText' => '' === $html,
+            'htmlUrl' => $detailUrl,
+            'textUrl' => $detailUrl.'?view=text',
+            'htmlDocument' => $html,
+            'previewTitle' => sprintf($this->label($language, 'detail.preview'), $subject),
+            'textSegments' => '' !== trim($mail->text) ? TextSegments::split($mail->text) : [],
+            'links' => $mail->links,
+            'linksHeading' => sprintf($this->label($language, 'links.heading'), count($mail->links)),
+            'attachments' => $link->canDownload ? array_map(fn (Attachment $attachment): array => $this->attachment($attachment, $detailUrl), $mail->attachments) : [],
+            'attachmentsHeading' => sprintf($this->label($language, 'attachments.heading'), count($mail->attachments)),
+            'deleteUrl' => $detailUrl.'/delete',
+            'csrf' => $csrf,
         ]);
     }
 
@@ -123,20 +188,8 @@ final readonly class TesterInboxView
      */
     private function row(LanguageService $language, Mail $mail, MailFilter $filter, string $basePath): array
     {
-        $visible = $filter->visibleRecipients($mail);
-        $hidden = count($mail->to) + count($mail->cc) - count($visible);
-        $recipients = implode(', ', array_map(static fn (Address $address): string => $address->address, $visible));
-        if ([] === $visible) {
-            $recipients = $hidden > 0 ? sprintf($this->label($language, 'row.hiddenOnly'), $hidden) : '';
-        } elseif ($hidden > 0) {
-            $recipients .= ' '.sprintf($this->label($language, 'row.more'), $hidden);
-        }
-        $sender = match (true) {
-            null === $mail->from => $this->label($language, 'row.unknownSender'),
-            '' !== $mail->from->name => $mail->from->name,
-            default => $mail->from->address,
-        };
-        $meta = sprintf($this->label($language, 'row.from'), $sender);
+        $recipients = $this->recipients($language, [...$mail->to, ...$mail->cc], $filter->visibleRecipients($mail));
+        $meta = sprintf($this->label($language, 'row.from'), $this->sender($language, $mail->from, false));
         $date = $mail->date?->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
         return [
@@ -146,6 +199,46 @@ final readonly class TesterInboxView
             'date' => $date?->format('Y-m-d H:i') ?? '',
             'isoDate' => $date?->format(\DATE_ATOM) ?? '',
             'hasAttachments' => [] !== $mail->attachments,
+        ];
+    }
+
+    /**
+     * Visible addresses of the given header plus a count of the masked ones, never the masked addresses themselves.
+     *
+     * @param list<Address> $addresses
+     * @param list<Address> $visible
+     */
+    private function recipients(LanguageService $language, array $addresses, array $visible): string
+    {
+        $shown = array_values(array_filter($addresses, static fn (Address $address): bool => in_array($address, $visible, true)));
+        $hidden = count($addresses) - count($shown);
+        if ([] === $shown) {
+            return $hidden > 0 ? sprintf($this->label($language, 'row.hiddenOnly'), $hidden) : '';
+        }
+        $list = implode(', ', array_map(static fn (Address $address): string => $address->address, $shown));
+
+        return $hidden > 0 ? $list.' '.sprintf($this->label($language, 'row.more'), $hidden) : $list;
+    }
+
+    private function sender(LanguageService $language, ?Address $from, bool $withAddress): string
+    {
+        return match (true) {
+            null === $from => $this->label($language, 'row.unknownSender'),
+            '' === $from->name => $from->address,
+            $withAddress => $from->name.' <'.$from->address.'>',
+            default => $from->name,
+        };
+    }
+
+    /**
+     * @return array{name: string, meta: string, url: string}
+     */
+    private function attachment(Attachment $attachment, string $detailUrl): array
+    {
+        return [
+            'name' => '' !== $attachment->filename ? $attachment->filename : 'attachment.bin',
+            'meta' => $attachment->mimeType.' · '.GeneralUtility::formatSize($attachment->size, ' B| KB| MB| GB'),
+            'url' => $detailUrl.'/attachments/'.$attachment->index,
         ];
     }
 

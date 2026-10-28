@@ -1,0 +1,91 @@
+<f:layout name="Page" />
+<f:section name="Main">
+    <p><a class="tester-back" href="{backUrl}"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>{labels.back}</a></p>
+    <article class="tester-card" aria-labelledby="tester-mail-subject">
+        <div class="tester-mail__header">
+            <h1 id="tester-mail-subject" class="tester-mail__subject">{subject}</h1>
+            <dl class="tester-mail__meta">
+                <div><dt>{labels.from}</dt><dd>{from}</dd></div>
+                <f:if condition="{to}"><div><dt>{labels.to}</dt><dd>{to}</dd></div></f:if>
+                <f:if condition="{cc}"><div><dt>{labels.cc}</dt><dd>{cc}</dd></div></f:if>
+                <f:if condition="{date}"><div><dt>{labels.date}</dt><dd><time datetime="{isoDate}">{date}</time></dd></div></f:if>
+            </dl>
+        </div>
+        <div class="tester-mail__content">
+            <f:if condition="{resetUrl}">
+                <div class="tester-reset">
+                    <p class="tester-reset__text"><strong>{labels.resetFound}</strong> {labels.resetText}</p>
+                    <a class="tester-button tester-button--primary" href="{resetUrl}" target="_blank" rel="noopener noreferrer">{labels.resetOpen}</a>
+                    <p class="tester-reset__url"><code>{resetUrl}</code></p>
+                </div>
+            </f:if>
+            <f:if condition="{hasHtml}">
+                <nav class="tester-tabs" aria-label="{labels.views}">
+                    <f:if condition="{showText}">
+                        <f:then>
+                            <a class="tester-tabs__item" href="{htmlUrl}">{labels.viewHtml}</a>
+                            <a class="tester-tabs__item" href="{textUrl}" aria-current="page">{labels.viewText}</a>
+                        </f:then>
+                        <f:else>
+                            <a class="tester-tabs__item" href="{htmlUrl}" aria-current="page">{labels.viewHtml}</a>
+                            <a class="tester-tabs__item" href="{textUrl}">{labels.viewText}</a>
+                        </f:else>
+                    </f:if>
+                </nav>
+            </f:if>
+            <f:if condition="{showText}">
+                <f:then>
+                    <f:if condition="{textSegments}">
+                        <f:then><pre class="tester-text"><f:for each="{textSegments}" as="segment"><f:if condition="{segment.url}"><f:then><a href="{segment.url}" target="_blank" rel="noopener noreferrer">{segment.text}</a></f:then><f:else>{segment.text}</f:else></f:if></f:for></pre></f:then>
+                        <f:else><p class="tester-empty">{labels.noText}</p></f:else>
+                    </f:if>
+                </f:then>
+                <f:else>
+                    <div class="tester-preview-frame">
+                        <iframe class="tester-preview" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{previewTitle}"></iframe>
+                    </div>
+                </f:else>
+            </f:if>
+        </div>
+    </article>
+    <f:if condition="{links}">
+        <section class="tester-card" aria-labelledby="tester-links-heading">
+            <div class="tester-card__header">
+                <h2 id="tester-links-heading" class="tester-card__title">{linksHeading}</h2>
+            </div>
+            <ul class="tester-list">
+                <f:for each="{links}" as="link">
+                    <li class="tester-item">
+                        <f:if condition="{link.isPasswordReset}"><span class="tester-badge">{labels.resetLink}</span></f:if>
+                        <a class="tester-item__link" href="{link.url}" target="_blank" rel="noopener noreferrer">{link.url}</a>
+                    </li>
+                </f:for>
+            </ul>
+        </section>
+    </f:if>
+    <f:if condition="{attachments}">
+        <section class="tester-card" aria-labelledby="tester-attachments-heading">
+            <div class="tester-card__header">
+                <h2 id="tester-attachments-heading" class="tester-card__title">{attachmentsHeading}</h2>
+            </div>
+            <ul class="tester-list">
+                <f:for each="{attachments}" as="attachment">
+                    <li class="tester-item">
+                        <a class="tester-item__link" href="{attachment.url}">{attachment.name}</a>
+                        <span class="tester-item__meta">{attachment.meta}</span>
+                    </li>
+                </f:for>
+            </ul>
+        </section>
+    </f:if>
+    <f:if condition="{csrf}">
+        <section class="tester-card tester-card--padded" aria-labelledby="tester-delete-heading">
+            <h2 id="tester-delete-heading" class="tester-card__title">{labels.deleteHeading}</h2>
+            <p>{labels.deleteText}</p>
+            <form method="post" action="{deleteUrl}">
+                <input type="hidden" name="letterboxCsrf" value="{csrf}">
+                <button class="tester-button tester-button--danger" type="submit">{labels.deleteSubmit}</button>
+            </form>
+        </section>
+    </f:if>
+</f:section>

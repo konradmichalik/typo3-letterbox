@@ -78,6 +78,63 @@
 			<trans-unit id="pagination.status" resname="pagination.status">
 				<source>Page %1$d of %2$d</source>
 			</trans-unit>
+			<trans-unit id="detail.back" resname="detail.back">
+				<source>Back to mails</source>
+			</trans-unit>
+			<trans-unit id="detail.from" resname="detail.from">
+				<source>From</source>
+			</trans-unit>
+			<trans-unit id="detail.to" resname="detail.to">
+				<source>To</source>
+			</trans-unit>
+			<trans-unit id="detail.cc" resname="detail.cc">
+				<source>Cc</source>
+			</trans-unit>
+			<trans-unit id="detail.date" resname="detail.date">
+				<source>Date</source>
+			</trans-unit>
+			<trans-unit id="detail.views" resname="detail.views">
+				<source>Mail views</source>
+			</trans-unit>
+			<trans-unit id="detail.viewHtml" resname="detail.viewHtml">
+				<source>Mail</source>
+			</trans-unit>
+			<trans-unit id="detail.viewText" resname="detail.viewText">
+				<source>Text</source>
+			</trans-unit>
+			<trans-unit id="detail.preview" resname="detail.preview">
+				<source>Preview of %s</source>
+			</trans-unit>
+			<trans-unit id="detail.noText" resname="detail.noText">
+				<source>This mail has no text part.</source>
+			</trans-unit>
+			<trans-unit id="reset.found" resname="reset.found">
+				<source>Password reset link found.</source>
+			</trans-unit>
+			<trans-unit id="reset.text" resname="reset.text">
+				<source>Open it to continue your test.</source>
+			</trans-unit>
+			<trans-unit id="reset.open" resname="reset.open">
+				<source>Open reset link</source>
+			</trans-unit>
+			<trans-unit id="links.heading" resname="links.heading">
+				<source>Links (%d)</source>
+			</trans-unit>
+			<trans-unit id="links.reset" resname="links.reset">
+				<source>Password reset link</source>
+			</trans-unit>
+			<trans-unit id="attachments.heading" resname="attachments.heading">
+				<source>Attachments (%d)</source>
+			</trans-unit>
+			<trans-unit id="delete.heading" resname="delete.heading">
+				<source>Delete mail</source>
+			</trans-unit>
+			<trans-unit id="delete.text" resname="delete.text">
+				<source>The mail is removed for everyone who can see it. This cannot be undone.</source>
+			</trans-unit>
+			<trans-unit id="delete.submit" resname="delete.submit">
+				<source>Delete mail</source>
+			</trans-unit>
 			<trans-unit id="notFound.heading" resname="notFound.heading">
 				<source>Page not found</source>
 			</trans-unit>
