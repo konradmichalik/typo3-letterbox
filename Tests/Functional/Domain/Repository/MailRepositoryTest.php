@@ -20,10 +20,12 @@ use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MailboxLock, MailboxWriter, MboxFormat, MessageIndexEntry, MessageParser};
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
+use ReflectionClass;
 use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Locking\{LockFactory, LockingStrategyInterface};
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -413,7 +415,7 @@ final class MailRepositoryTest extends FunctionalTestCase
     {
         $mailbox = new Mailbox($this->path, new MboxFormat());
         $cached = $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->get('v8_'.hash('sha256', $this->path));
-        $scanned = (new MailIndex($mailbox, new MessageParser(), new VariableFrontend('letterbox_scan', new TransientMemoryBackend())))->entries();
+        $scanned = (new MailIndex($mailbox, new MessageParser(), new VariableFrontend('letterbox_scan', $this->memoryBackend())))->entries();
 
         self::assertIsArray($cached);
         self::assertSame($mailbox->fingerprint(), $cached['fingerprint']);
@@ -469,5 +471,15 @@ final class MailRepositoryTest extends FunctionalTestCase
     private function subjects(array $mails): array
     {
         return array_map(static fn ($mail): string => $mail->subject, $mails);
+    }
+
+    /**
+     * TYPO3 13 passes the application context to a cache backend, TYPO3 14 only the options.
+     */
+    private function memoryBackend(): TransientMemoryBackend
+    {
+        $arguments = (new Typo3Version())->getMajorVersion() < 14 ? ['Testing'] : [];
+
+        return (new ReflectionClass(TransientMemoryBackend::class))->newInstanceArgs($arguments);
     }
 }
