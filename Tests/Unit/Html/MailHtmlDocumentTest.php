@@ -90,6 +90,33 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
+    public function repeatedInlineImageWithObjectFitKeepsItsDataUri(): void
+    {
+        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGNgYGD4TyQeVAoAqY0t0zw9NLIAAAAASUVORK5CYII=', true);
+        $mail = $this->mailWithHtml('<img src="cid:logo"><img src="cid:logo" style="width:200px;height:200px;object-fit:contain">', [
+            new Attachment(0, 'logo.png', '<logo>', 'image/png', 3, $png),
+        ]);
+
+        $doc = (new MailHtmlDocument())->build($mail);
+
+        self::assertStringContainsString('<img src="data:image/png;base64,'.base64_encode($png).'" style="width:200px;height:200px;object-fit:contain">', $doc);
+    }
+
+    #[Test]
+    public function repeatedInlineImageStyledByAStylesheetWithObjectFitKeepsItsDataUri(): void
+    {
+        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGNgYGD4TyQeVAoAqY0t0zw9NLIAAAAASUVORK5CYII=', true);
+        $mail = $this->mailWithHtml('<style>.logo{width:200px;height:200px;object-fit:contain}</style><img src="cid:logo" class="logo"><img src="cid:logo" class="logo">', [
+            new Attachment(0, 'logo.png', '<logo>', 'image/png', 3, $png),
+        ]);
+
+        $doc = (new MailHtmlDocument())->build($mail);
+
+        self::assertSame(2, substr_count($doc, '<img src="data:image/png;base64,'.base64_encode($png).'" class="logo">'));
+        self::assertStringNotContainsString('letterbox-cid-', $doc);
+    }
+
+    #[Test]
     public function repeatedImagesOfUnknownSizeKeepTheirDataUriOnEveryReference(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20"><rect width="40" height="20"/></svg>';

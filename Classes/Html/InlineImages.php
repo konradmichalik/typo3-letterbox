@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Html;
 
+use DOMDocument;
 use DOMElement;
 use DOMNode;
+use DOMXPath;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Attachment, Mail};
 
 use function array_slice;
@@ -180,7 +182,17 @@ final class InlineImages
      */
     private static function canShare(DOMElement $element): bool
     {
-        return 'img' === strtolower($element->tagName) && !str_contains(strtolower($element->getAttribute('style')), 'background');
+        $style = strtolower($element->getAttribute('style'));
+
+        return 'img' === strtolower($element->tagName) && !str_contains($style, 'background') && !str_contains($style, 'object-') && !self::sheetsUseObjectFit($element);
+    }
+
+    /**
+     * A stretched background cannot follow object-fit or object-position, so a mail that sets them keeps its data URIs.
+     */
+    private static function sheetsUseObjectFit(DOMElement $element): bool
+    {
+        return (new DOMXPath($element->ownerDocument ?? new DOMDocument()))->evaluate('boolean(//*[local-name()="style"][contains(translate(., "OBJECT", "object"), "object-")])');
     }
 
     /**
