@@ -22,6 +22,7 @@ use Stringable;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
+use Throwable;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Log\LogManager;
@@ -87,7 +88,12 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
             'X-Letterbox-Envelope-To: '.implode(', ', $recipients)."\r\n".$message->toString(),
         );
         // After append() released the lock: the lock is not re-entrant, pruning takes it again.
-        GeneralUtility::makeInstance(RetentionService::class)->afterAppend($this->settings->mboxFile);
+        try {
+            GeneralUtility::makeInstance(RetentionService::class)->afterAppend($this->settings->mboxFile);
+        } catch (Throwable $exception) {
+            // The mail is stored. Building the service fails where ext_localconf.php did not run, such as the Install Tool.
+            $this->logger->warning('Letterbox could not apply the retention limits: {exception}', ['exception' => $exception::class]);
+        }
         if ($this->settings->isMailboxPublic(Environment::getPublicPath(), Environment::getVarPath())) {
             $this->logger->warning('The Letterbox mailbox is inside the public web path, everyone can download it. Move MAIL/transport_mbox_file out of the web root.');
         }
