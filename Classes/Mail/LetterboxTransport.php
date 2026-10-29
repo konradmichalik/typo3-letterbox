@@ -22,6 +22,8 @@ use RuntimeException;
 use Stringable;
 use Symfony\Component\Mailer\{Envelope, SentMessage};
 use Symfony\Component\Mailer\Transport\AbstractTransport;
+use Symfony\Component\Mime\Address;
+use Throwable;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Log\LogManager;
@@ -87,13 +89,49 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         if ([] !== $delivered) {
             $this->assertDeliverable();
         }
+        if (DeliveryMode::Listed === $this->settings->mode) {
+            // Real recipients come first: their mail never depends on the mailbox.
+            $this->deliver($message, $delivered);
+            $this->storeOrLog($message, $caught);
+
+            return;
+        }
+        // Storing is the purpose of mode all, a failure must reach the sender.
         if ([] !== $caught) {
             $this->store($message, $caught);
         }
-        if ([] !== $delivered) {
-            GeneralUtility::makeInstance(TransportFactory::class)
-                ->get([...TransportTakeover::deliverySettings($this->mailSettings), 'transport' => $this->settings->delivery])
-                ->send($message->getOriginalMessage(), new Envelope($envelope->getSender(), $delivered));
+        $this->deliver($message, $delivered);
+    }
+
+    /**
+     * @param list<Address> $recipients
+     */
+    private function deliver(SentMessage $message, array $recipients): void
+    {
+        if ([] === $recipients) {
+            return;
+        }
+        GeneralUtility::makeInstance(TransportFactory::class)
+            ->get([...TransportTakeover::deliverySettings($this->mailSettings), 'transport' => $this->settings->delivery])
+            ->send($message->getOriginalMessage(), new Envelope($message->getEnvelope()->getSender(), $recipients));
+    }
+
+    /**
+     * @param list<string> $caught
+     */
+    private function storeOrLog(SentMessage $message, array $caught): void
+    {
+        if ([] === $caught) {
+            return;
+        }
+        try {
+            $this->store($message, $caught);
+        } catch (Throwable $exception) {
+            // The message names the mailbox path, never the mail.
+            $this->logger->error('Letterbox could not store a caught mail in mode listed, the other recipients got it: {exception}: {message}', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
         }
     }
 
@@ -111,7 +149,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
     }
 
     /**
-     * @param non-empty-list<string> $caught
+     * @param list<string> $caught
      */
     private function store(SentMessage $message, array $caught): void
     {

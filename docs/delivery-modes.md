@@ -27,11 +27,16 @@ A stage system that runs as `Production/Staging` and should catch everything set
 * Patterns are full addresses (`qa@example.com`) or domain wide (`*@letterbox.invalid`). Matching is case insensitive.
 * An empty catch list catches nothing, so every mail is delivered.
 * The decision is made per recipient from the envelope. A mail to a caught and a real address is stored and delivered, and the delivered copy only goes to the real address. The message headers are not rewritten, so To and Cc still show the caught address.
+* Delivery comes first, then the caught copy is stored. When storing fails (mailbox not writable, missing directory), the real recipients still get the mail, the send does not fail, and TYPO3 logs `Letterbox could not store a caught mail in mode listed` at error level with the exception class and message (the mailbox path, never the mail). Reports does not show this failure, watch the log. When the delivery fails, the exception reaches the sender and nothing is stored.
 * `*@letterbox.invalid` uses the reserved `.invalid` top level domain, which never resolves. Validators that check DNS records reject such addresses, so a form with DNS validation may refuse them. Use a real domain you control in that case.
 
 ## Stored recipients
 
 Every stored mail carries an `X-Letterbox-Envelope-To` header with the caught envelope recipients. It is needed because Bcc recipients are not part of the message headers. The header is only in the mbox file and never reaches a delivered copy.
+
+## Mode `all`
+
+Storing is the purpose of mode `all`, so a mailbox that cannot be written makes the send fail with an exception.
 
 ## Mode `off`
 

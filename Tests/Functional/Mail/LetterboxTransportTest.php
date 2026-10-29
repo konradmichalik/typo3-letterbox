@@ -186,6 +186,42 @@ final class LetterboxTransportTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function listedDeliversEvenWhenStorageFails(): void
+    {
+        $logger = new RecordingLogger();
+        $transport = new LetterboxTransport([
+            'transport_mbox_file' => '/nonexistent-letterbox-dir/mails.mbox',
+            'transport_letterbox_mode' => 'listed',
+            'transport_letterbox_catch' => '*@letterbox.invalid',
+            'transport_letterbox_delivery' => RecordingTransport::class,
+        ], null, $logger);
+
+        $transport->send((new Email())->from('shop@example.org')->to('customer@example.org')->bcc('qa@letterbox.invalid')->subject('Secret subject')->text('Secret body'));
+
+        self::assertSame([['customer@example.org']], RecordingTransport::$recipients, 'the real recipient got the mail');
+        $errors = array_values(array_filter($logger->lines, static fn (string $line): bool => str_starts_with($line, 'error ')));
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(RuntimeException::class, $errors[0]);
+        self::assertStringContainsString('/nonexistent-letterbox-dir/mails.mbox', $errors[0]);
+        self::assertStringNotContainsString('Secret', $errors[0]);
+        self::assertStringNotContainsString('qa@letterbox.invalid', $errors[0]);
+    }
+
+    #[Test]
+    public function allStillThrowsWhenStorageFails(): void
+    {
+        $transport = new LetterboxTransport([
+            'transport_mbox_file' => '/nonexistent-letterbox-dir/mails.mbox',
+            'transport_letterbox_mode' => 'all',
+            'transport_letterbox_delivery' => RecordingTransport::class,
+        ], null, new RecordingLogger());
+
+        $this->expectException(RuntimeException::class);
+
+        $transport->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Hello')->text('Body'));
+    }
+
+    #[Test]
     public function mailWithoutFromIsWritten(): void
     {
         $this->configure(['transport_letterbox_mode' => 'all']);
