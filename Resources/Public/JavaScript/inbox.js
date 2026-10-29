@@ -486,6 +486,16 @@ const bindInbox = (inbox) => {
   });
 };
 
+// The server hands the flash messages of the last redirect over as toasts, shown once per page load.
+const showToasts = async () => {
+  const toasts = window.TYPO3?.settings?.Letterbox?.toasts ?? [];
+  if (toasts.length === 0) {
+    return;
+  }
+  const { default: Notification } = await import('@typo3/backend/notification.js');
+  toasts.forEach(({ severity, title }) => Notification[severity](title));
+};
+
 /**
  * Safe to call again after the page content was replaced, already bound inboxes are skipped.
  */
@@ -494,3 +504,4 @@ export const init = (root = document) => {
 };
 
 init();
+showToasts();

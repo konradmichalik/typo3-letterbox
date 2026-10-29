@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Controller;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Backend\{InactiveScreen, InboxQuery, MailListView, ReadState, RetentionText};
+use KonradMichalik\Typo3Letterbox\Backend\{FlashToasts, InactiveScreen, InboxQuery, MailListView, ReadState, RetentionText};
 use KonradMichalik\Typo3Letterbox\Check\{Finding, MailChecker, Severity, SiteHosts};
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
@@ -88,6 +88,7 @@ final readonly class InboxController
         private MailChecker $mailChecker,
         private SiteHosts $siteHosts,
         private InactiveScreen $inactiveScreen,
+        private FlashToasts $flashToasts,
     ) {}
 
     public function indexAction(ServerRequestInterface $request): ResponseInterface
@@ -235,6 +236,8 @@ final readonly class InboxController
         $this->pageRenderer->loadJavaScriptModule('@typo3/backend/modal.js');
         $this->pageRenderer->loadJavaScriptModule('@typo3/backend/copy-to-clipboard.js');
         $this->pageRenderer->loadJavaScriptModule($this->typo3Version->getMajorVersion() >= 14 ? '@typo3/backend/tab.js' : '@typo3/backend/tabs.js');
+
+        $this->pageRenderer->addInlineSettingArray('Letterbox', ['toasts' => $this->flashToasts->take()]);
 
         $list = $this->listVariables($request, $query);
         $state = $this->inactiveScreen->moduleState((array) ($GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? []), $list['total']);
