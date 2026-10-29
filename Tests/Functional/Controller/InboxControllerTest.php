@@ -21,7 +21,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
-use PHPUnit\Framework\Attributes\{Test};
+use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\{Router, UriBuilder};
@@ -1279,7 +1279,7 @@ final class InboxControllerTest extends FunctionalTestCase
             self::assertMatchesRegularExpression('/data-letterbox-index="[^"]*\/module\/system\/letterbox[?"]/', $body);
             self::assertMatchesRegularExpression('/data-letterbox-show="[^"]*\/module\/system\/letterbox\/show[?"]/', $body);
             self::assertSame(1, substr_count($body, 'data-letterbox-reload'));
-            self::assertSame(1, substr_count($body, 'title="Reload"'));
+            self::assertMatchesRegularExpression('/<a\b[^>]*\bdata-letterbox-reload\b[^>]*\btitle="Reload"|<a\b[^>]*\btitle="Reload"[^>]*\bdata-letterbox-reload\b/', $body);
         }
     }
 
