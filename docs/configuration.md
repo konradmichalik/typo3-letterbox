@@ -21,7 +21,7 @@ When it is on and `MAIL/transport` is not Letterbox yet, `ext_localconf.php` tak
 * Without `transport_letterbox_delivery`, mails that are not caught are delivered through the original transport and DSN (see [delivery modes](delivery-modes.md#delivery-after-a-takeover)). The loop detection applies to it as to any delivery.
 * Without `transport_mbox_file`, mails go to `var/letterbox/mails.mbox` below the TYPO3 var path. The directory is created with the first mail.
 * Other `transport_letterbox_*` keys from `additional.php` (mode, catch list, delivery, release, mbox file) are used as set.
-* In the root context `Production` the default mode stays `listed`. With an empty catch list every mail is still delivered through the original transport, so turning the switch on there catches nothing until you add addresses.
+* In every `Production` context, root or sub, the default mode stays `listed`. With an empty catch list every mail is still delivered through the original transport, so turning the switch on there catches nothing until you add addresses.
 * Reports and the toolbar dropdown say "Letterbox took over the mail transport" with the source (extension setting or `LETTERBOX_ENABLE`) and the original transport as type, or DSN scheme, host and port. User, password and query of the DSN are never shown or logged.
 
 When it is off, nothing changes. An explicit configuration in `additional.php` keeps working: the switch cannot turn that off. Remove the lines from `additional.php` instead.
@@ -50,7 +50,7 @@ The `transport_letterbox_*` keys cannot be set with `configuration:set` or in th
 | Key | Required | Meaning |
 |-----|----------|---------|
 | `transport_mbox_file` | Always, also in mode `off` | Path of the mbox file. It must be writable and not match the file deny pattern. Keep it outside the web root (`Environment::getPublicPath()`), for example `/var/www/mbox/mails.mbox`: inside it, everyone can download every caught mail, and the temporary copy retention writes next to it as well. Reports shows an error and the transport logs a warning for every caught mail while the file is there. The TYPO3 var path counts as outside, because TYPO3 denies access to it in classic mode. |
-| `transport_letterbox_mode` | No | `all`, `listed` or `off`. Default: `listed` in the exact root context `Production`, `all` otherwise (`Production/Staging` and `Production/Live` get `all`, Reports warns about it, see [delivery modes](delivery-modes.md#default-per-context)). |
+| `transport_letterbox_mode` | No | `all`, `listed` or `off`. Default: `listed` in every `Production` context (root, `Production/Staging`, `Production/Live`), `all` otherwise, see [delivery modes](delivery-modes.md#default-per-context). |
 | `transport_letterbox_catch` | In mode `listed` | Array or comma separated string of addresses and `*@domain` patterns. |
 | `transport_letterbox_delivery` | When mails are delivered | Transport for non-caught recipients, for example `smtp`. It must not be the Letterbox transport. Its own `transport_*` settings are used as usual. A delivery that hands mails back to Letterbox (`mbox`, or `sendmail` running `letterbox:receive`, see [the detected loops](backend-module.md#release)) is refused: in modes `listed` and `off` every send that has a recipient to deliver throws, and Reports shows an error. |
 | `transport_letterbox_release` | To release mails | Array or comma separated string of addresses and `*@domain` patterns that a caught mail may be [released](#release) to. Empty or unset switches release off. |

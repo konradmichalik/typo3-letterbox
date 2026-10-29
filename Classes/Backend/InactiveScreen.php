@@ -73,14 +73,12 @@ final readonly class InactiveScreen
      */
     private function variables(array $mail): array
     {
-        $context = (string) Environment::getContext();
-
         return [
             'transport' => TransportSummary::of($mail),
             'setting' => TransportTakeover::BY_SETTING === TransportTakeover::source('', $this->extensionSettings->raw('enable')),
             'environment' => $this->environment->get(TransportTakeover::ENVIRONMENT_VARIABLE),
-            'context' => $context,
-            'defaultMode' => LetterboxSettings::defaultMode($context)->value,
+            'context' => (string) Environment::getContext(),
+            'defaultMode' => LetterboxSettings::defaultMode(Environment::getContext())->value,
             'settingsUrl' => $this->settingsUrl(),
             'settingsGroup' => $this->typo3Version->getMajorVersion() >= 14 ? 'system' : 'tools',
             'snippet' => self::SNIPPET,

@@ -14,13 +14,13 @@ After a [takeover](configuration.md#switch), delivery defaults to the original t
 
 ## Delivery after a takeover
 
-When the [switch](configuration.md#switch) took over the transport and `transport_letterbox_delivery` is not set, mails that are not caught are delivered through the original `MAIL/transport` and `MAIL/dsn`, as without Letterbox. A configured `transport_letterbox_delivery` wins and is built with the original DSN as well. In the root context `Production` the default mode `listed` with an empty catch list delivers every mail this way.
+When the [switch](configuration.md#switch) took over the transport and `transport_letterbox_delivery` is not set, mails that are not caught are delivered through the original `MAIL/transport` and `MAIL/dsn`, as without Letterbox. A configured `transport_letterbox_delivery` wins and is built with the original DSN as well. In a `Production` context the default mode `listed` with an empty catch list delivers every mail this way.
 
 ## Default per context
 
-Without `transport_letterbox_mode`, the mode is `listed` in the exact root context `Production` and `all` in every other context. `Production/Staging` is not `Production` and therefore gets `all`, and so does `Production/Live`.
+Without `transport_letterbox_mode`, the mode is `listed` in every `Production` context, root or sub (`Production/Staging`, `Production/Live`), and `all` in every other context such as `Development` or `Testing`. A live system may well run in a sub context, so it never catches by default.
 
-Because a live system may run in a sub context, Reports shows a warning for mode `all` in every Production context, root or sub. On a stage system the warning is expected. On a live system in a sub context, set `transport_letterbox_mode` to `listed` or `off` explicitly.
+A stage system that runs as `Production/Staging` and should catch everything sets `transport_letterbox_mode` to `all` explicitly. Reports then shows a warning for mode `all` in a Production context, which is expected there.
 
 ## Mode `listed`
 

@@ -213,7 +213,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
     private function settings(array $mail): ?LetterboxSettings
     {
         try {
-            return LetterboxSettings::fromMailSettings($mail, (string) Environment::getContext());
+            return LetterboxSettings::fromMailSettings($mail, Environment::getContext());
         } catch (InvalidArgumentException) {
             return null;
         }

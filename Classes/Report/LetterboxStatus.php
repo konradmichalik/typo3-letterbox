@@ -20,7 +20,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\ExternalAccessGuard;
 use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern, ReleaseSettings, RetentionSettings, TransportSummary, TransportTakeover};
-use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -42,7 +42,6 @@ use function sprintf;
 final readonly class LetterboxStatus implements StatusProviderInterface
 {
     private const LANGUAGE_FILE = 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:';
-    private const ROOT_PRODUCTION = 'Production';
 
     public function __construct(
         private MailRepository $mailRepository,
@@ -67,7 +66,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         }
 
         $statuses = ['transport' => $this->transport($mail)];
-        $context = (string) Environment::getContext();
+        $context = Environment::getContext();
         try {
             $settings = LetterboxSettings::fromMailSettings($mail, $context);
         } catch (InvalidArgumentException) {
@@ -112,7 +111,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         );
     }
 
-    private function mode(LetterboxSettings $settings, string $context): Status
+    private function mode(LetterboxSettings $settings, ApplicationContext $context): Status
     {
         $title = $this->translate('status.mode.title');
         $count = count($settings->catch);
@@ -134,15 +133,13 @@ final readonly class LetterboxStatus implements StatusProviderInterface
     /**
      * Any Production context warns, a live system may well run as Production/Live and would swallow every mail.
      */
-    private function modeAll(string $title, string $context): Status
+    private function modeAll(string $title, ApplicationContext $context): Status
     {
         $value = $this->translate('status.mode.all');
 
-        return match (true) {
-            self::ROOT_PRODUCTION === $context => new Status($title, $value, $this->escape($this->translate('status.mode.allWarning')), ContextualFeedbackSeverity::WARNING),
-            Environment::getContext()->isProduction() => new Status($title, $value, sprintf($this->escape($this->translate('status.mode.allWarningSubContext')), $this->escape($context)), ContextualFeedbackSeverity::WARNING),
-            default => new Status($title, $value, $this->escape($this->translate('status.mode.allMessage'))),
-        };
+        return $context->isProduction()
+            ? new Status($title, $value, sprintf($this->escape($this->translate('status.mode.allWarning')), $this->escape((string) $context)), ContextualFeedbackSeverity::WARNING)
+            : new Status($title, $value, $this->escape($this->translate('status.mode.allMessage')));
     }
 
     /**

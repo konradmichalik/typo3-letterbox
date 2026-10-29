@@ -17,6 +17,7 @@ use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport};
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use PHPUnit\Framework\TestCase;
+use TYPO3\CMS\Core\Core\ApplicationContext;
 
 /**
  * LetterboxSettingsTest.
@@ -26,13 +27,23 @@ use PHPUnit\Framework\TestCase;
 final class LetterboxSettingsTest extends TestCase
 {
     #[Test]
-    public function defaultsToListedOnlyInRootProduction(): void
+    public function defaultsToListedInRootProduction(): void
     {
         $mail = ['transport_mbox_file' => '/tmp/m.mbox'];
 
-        self::assertSame(DeliveryMode::Listed, LetterboxSettings::fromMailSettings($mail, 'Production')->mode);
-        self::assertSame(DeliveryMode::All, LetterboxSettings::fromMailSettings($mail, 'Production/Staging')->mode);
-        self::assertSame(DeliveryMode::All, LetterboxSettings::fromMailSettings($mail, 'Development')->mode);
+        self::assertSame(DeliveryMode::Listed, LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Production'))->mode);
+        self::assertSame(DeliveryMode::All, LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Development'))->mode);
+        self::assertSame(DeliveryMode::All, LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Testing'))->mode);
+    }
+
+    #[Test]
+    public function productionSubcontextDefaultsToListed(): void
+    {
+        $mail = ['transport_mbox_file' => '/tmp/m.mbox'];
+
+        self::assertSame(DeliveryMode::Listed, LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Production/Staging'))->mode);
+        self::assertSame(DeliveryMode::Listed, LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Production/Live'))->mode);
+        self::assertSame(DeliveryMode::All, LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Development/Production'))->mode);
     }
 
     #[Test]
@@ -40,7 +51,7 @@ final class LetterboxSettingsTest extends TestCase
     {
         $mail = ['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_mode' => 'off'];
 
-        self::assertSame(DeliveryMode::Off, LetterboxSettings::fromMailSettings($mail, 'Production')->mode);
+        self::assertSame(DeliveryMode::Off, LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Production'))->mode);
     }
 
     #[Test]
@@ -48,7 +59,7 @@ final class LetterboxSettingsTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        LetterboxSettings::fromMailSettings(['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_mode' => 'bogus'], 'Development');
+        LetterboxSettings::fromMailSettings(['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_mode' => 'bogus'], new ApplicationContext('Development'));
     }
 
     #[Test]
@@ -56,7 +67,7 @@ final class LetterboxSettingsTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        LetterboxSettings::fromMailSettings(['transport_mbox_file' => '/var/www/html/public/x.php'], 'Development');
+        LetterboxSettings::fromMailSettings(['transport_mbox_file' => '/var/www/html/public/x.php'], new ApplicationContext('Development'));
     }
 
     #[Test]
@@ -67,7 +78,7 @@ final class LetterboxSettingsTest extends TestCase
         LetterboxSettings::fromMailSettings([
             'transport_mbox_file' => '/tmp/m.mbox',
             'transport_letterbox_delivery' => LetterboxTransport::class,
-        ], 'Development');
+        ], new ApplicationContext('Development'));
     }
 
     #[Test]
@@ -79,7 +90,7 @@ final class LetterboxSettingsTest extends TestCase
         LetterboxSettings::fromMailSettings([
             'transport_mbox_file' => '/tmp/m.mbox',
             'transport_letterbox_delivery' => $delivery,
-        ], 'Development');
+        ], new ApplicationContext('Development'));
     }
 
     /**
@@ -100,7 +111,7 @@ final class LetterboxSettingsTest extends TestCase
         $settings = LetterboxSettings::fromMailSettings([
             'transport_mbox_file' => '/tmp/m.mbox',
             'transport_letterbox_catch' => 'qa@x.de, *@letterbox.invalid',
-        ], 'Development');
+        ], new ApplicationContext('Development'));
 
         self::assertCount(2, $settings->catch);
         self::assertTrue($settings->catch[1]->matches('anyone@letterbox.invalid'));
@@ -112,7 +123,7 @@ final class LetterboxSettingsTest extends TestCase
         $settings = LetterboxSettings::fromMailSettings([
             'transport_mbox_file' => '/tmp/m.mbox',
             'transport_letterbox_catch' => ['qa@x.de'],
-        ], 'Development');
+        ], new ApplicationContext('Development'));
 
         self::assertCount(1, $settings->catch);
     }
@@ -123,7 +134,7 @@ final class LetterboxSettingsTest extends TestCase
     {
         $mail = ['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_delivery' => $delivery, 'transport_sendmail_command' => $command];
 
-        self::assertTrue(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/sbin/sendmail -t -i')->deliveryLoops);
+        self::assertTrue(LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Development'), '/usr/sbin/sendmail -t -i')->deliveryLoops);
     }
 
     /**
@@ -143,8 +154,8 @@ final class LetterboxSettingsTest extends TestCase
     {
         $mail = ['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_delivery' => 'sendmail'];
 
-        self::assertTrue(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/bin/php vendor/bin/typo3 letterbox:receive -t -i')->deliveryLoops);
-        self::assertFalse(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/sbin/sendmail -t -i')->deliveryLoops);
+        self::assertTrue(LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Development'), '/usr/bin/php vendor/bin/typo3 letterbox:receive -t -i')->deliveryLoops);
+        self::assertFalse(LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Development'), '/usr/sbin/sendmail -t -i')->deliveryLoops);
     }
 
     #[Test]
@@ -153,14 +164,14 @@ final class LetterboxSettingsTest extends TestCase
         foreach (['', 'smtp', 'sendmail'] as $delivery) {
             $mail = ['transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_delivery' => $delivery, 'transport_smtp_server' => 'localhost:1025'];
 
-            self::assertFalse(LetterboxSettings::fromMailSettings($mail, 'Development', '/usr/sbin/sendmail -t -i')->deliveryLoops, $delivery);
+            self::assertFalse(LetterboxSettings::fromMailSettings($mail, new ApplicationContext('Development'), '/usr/sbin/sendmail -t -i')->deliveryLoops, $delivery);
         }
     }
 
     #[Test]
     public function knowsWhenTheMailboxIsInsideThePublicPath(): void
     {
-        $settings = static fn (string $file): LetterboxSettings => LetterboxSettings::fromMailSettings(['transport_mbox_file' => $file], 'Development');
+        $settings = static fn (string $file): LetterboxSettings => LetterboxSettings::fromMailSettings(['transport_mbox_file' => $file], new ApplicationContext('Development'));
 
         self::assertTrue($settings('/srv/site/public/mails.mbox')->isMailboxPublic('/srv/site/public', '/srv/site/var'));
         self::assertTrue($settings('/srv/site/public/fileadmin/../mails.mbox')->isMailboxPublic('/srv/site/public/', '/srv/site/var'));

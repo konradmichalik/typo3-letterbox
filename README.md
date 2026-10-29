@@ -75,7 +75,7 @@ $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mail
 > [!WARNING]
 > If `MAIL/dsn` is not empty, TYPO3 core ignores `MAIL/transport` and sends live through the DSN. Letterbox is bypassed. Keep `dsn` empty. The switch clears it for you.
 
-Then open System › Letterbox as an administrator. Outside the exact root context `Production` all mails are caught. In `Production` the default mode is `listed`: with an empty catch list every mail is still delivered.
+Then open System › Letterbox as an administrator. Outside a `Production` context all mails are caught. In `Production` and every sub context such as `Production/Staging` the default mode is `listed`: with an empty catch list every mail is still delivered.
 
 ## 📚 Documentation
 

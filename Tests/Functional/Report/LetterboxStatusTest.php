@@ -127,13 +127,24 @@ final class LetterboxStatusTest extends FunctionalTestCase
     public function allModeInProductionSubContextWarns(): void
     {
         $this->useContext('Production/Live');
+        $this->useMailSettings(['transport_letterbox_mode' => 'all']);
+
+        $status = $this->provider()->getStatus()['mode'];
+
+        self::assertSame(ContextualFeedbackSeverity::WARNING, $status->getSeverity());
+        self::assertStringContainsString('Production/Live', $status->getMessage());
+    }
+
+    #[Test]
+    public function productionSubcontextDefaultsToListed(): void
+    {
+        $this->useContext('Production/Staging');
         $this->useMailSettings([]);
 
         $status = $this->provider()->getStatus()['mode'];
 
-        self::assertSame(ContextualFeedbackSeverity::WARNING, $status->getSeverity(), 'the default mode all applies in every sub context');
-        self::assertStringContainsString('Production/Live', $status->getMessage());
-        self::assertStringContainsString('only the root context Production defaults to listed', $status->getMessage());
+        self::assertSame(ContextualFeedbackSeverity::INFO, $status->getSeverity());
+        self::assertSame('Listed, 0 addresses', $status->getValue());
     }
 
     #[Test]

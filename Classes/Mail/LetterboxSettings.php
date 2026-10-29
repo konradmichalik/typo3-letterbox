@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Mail;
 
 use InvalidArgumentException;
+use TYPO3\CMS\Core\Core\ApplicationContext;
 use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 
 use function dirname;
@@ -42,7 +43,7 @@ final readonly class LetterboxSettings
      * @param array<string, mixed> $mail         the MAIL section of TYPO3_CONF_VARS
      * @param string|null          $sendmailPath the php.ini sendmail_path, read from the runtime when null
      */
-    public static function fromMailSettings(array $mail, string $context, ?string $sendmailPath = null): self
+    public static function fromMailSettings(array $mail, ApplicationContext $context, ?string $sendmailPath = null): self
     {
         $mboxFile = (string) ($mail['transport_mbox_file'] ?? '');
         if (!(new FileNameValidator())->isValid($mboxFile)) {
@@ -74,9 +75,12 @@ final readonly class LetterboxSettings
         return self::isInside($directory, self::normalize($publicPath)) && !self::isInside($directory, self::normalize($varPath));
     }
 
-    public static function defaultMode(string $context): DeliveryMode
+    /**
+     * Every Production context, root or sub, defaults to listed: a live system may well run as Production/Live.
+     */
+    public static function defaultMode(ApplicationContext $context): DeliveryMode
     {
-        return 'Production' === $context ? DeliveryMode::Listed : DeliveryMode::All;
+        return $context->isProduction() ? DeliveryMode::Listed : DeliveryMode::All;
     }
 
     private static function isInside(string $path, string $directory): bool
@@ -105,7 +109,7 @@ final readonly class LetterboxSettings
         return '/'.implode('/', $parts);
     }
 
-    private static function resolveMode(mixed $value, string $context): DeliveryMode
+    private static function resolveMode(mixed $value, ApplicationContext $context): DeliveryMode
     {
         if (null === $value || '' === $value) {
             return self::defaultMode($context);

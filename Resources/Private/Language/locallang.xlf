@@ -700,10 +700,7 @@
 				<source>All mails are caught</source>
 			</trans-unit>
 			<trans-unit id="status.mode.allWarning" resname="status.mode.allWarning">
-				<source>Every mail is caught and none is delivered, although the context is Production. Set the mode to listed or switch the transport before go-live.</source>
-			</trans-unit>
-			<trans-unit id="status.mode.allWarningSubContext" resname="status.mode.allWarningSubContext">
-				<source>Every mail is caught and none is delivered, and %s is a Production context. Without transport_letterbox_mode, only the root context Production defaults to listed, every sub context gets all. That is right for a stage system. On a live system set the mode to listed or off.</source>
+				<source>Every mail is caught and none is delivered, although %s is a Production context. Mode all is set explicitly here, which is right for a stage system. On a live system set the mode to listed or off, or switch the transport.</source>
 			</trans-unit>
 			<trans-unit id="status.mode.allMessage" resname="status.mode.allMessage">
 				<source>Every mail is caught and not delivered.</source>

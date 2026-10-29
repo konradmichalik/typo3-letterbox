@@ -52,7 +52,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         $this->logger = $logger ?? GeneralUtility::makeInstance(LogManager::class)->getLogger(self::class);
         parent::__construct($dispatcher, $this->logger);
 
-        $this->settings = LetterboxSettings::fromMailSettings($mailSettings, (string) Environment::getContext());
+        $this->settings = LetterboxSettings::fromMailSettings($mailSettings, Environment::getContext());
         if ('' === $this->settings->mboxFile) {
             throw new InvalidArgumentException('MAIL/transport_mbox_file must be set when using the Letterbox transport.', 1761561613);
         }
