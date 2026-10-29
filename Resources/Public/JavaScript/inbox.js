@@ -79,6 +79,24 @@ const fetchFragment = async (url, name, signal) => {
  * Core tabs bind on page load only: v14 tab.js delegates clicks and keys but migrates and wraps tab bars on load,
  * v13 Bootstrap delegates clicks but binds arrow keys to the active tab.
  */
+const MIN_PREVIEW_HEIGHT = 320;
+const PREVIEW_MARGIN = 32;
+const WIDE = window.matchMedia('(min-width: 992px)');
+
+/**
+ * The sandboxed preview cannot report the height of its mail, so it fills the space left below its own top
+ * edge. The mail then scrolls once inside the frame and the page itself does not scroll.
+ */
+const fitPreview = (root) => {
+  const frame = root.querySelector('.letterbox-preview');
+  if (frame === null) {
+    return;
+  }
+  const top = frame.getBoundingClientRect().top;
+  // Hidden in another tab, there is nothing to measure.
+  frame.style.height = !WIDE.matches || top <= 0 ? '' : `${Math.max(MIN_PREVIEW_HEIGHT, Math.floor(window.innerHeight - top - PREVIEW_MARGIN))}px`;
+};
+
 const initTabs = async (root) => {
   if (customElements.get('typo3-backend-tab-scroller') !== undefined) {
     const { Tab } = await import('@typo3/backend/tab.js');
@@ -294,6 +312,7 @@ const swapDetail = (inbox, node, url) => {
     return false;
   }
   initTabs(node).catch(() => window.location.assign(url.href));
+  fitPreview(node);
   markOpened(inbox, id);
   // Width, remote images and the headers link keep the mail, their control keeps focus where it still exists.
   if (memory !== null && previousId === id) {
@@ -453,6 +472,9 @@ const bindInbox = (inbox) => {
   inbox.dataset[BOUND] = '1';
   revealToggles(inbox);
   revealSelectedRow(inbox);
+  fitPreview(inbox);
+  window.addEventListener('resize', () => fitPreview(inbox));
+  inbox.addEventListener('shown.bs.tab', () => fitPreview(inbox));
 
   const navigate = createNavigator(inbox);
   let searchTimer = 0;

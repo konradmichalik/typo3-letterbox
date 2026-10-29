@@ -117,6 +117,7 @@
 .letterbox-list .letterbox-row {
   display: grid;
   gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
   padding: 14px 18px;
 }
 
@@ -280,6 +281,11 @@
   .letterbox-listcol {
     height: calc(100vh - 12.5rem);
     min-height: 20rem;
+  }
+
+  /* inbox.js sizes the preview to the free height, 320px is the floor it measures with. */
+  .letterbox-preview {
+    min-height: 320px;
   }
 
   /* Two classes, so the rule wins over core's .card margin, which loads after this stylesheet. */
