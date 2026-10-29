@@ -19,6 +19,7 @@ use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use KonradMichalik\Typo3Letterbox\Controller\{InboxController, ReleaseController};
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
+use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Tests\Functional\Mail\Fixtures\RecordingTransport;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
@@ -56,6 +57,10 @@ final class InboxControllerTest extends FunctionalTestCase
         'typo3_letterbox',
     ];
 
+    protected array $coreExtensionsToLoad = [
+        'install',
+    ];
+
     private string $path = '';
 
     private BackendUserAuthentication $backendUser;
@@ -69,6 +74,8 @@ final class InboxControllerTest extends FunctionalTestCase
         if (is_file($this->path)) {
             unlink($this->path);
         }
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = LetterboxTransport::class;
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['dsn'] = '';
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = $this->path;
         $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();
 
@@ -165,6 +172,80 @@ final class InboxControllerTest extends FunctionalTestCase
         $readme = (string) file_get_contents(__DIR__.'/../../../README.md');
         self::assertSame(1, preg_match('/```php\n(\$GLOBALS\[\'TYPO3_CONF_VARS\'\]\[\'MAIL\'\]\[\'dsn\'\].*?)\n```/s', $readme, $quickStart), 'README quick start');
         self::assertStringContainsString($quickStart[1] ?? 'missing', $body, 'the hint matches the README quick start, MAIL/dsn included');
+    }
+
+    #[Test]
+    public function inactiveScreenNamesTheTransportWithoutCredentials(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = ['transport' => 'dsn', 'dsn' => 'smtp://mailuser:hunter2@mail.example.org:587?token=abc', 'transport_mbox_file' => ''];
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['enable'] = '0';
+
+        $response = $this->controller()->indexAction($this->request('system_letterbox'));
+
+        self::assertSame(200, $response->getStatusCode());
+        $body = (string) $response->getBody();
+        self::assertStringContainsString('Mail inbox · not active', $body);
+        self::assertMatchesRegularExpression('/<h2 id="letterbox-inactive-title">Letterbox is not catching mails<\/h2>/', $body);
+        self::assertStringContainsString('<strong>SMTP (mail.example.org:587)</strong>', $body);
+        self::assertMatchesRegularExpression('/<svg class="letterbox-illu letterbox-illu--muted" [^>]*width="180"/', $body);
+        self::assertMatchesRegularExpression('/<h3[^>]*>Turn on Letterbox<\/h3>/', $body);
+        self::assertMatchesRegularExpression('/<a class="btn btn-primary" href="[^"]*\/module\/(tools|system)\/settings[^"]*">/', $body);
+        self::assertStringContainsString('Open extension configuration</a>', $body);
+        self::assertStringContainsString('Settings › Extension Configuration › typo3_letterbox', $body);
+        self::assertStringContainsString('LETTERBOX_ENABLE=1 or 0 overrides the setting on one system', $body);
+        self::assertMatchesRegularExpression('/<dt[^>]*>Extension setting<\/dt>\s*<dd[^>]*>Off<\/dd>/', $body);
+        self::assertStringContainsString('<summary>Configure it in additional.php instead</summary>', $body);
+        self::assertStringContainsString('<typo3-copy-to-clipboard', $body);
+        self::assertStringContainsString('Clear the TYPO3 caches after changing the configuration.', $body);
+        self::assertStringNotContainsString('hunter2', $body);
+        self::assertStringNotContainsString('mailuser', $body);
+        self::assertStringNotContainsString('token=abc', $body);
+        self::assertStringNotContainsString('letterbox-clear-all', $body);
+        self::assertStringNotContainsString('from an earlier setup', $body);
+        $readme = (string) file_get_contents(__DIR__.'/../../../README.md');
+        self::assertSame(1, preg_match('/```php\n(\$GLOBALS\[\'TYPO3_CONF_VARS\'\]\[\'MAIL\'\]\[\'dsn\'\].*?)\n```/s', $readme, $alternative), 'README alternative');
+        self::assertStringContainsString(htmlspecialchars($alternative[1] ?? 'missing', \ENT_QUOTES), $body, 'the snippet matches the README alternative');
+    }
+
+    #[Test]
+    public function inactiveScreenNamesTheContextDefault(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = ['transport' => 'smtp', 'transport_smtp_server' => 'mail.example.org:25', 'transport_mbox_file' => ''];
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertStringContainsString('<strong>SMTP (mail.example.org:25)</strong>', $body);
+        self::assertMatchesRegularExpression('/<dt[^>]*>Context<\/dt>\s*<dd[^>]*>Testing: the default mode all catches every mail\.<\/dd>/', $body);
+    }
+
+    #[Test]
+    public function inactiveScreenOffersMailsOfAnEarlierSetupReadOnly(): void
+    {
+        $this->append('Old one');
+        $this->append('Old two');
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = 'smtp';
+
+        $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
+
+        self::assertStringContainsString('The mailbox still holds 2 mails from an earlier setup.', $body);
+        self::assertMatchesRegularExpression('/<a href="[^"]*browse=1[^"]*">Show them<\/a>/', $body);
+        self::assertStringNotContainsString('Old one', $body);
+        self::assertStringNotContainsString('letterbox-clear-all', $body);
+
+        $list = (string) $this->controller()->indexAction($this->request('system_letterbox', ['browse' => '1']))->getBody();
+
+        self::assertStringContainsString('Old one', $list);
+        self::assertStringContainsString('not active', $list);
+        self::assertStringNotContainsString('letterbox-clear-all', $list);
+        self::assertMatchesRegularExpression('/<a href="[^"]*browse=1[^"]*" class="letterbox-row/', $list, 'mail links keep browsing the old file');
+    }
+
+    #[Test]
+    public function activeTransportOffersClearAll(): void
+    {
+        $this->append('Current');
+
+        self::assertStringContainsString('letterbox-clear-all', (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody());
     }
 
     #[Test]

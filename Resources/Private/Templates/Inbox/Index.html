@@ -10,41 +10,103 @@
     <main>
         <f:render partial="InboxMeta" arguments="{_all}" />
 
-        <f:if condition="{configured} && {total} > 0">
+        <f:if condition="{active} || {browse}">
             <f:then>
-                <div class="letterbox-inbox{f:if(condition: listCollapsed, then: ' letterbox-inbox--collapsed')}" data-letterbox-index="{f:be.uri(route: 'system_letterbox')}" data-letterbox-show="{f:be.uri(route: 'system_letterbox.show')}">
-                    <f:render partial="InboxStatus" />
-                    <f:render partial="MailList" arguments="{_all}" />
-                    <f:render partial="MailPlaceholder" />
-                </div>
-            </f:then>
-            <f:else>
-                <f:if condition="{configured}">
+                <f:if condition="{configured} && {total} > 0">
                     <f:then>
-                        <f:render section="NoMails" arguments="{_all}" />
+                        <div class="letterbox-inbox{f:if(condition: listCollapsed, then: ' letterbox-inbox--collapsed')}" data-letterbox-index="{f:be.uri(route: 'system_letterbox')}" data-letterbox-show="{f:be.uri(route: 'system_letterbox.show')}">
+                            <f:render partial="InboxStatus" />
+                            <f:render partial="MailList" arguments="{_all}" />
+                            <f:render partial="MailPlaceholder" />
+                        </div>
                     </f:then>
                     <f:else>
-                        <div class="callout callout-info">
-                            <div class="callout-icon" aria-hidden="true">
-                                <span class="icon-emphasized">
-                                    <core:icon identifier="actions-envelope" />
-                                </span>
-                            </div>
-                            <div class="callout-content">
-                                <div class="callout-title"><f:translate key="inbox.empty.notConfigured" extensionName="Typo3Letterbox" /></div>
-                                <div class="callout-body">
-                                    <p><f:translate key="inbox.empty.howto" extensionName="Typo3Letterbox" /></p>
-                                    <pre class="mb-0"><code>$GLOBALS['TYPO3_CONF_VARS']['MAIL']['dsn'] = '';
+                        <f:if condition="{configured}">
+                            <f:then>
+                                <f:render section="NoMails" arguments="{_all}" />
+                            </f:then>
+                            <f:else>
+                                <div class="callout callout-info">
+                                    <div class="callout-icon" aria-hidden="true">
+                                        <span class="icon-emphasized">
+                                            <core:icon identifier="actions-envelope" />
+                                        </span>
+                                    </div>
+                                    <div class="callout-content">
+                                        <div class="callout-title"><f:translate key="inbox.empty.notConfigured" extensionName="Typo3Letterbox" /></div>
+                                        <div class="callout-body">
+                                            <p><f:translate key="inbox.empty.howto" extensionName="Typo3Letterbox" /></p>
+                                            <pre class="mb-0"><code>$GLOBALS['TYPO3_CONF_VARS']['MAIL']['dsn'] = '';
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = \KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport::class;
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mails.mbox';</code></pre>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            </f:else>
+                        </f:if>
                     </f:else>
                 </f:if>
+            </f:then>
+            <f:else>
+                <f:render section="Inactive" arguments="{_all}" />
             </f:else>
         </f:if>
     </main>
+</f:section>
+
+<f:section name="Inactive">
+    <section class="letterbox-inactive" aria-labelledby="letterbox-inactive-title">
+        <div class="letterbox-empty text-center">
+            <f:render partial="EmptyIllustration" arguments="{width: 180, class: 'letterbox-illu--muted'}" />
+            <h2 id="letterbox-inactive-title"><f:translate key="inbox.inactive.title" extensionName="Typo3Letterbox" /></h2>
+            <p><f:translate key="inbox.inactive.sentenceBefore" extensionName="Typo3Letterbox" /> <strong>{inactive.transport}</strong>. <f:translate key="inbox.inactive.sentenceAfter" extensionName="Typo3Letterbox" /></p>
+        </div>
+        <div class="card letterbox-inactive-card" role="region" aria-labelledby="letterbox-turn-on-title">
+            <div class="card-header">
+                <div class="card-icon" aria-hidden="true"><core:icon identifier="actions-toggle-on" size="medium" /></div>
+                <div class="card-header-body">
+                    <h3 class="card-title" id="letterbox-turn-on-title"><f:translate key="inbox.inactive.turnOn.title" extensionName="Typo3Letterbox" /></h3>
+                </div>
+            </div>
+            <div class="card-body">
+                <p><f:translate key="inbox.inactive.turnOn.text" extensionName="Typo3Letterbox" /></p>
+                <p class="d-flex flex-wrap align-items-center gap-2">
+                    <f:if condition="{inactive.settingsUrl}">
+                        <a class="btn btn-primary" href="{inactive.settingsUrl}"><span aria-hidden="true"><core:icon identifier="actions-cog" /></span> <f:translate key="inbox.inactive.openSettings" extensionName="Typo3Letterbox" /></a>
+                    </f:if>
+                    <span class="text-variant"><f:translate key="inbox.inactive.settingsPath" extensionName="Typo3Letterbox" arguments="{0: '{f:translate(key: \'inbox.inactive.group.{inactive.settingsGroup}\', extensionName: \'Typo3Letterbox\')}'}" /></span>
+                </p>
+                <dl class="row letterbox-inactive-facts">
+                    <dt class="col-sm-3 text-variant fw-normal"><f:translate key="inbox.inactive.currentTransport" extensionName="Typo3Letterbox" /></dt>
+                    <dd class="col-sm-9">{inactive.transport}</dd>
+                    <dt class="col-sm-3 text-variant fw-normal"><f:translate key="inbox.inactive.setting" extensionName="Typo3Letterbox" /></dt>
+                    <dd class="col-sm-9"><f:translate key="{f:if(condition: inactive.setting, then: 'inbox.inactive.on', else: 'inbox.inactive.off')}" extensionName="Typo3Letterbox" /></dd>
+                    <dt class="col-sm-3 text-variant fw-normal"><f:translate key="inbox.inactive.perSystem" extensionName="Typo3Letterbox" /></dt>
+                    <dd class="col-sm-9"><f:translate key="inbox.inactive.perSystemText" extensionName="Typo3Letterbox" /><f:if condition="{inactive.environment}"> <f:translate key="inbox.inactive.perSystemCurrent" extensionName="Typo3Letterbox" arguments="{0: inactive.environment}" /></f:if></dd>
+                    <dt class="col-sm-3 text-variant fw-normal"><f:translate key="inbox.inactive.context" extensionName="Typo3Letterbox" /></dt>
+                    <dd class="col-sm-9 mb-0"><f:translate key="inbox.inactive.context.{inactive.defaultMode}" extensionName="Typo3Letterbox" arguments="{0: inactive.context}" /></dd>
+                </dl>
+                <details class="letterbox-inactive-details">
+                    <summary><f:translate key="inbox.inactive.additional" extensionName="Typo3Letterbox" /></summary>
+                    <pre class="letterbox-code mt-2"><code>{inactive.snippet}</code></pre>
+                    <typo3-copy-to-clipboard class="btn btn-sm btn-default" text="{inactive.snippet}">
+                        <span aria-hidden="true"><core:icon identifier="actions-clipboard" /></span>
+                        <f:translate key="inbox.inactive.copy" extensionName="Typo3Letterbox" />
+                    </typo3-copy-to-clipboard>
+                </details>
+                <p class="text-variant mt-3 mb-0"><f:translate key="inbox.inactive.cacheHint" extensionName="Typo3Letterbox" /></p>
+            </div>
+        </div>
+        <f:if condition="{configured} && {total} > 0">
+            <p class="letterbox-inactive-old text-center">
+                <f:if condition="{total} == 1">
+                    <f:then><f:translate key="inbox.inactive.oldMails.one" extensionName="Typo3Letterbox" /></f:then>
+                    <f:else><f:translate key="inbox.inactive.oldMails.other" extensionName="Typo3Letterbox" arguments="{0: total}" /></f:else>
+                </f:if>
+                <a href="{f:be.uri(route: 'system_letterbox', parameters: {browse: 1})}"><f:translate key="inbox.inactive.showOld" extensionName="Typo3Letterbox" /></a>
+            </p>
+        </f:if>
+    </section>
 </f:section>
 
 <f:section name="NoMails">

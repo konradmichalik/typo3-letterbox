@@ -46,6 +46,7 @@ final readonly class InboxQuery
         public string $width,
         public string $view,
         public bool $remote,
+        public bool $browse = false,
     ) {}
 
     public static function fromRequest(ServerRequestInterface $request): self
@@ -62,6 +63,7 @@ final readonly class InboxQuery
             in_array($value('width'), self::WIDTHS, true) ? $value('width') : self::DEFAULT_WIDTH,
             in_array($value('view'), self::VIEWS, true) ? $value('view') : self::DEFAULT_VIEW,
             '1' === $value('remote'),
+            '1' === $value('browse'),
         );
     }
 
@@ -89,6 +91,8 @@ final readonly class InboxQuery
             'id' => $this->id ?? '',
             'tab' => $this->tab ?? '',
             'width' => self::DEFAULT_WIDTH === $this->width ? '' : $this->width,
+            // Keeps the read-only list of an earlier mailbox open while Letterbox is not the transport.
+            'browse' => $this->browse ? '1' : '',
         ], static fn (string $value): bool => '' !== $value);
 
         foreach ($override as $name => $value) {

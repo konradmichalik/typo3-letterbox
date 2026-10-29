@@ -276,6 +276,84 @@
 			<trans-unit id="inbox.noText" resname="inbox.noText">
 				<source>This mail has no text part.</source>
 			</trans-unit>
+			<trans-unit id="inbox.inactive.meta" resname="inbox.inactive.meta">
+				<source>not active</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.title" resname="inbox.inactive.title">
+				<source>Letterbox is not catching mails</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.sentenceBefore" resname="inbox.inactive.sentenceBefore">
+				<source>This system sends mails through</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.sentenceAfter" resname="inbox.inactive.sentenceAfter">
+				<source>They are delivered to their real recipients and nothing is written to a mailbox.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.turnOn.title" resname="inbox.inactive.turnOn.title">
+				<source>Turn on Letterbox</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.turnOn.text" resname="inbox.inactive.turnOn.text">
+				<source>Enable "Catch mails with Letterbox" in the extension configuration. Letterbox then takes over the mail transport on this system, an existing MAIL/dsn included, and delivers through it again whenever a mail is not caught.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.openSettings" resname="inbox.inactive.openSettings">
+				<source>Open extension configuration</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.settingsPath" resname="inbox.inactive.settingsPath">
+				<source>%s › Settings › Extension Configuration › typo3_letterbox</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.group.tools" resname="inbox.inactive.group.tools">
+				<source>Admin Tools</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.group.system" resname="inbox.inactive.group.system">
+				<source>System</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.currentTransport" resname="inbox.inactive.currentTransport">
+				<source>Current transport</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.setting" resname="inbox.inactive.setting">
+				<source>Extension setting</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.on" resname="inbox.inactive.on">
+				<source>On</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.off" resname="inbox.inactive.off">
+				<source>Off</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.perSystem" resname="inbox.inactive.perSystem">
+				<source>Per system</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.perSystemText" resname="inbox.inactive.perSystemText">
+				<source>LETTERBOX_ENABLE=1 or 0 overrides the setting on one system.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.perSystemCurrent" resname="inbox.inactive.perSystemCurrent">
+				<source>This system sets LETTERBOX_ENABLE=%s.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.context" resname="inbox.inactive.context">
+				<source>Context</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.context.all" resname="inbox.inactive.context.all">
+				<source>%s: the default mode all catches every mail.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.context.listed" resname="inbox.inactive.context.listed">
+				<source>%s: the default mode listed catches only the addresses on the catch list. With an empty list every mail is still delivered.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.additional" resname="inbox.inactive.additional">
+				<source>Configure it in additional.php instead</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.copy" resname="inbox.inactive.copy">
+				<source>Copy configuration</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.cacheHint" resname="inbox.inactive.cacheHint">
+				<source>Clear the TYPO3 caches after changing the configuration.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.oldMails.one" resname="inbox.inactive.oldMails.one">
+				<source>The mailbox still holds 1 mail from an earlier setup.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.oldMails.other" resname="inbox.inactive.oldMails.other">
+				<source>The mailbox still holds %s mails from an earlier setup.</source>
+			</trans-unit>
+			<trans-unit id="inbox.inactive.showOld" resname="inbox.inactive.showOld">
+				<source>Show them</source>
+			</trans-unit>
 			<trans-unit id="inbox.empty.notConfigured" resname="inbox.empty.notConfigured">
 				<source>Letterbox is not configured</source>
 			</trans-unit>
@@ -522,6 +600,9 @@
 			<trans-unit id="toolbar.introListed" resname="toolbar.introListed">
 				<source>Mails to the listed addresses are written to the mbox file and not delivered to their recipients.</source>
 			</trans-unit>
+			<trans-unit id="toolbar.takeover" resname="toolbar.takeover">
+				<source>Letterbox took over the mail transport (%1$s). Original transport: %2$s.</source>
+			</trans-unit>
 			<trans-unit id="toolbar.notConfigured" resname="toolbar.notConfigured">
 				<source>Letterbox is active but no mbox file is configured.</source>
 			</trans-unit>
@@ -569,6 +650,15 @@
 			</trans-unit>
 			<trans-unit id="status.transport.otherMessage" resname="status.transport.otherMessage">
 				<source>Letterbox is installed but not the mail transport.</source>
+			</trans-unit>
+			<trans-unit id="status.transport.takeoverMessage" resname="status.transport.takeoverMessage">
+				<source>Letterbox took over the mail transport (%1$s). Mails that are not caught are delivered through the original transport: %2$s.</source>
+			</trans-unit>
+			<trans-unit id="takeover.by.setting" resname="takeover.by.setting">
+				<source>extension setting</source>
+			</trans-unit>
+			<trans-unit id="takeover.by.env" resname="takeover.by.env">
+				<source>LETTERBOX_ENABLE</source>
 			</trans-unit>
 			<trans-unit id="status.settings.title" resname="status.settings.title">
 				<source>Mail settings</source>

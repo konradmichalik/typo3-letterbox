@@ -4,6 +4,10 @@
     data-namespace-typo3-fluid="true"
 >
 <p class="dropdown-headline"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.heading" /></p>
+<f:if condition="{takeover}">
+    <f:variable name="takeoverBy" value="{f:translate(key: 'LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:takeover.by.{takeover.by}')}" />
+    <p class="dropdown-item-text text-variant"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.takeover" arguments="{0: takeoverBy, 1: takeover.original}" /></p>
+</f:if>
 <f:if condition="{state} == 'ok'">
     <f:then>
         <p class="dropdown-item-text"><f:if condition="{listed}"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.introListed" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.intro" /></f:else></f:if></p>

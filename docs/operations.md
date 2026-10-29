@@ -156,11 +156,12 @@ Administrators see a Letterbox button in the backend toolbar while mails are bei
 * The label is "Mail catcher active" in mode `all` and "Catching 3 addresses" in mode `listed`.
 * The badge counts the mails the current backend user has not opened yet, see [unread state](backend-module.md). At 0 there is no badge. It is yellow in mode `all` and blue in mode `listed`.
 * The dropdown explains what happens to mails, lists the subjects of the latest 5 mails with their arrival time (unread ones in bold), each linking to the mail, and has an "Open Letterbox" button. Without the backend module (`enableBackendModule` off) the subjects are plain text and the button is missing.
+* After a [takeover](configuration.md#switch) the dropdown starts with "Letterbox took over the mail transport (extension setting)" or "(LETTERBOX_ENABLE)" and the original transport (type, or DSN scheme, host and port).
 * Instead of the mails the dropdown names the problem: no mbox file configured, invalid mail settings (sending fails until they are fixed), or an mbox file that cannot be read, for example a directory or a file without read permission.
 
 ## Reports status
 
-With EXT:reports installed (`composer require typo3/cms-reports`, listed under `suggest`), Admin Tools > Reports > Status has a "Letterbox" section. It names the transport, the delivery mode, whether [release](backend-module.md#release) works, the mbox file, the retention limits and whether external access is on. When another transport is configured it only says that Letterbox is not the mail transport.
+With EXT:reports installed (`composer require typo3/cms-reports`, listed under `suggest`), Admin Tools > Reports > Status has a "Letterbox" section. It names the transport, the delivery mode, whether [release](backend-module.md#release) works, the mbox file, the retention limits and whether external access is on. When another transport is configured it only says that Letterbox is not the mail transport. After a [takeover](configuration.md#switch) the transport line is Info and says "Letterbox took over the mail transport" with the source and the original transport, without credentials.
 
 * Error: the mail settings are invalid.
 * Warning: mode `all` in the exact root context `Production`, an mbox file or directory that is not writable, no mbox file configured, a release list that cannot work (invalid entry, no or looping delivery transport, or empty `MAIL/defaultMailFromAddress`, with the setting to change).

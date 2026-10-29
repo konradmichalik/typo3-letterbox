@@ -59,7 +59,7 @@ final readonly class LetterboxSettings
             self::resolveMode($mail['transport_letterbox_mode'] ?? null, $context),
             RecipientPattern::listFrom($mail['transport_letterbox_catch'] ?? []),
             $delivery,
-            '' !== trim($delivery) && DeliveryLoopGuard::loops($mail, $delivery, $sendmailPath ?? (string) ini_get('sendmail_path')),
+            '' !== trim($delivery) && DeliveryLoopGuard::loops(TransportTakeover::deliverySettings($mail), $delivery, $sendmailPath ?? (string) ini_get('sendmail_path')),
         );
     }
 
@@ -72,6 +72,11 @@ final readonly class LetterboxSettings
         $directory = self::normalize(dirname($this->mboxFile));
 
         return self::isInside($directory, self::normalize($publicPath)) && !self::isInside($directory, self::normalize($varPath));
+    }
+
+    public static function defaultMode(string $context): DeliveryMode
+    {
+        return 'Production' === $context ? DeliveryMode::Listed : DeliveryMode::All;
     }
 
     private static function isInside(string $path, string $directory): bool
@@ -103,7 +108,7 @@ final readonly class LetterboxSettings
     private static function resolveMode(mixed $value, string $context): DeliveryMode
     {
         if (null === $value || '' === $value) {
-            return 'Production' === $context ? DeliveryMode::Listed : DeliveryMode::All;
+            return self::defaultMode($context);
         }
 
         $mode = DeliveryMode::tryFrom((string) $value);

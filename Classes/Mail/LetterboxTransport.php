@@ -92,7 +92,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         }
         if ([] !== $delivered) {
             GeneralUtility::makeInstance(TransportFactory::class)
-                ->get([...$this->mailSettings, 'transport' => $this->settings->delivery])
+                ->get([...TransportTakeover::deliverySettings($this->mailSettings), 'transport' => $this->settings->delivery])
                 ->send($message->getOriginalMessage(), new Envelope($envelope->getSender(), $delivered));
         }
     }
@@ -115,6 +115,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
      */
     private function store(SentMessage $message, array $caught): void
     {
+        TransportTakeover::prepareMailbox($this->mailSettings);
         $this->writer()->append(
             $message->getEnvelope()->getSender()->getAddress(),
             new DateTimeImmutable(),

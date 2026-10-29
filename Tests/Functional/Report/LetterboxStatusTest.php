@@ -17,7 +17,7 @@ use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccessGuard};
-use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
+use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, TransportTakeover};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Report\LetterboxStatus;
 use PHPUnit\Framework\Attributes\{DataProvider, Test};
@@ -92,6 +92,24 @@ final class LetterboxStatusTest extends FunctionalTestCase
         self::assertCount(1, $statuses);
         self::assertSame(ContextualFeedbackSeverity::INFO, $statuses['transport']->getSeverity());
         self::assertSame('Letterbox is installed but not the mail transport.', $statuses['transport']->getMessage());
+    }
+
+    #[Test]
+    public function takeoverIsNamedWithTheOriginalTransportWithoutCredentials(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = TransportTakeover::apply(
+            ['transport' => 'sendmail', 'dsn' => 'smtp://user:secret@mail.example.org:587', 'transport_mbox_file' => $this->path],
+            true,
+            'setting',
+            Environment::getVarPath(),
+        );
+
+        $status = $this->provider()->getStatus()['transport'];
+
+        self::assertSame(ContextualFeedbackSeverity::INFO, $status->getSeverity());
+        self::assertStringContainsString('Letterbox took over the mail transport (extension setting).', $status->getMessage());
+        self::assertStringContainsString('sendmail', $status->getMessage(), 'core uses sendmail when MAIL/transport is sendmail, whatever the DSN says');
+        self::assertStringNotContainsString('secret', $status->getMessage());
     }
 
     #[Test]

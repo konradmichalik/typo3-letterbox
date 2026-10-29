@@ -57,7 +57,7 @@ final readonly class ReleaseSettings
         $refusal = match (true) {
             [] === $allowlist => self::OFF,
             '' === $delivery => self::DELIVERY_MISSING,
-            DeliveryLoopGuard::loops($mail, $delivery, $sendmailPath ?? (string) ini_get('sendmail_path')) => self::DELIVERY_LOOPS,
+            DeliveryLoopGuard::loops(TransportTakeover::deliverySettings($mail), $delivery, $sendmailPath ?? (string) ini_get('sendmail_path')) => self::DELIVERY_LOOPS,
             default => null,
         };
 

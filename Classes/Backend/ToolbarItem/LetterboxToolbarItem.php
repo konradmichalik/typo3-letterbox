@@ -20,7 +20,7 @@ use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport};
+use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, TransportSummary, TransportTakeover};
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Throwable;
@@ -148,6 +148,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
             'mails' => [],
             'moduleEnabled' => '0' !== $this->extensionSettings->get('enableBackendModule', '1'),
             'openUrl' => '',
+            'takeover' => $this->takeover(is_array($mail) ? $mail : []),
         ];
         if (null === $settings || !$this->mailRepository->isConfigured()) {
             return $variables;
@@ -171,6 +172,18 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
 
             return ['state' => 'unreadable'] + $variables;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $mail
+     *
+     * @return array{by: string, original: string}|null
+     */
+    private function takeover(array $mail): ?array
+    {
+        $takeover = TransportTakeover::of($mail);
+
+        return null === $takeover ? null : ['by' => $takeover['by'], 'original' => TransportSummary::of(TransportTakeover::original($mail) ?? [])];
     }
 
     /**

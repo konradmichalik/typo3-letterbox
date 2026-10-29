@@ -19,7 +19,7 @@ use KonradMichalik\Typo3Letterbox\Backend\ToolbarItem\LetterboxToolbarItem;
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
+use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, TransportTakeover};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\ServerRequestInterface;
@@ -185,6 +185,36 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
         $this->append('Caught');
 
         self::assertStringContainsString('Catching 1 address,', $this->item()->getItem());
+    }
+
+    #[Test]
+    public function takeoverIsNamedInTheDropdownWithoutCredentials(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = TransportTakeover::apply(
+            ['transport' => 'dsn', 'dsn' => 'smtp://user:secret@mail.example.org:587?x=1', 'transport_mbox_file' => $this->path],
+            true,
+            'env',
+            Environment::getVarPath(),
+        );
+        $this->append('Caught');
+
+        $html = $this->item()->getDropDown();
+
+        self::assertStringContainsString('Letterbox took over the mail transport (LETTERBOX_ENABLE).', $html);
+        self::assertStringContainsString('SMTP (mail.example.org:587)', $html);
+        self::assertStringNotContainsString('secret', $html);
+        self::assertStringNotContainsString('user', $html);
+    }
+
+    #[Test]
+    public function configuredTransportSaysNothingAboutATakeover(): void
+    {
+        $this->append('Caught');
+
+        self::assertStringNotContainsString('took over', $this->item()->getDropDown());
+
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = TransportTakeover::apply(['transport' => 'smtp', 'transport_smtp_server' => 'mail.example.org:25', 'transport_mbox_file' => $this->path], true, 'setting', Environment::getVarPath());
+        self::assertStringContainsString('Original transport: SMTP (mail.example.org:25).', $this->item()->getDropDown(), 'the SMTP server of the original settings is named');
     }
 
     #[Test]

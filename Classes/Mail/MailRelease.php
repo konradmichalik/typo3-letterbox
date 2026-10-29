@@ -89,7 +89,7 @@ final readonly class MailRelease
         }
         $address = $this->recipient($recipient, $settings);
 
-        $mailSettings = $this->mailSettings();
+        $mailSettings = TransportTakeover::deliverySettings($this->mailSettings());
         // A spool would queue the mail for the spool command, which sends through MAIL/transport, that is Letterbox.
         unset($mailSettings['transport_spool_type']);
 

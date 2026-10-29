@@ -19,7 +19,7 @@ use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\ExternalAccessGuard;
-use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern, ReleaseSettings, RetentionSettings};
+use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern, ReleaseSettings, RetentionSettings, TransportSummary, TransportTakeover};
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
@@ -66,7 +66,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
             return ['transport' => $this->status('transport', 'status.transport.other', 'status.transport.otherMessage', ContextualFeedbackSeverity::INFO)];
         }
 
-        $statuses = ['transport' => $this->status('transport', 'status.transport.ok', 'status.transport.okMessage')];
+        $statuses = ['transport' => $this->transport($mail)];
         $context = (string) Environment::getContext();
         try {
             $settings = LetterboxSettings::fromMailSettings($mail, $context);
@@ -86,6 +86,30 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         $statuses['external'] = $this->external();
 
         return $statuses;
+    }
+
+    /**
+     * A takeover is announced, the original transport is named by type, scheme, host and port only.
+     *
+     * @param array<string, mixed> $mail
+     */
+    private function transport(array $mail): Status
+    {
+        $takeover = TransportTakeover::of($mail);
+        if (null === $takeover) {
+            return $this->status('transport', 'status.transport.ok', 'status.transport.okMessage');
+        }
+
+        return new Status(
+            $this->translate('status.transport.title'),
+            $this->translate('status.transport.ok'),
+            sprintf(
+                $this->escape($this->translate('status.transport.takeoverMessage')),
+                $this->escape($this->translate('takeover.by.'.$takeover['by'])),
+                $this->escape(TransportSummary::of(TransportTakeover::original($mail) ?? [])),
+            ),
+            ContextualFeedbackSeverity::INFO,
+        );
     }
 
     private function mode(LetterboxSettings $settings, string $context): Status

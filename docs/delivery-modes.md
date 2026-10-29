@@ -10,6 +10,12 @@ Back to [documentation overview](README.md).
 | `listed` | Recipients matching `transport_letterbox_catch` | All other recipients |
 | `off` | Nobody | Every recipient |
 
+After a [takeover](configuration.md#switch), delivery defaults to the original transport.
+
+## Delivery after a takeover
+
+When the [switch](configuration.md#switch) took over the transport and `transport_letterbox_delivery` is not set, mails that are not caught are delivered through the original `MAIL/transport` and `MAIL/dsn`, as without Letterbox. A configured `transport_letterbox_delivery` wins and is built with the original DSN as well. In the root context `Production` the default mode `listed` with an empty catch list delivers every mail this way.
+
 ## Default per context
 
 Without `transport_letterbox_mode`, the mode is `listed` in the exact root context `Production` and `all` in every other context. `Production/Staging` is not `Production` and therefore gets `all`, and so does `Production/Live`.

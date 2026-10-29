@@ -6,6 +6,17 @@ Back to [documentation overview](README.md).
 
 The module is under System › Letterbox and is available to administrators only. It reads the file set in `transport_mbox_file`, so existing mbox files stay readable.
 
+## Not the mail transport
+
+While Letterbox is not the active mail transport, the module shows "Letterbox is not catching mails" instead of the inbox. The meta line reads "Mail inbox · not active". The screen names the transport the system uses, as type or DSN scheme, host and port (never user, password or query), and has a card "Turn on Letterbox" with:
+
+* a button to the core Settings module and the path to the extension configuration, where `enable` switches Letterbox on (see [switch](configuration.md#switch)),
+* the current transport, the extension setting (On or Off), `LETTERBOX_ENABLE` and the application context with what the default mode would do,
+* the three `additional.php` lines as an alternative, with a copy button.
+
+When the mbox file of an earlier setup still holds mails, a line below the card says how many and links "Show them" to the list. That list is read-only browsing of the old file: the doc header offers no "Clear all" while Letterbox is not the transport.
+
+
 * The mail list shows caught mails with pagination. It ends at the bottom of the visible area and its rows scroll inside it. It can be collapsed to give the detail view the full width, and the state is stored per backend user.
 * Each row shows the subject and "sender to recipient", using names where the mail has them and addresses otherwise.
 * The search field finds mails by sender, recipient (name or address) and subject. The quick filters All, Unread and Attachments show their counts for the current search. Search, filter and page stay in every link, also while a mail is open.

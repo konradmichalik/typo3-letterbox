@@ -53,7 +53,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 | Preview frame | full detail width, min height 480px, white mail canvas on a neutral frame |
 
 - Group with core cards and whitespace. A hairline only between rows inside a card.
-- `Resources/Public/Css/inbox.css` holds only the two-column layout, the rail, the preview frame, the empty state layout and one exception: the doc header "Clear all" button. Core's `InputButton` always adds `btn-default`, so a `.btn.letterbox-clear-all` rule maps core's danger tokens back. Everything else is core markup.
+- `Resources/Public/Css/inbox.css` holds only the two-column layout, the rail, the preview frame, the empty and inactive state layout (width of the card, muted illustration) and one exception: the doc header "Clear all" button. Core's `InputButton` always adds `btn-default`, so a `.btn.letterbox-clear-all` rule maps core's danger tokens back. Everything else is core markup.
 
 ## Navigation
 
@@ -103,7 +103,8 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 | State | Treatment |
 | --- | --- |
-| Not configured | Core info callout: what to set (`MAIL/transport`, `transport_mbox_file`) and where |
+| Not the mail transport | Meta line "Mail inbox · not active", the illustration at 180px with reduced opacity, `h2` "Letterbox is not catching mails" with the current transport in bold (type or DSN scheme, host and port only), then a core card "Turn on Letterbox" (icon, `h3`, primary button to the Settings module plus the path as muted text, a definition list with transport, setting, `LETTERBOX_ENABLE` and context, a `details` with the `additional.php` lines and a copy button, the cache hint). Below it, only when an earlier mbox file holds mails, a line with a "Show them" link. No "Clear all" |
+| Not configured | Letterbox is the transport but `transport_mbox_file` is empty: core info callout with what to set and where |
 | No mails | Large centred illustration (the unDraw "empty mailbox", 240px wide), `h2` "No mails caught yet", one sentence on how mails arrive, a Reload button, and the test mail command as a muted hint when debug mode is on. Replaces both columns |
 | No mail selected | Detail column shows the 150px illustration, `h2` "No mail selected" and "Pick a mail from the list to read it here." |
 | No HTML preview | Core callout, Text tab selected |
@@ -114,7 +115,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 ## Toolbar, widget, reports
 
 - Toolbar item: core toolbar button with an envelope icon and a badge counting the unread mails of the current user (no badge at 0), accessible name "Mail catcher active, N unread mails". Admins only, can be switched off with `showToolbarItem`.
-- Dropdown: one sentence on what happens to mails, a divider, the latest five subjects (each linking to the mail, cropped to 60 characters, unread ones in bold with a visually hidden "Unread"), a divider and a core button to the module. The badge is Warning for mode `all` and Info for `listed`.
+- Dropdown: after a takeover a muted line "Letterbox took over the mail transport (source). Original transport: …", then one sentence on what happens to mails, a divider, the latest five subjects (each linking to the mail, cropped to 60 characters, unread ones in bold with a visually hidden "Unread"), a divider and a core button to the module. The badge is Warning for mode `all` and Info for `listed`.
 - Dashboard widget "Recent mails": core widget markup, admin only, subject, recipient and time.
 - Reports: core status provider with core severities; no own markup.
 
@@ -127,7 +128,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 ## Illustration
 
-- One illustration only, the unDraw "empty mailbox" by Katerina Limpitsouni, kept in `Resources/Private/Partials/EmptyIllustration.html`. Inline SVG, recoloured with CSS classes. It appears twice through the same partial with a `width` argument: 240px for the empty inbox and 150px above "No mail selected" in the detail column. It is under the [unDraw license](https://undraw.co/license), not the GPL (see Credits in the README).
+- One illustration only, the unDraw "empty mailbox" by Katerina Limpitsouni, kept in `Resources/Private/Partials/EmptyIllustration.html`. Inline SVG, recoloured with CSS classes. It appears through the same partial with a `width` argument and an optional extra `class`: 240px for the empty inbox, 180px at reduced opacity on the "not the mail transport" screen and 150px above "No mail selected" in the detail column. It is under the [unDraw license](https://undraw.co/license), not the GPL (see Credits in the README).
 - Colours come from `currentColor` and core custom properties: text colour for the outline parts, module background for the light parts, primary text colour for the flag, border colour at 55% opacity for bushes and the circle. No hard-coded hex values. It follows light and dark mode; in forced-colors mode outlines use `CanvasText`, fills `Canvas` and the flag `Highlight`.
 - It is decorative: `aria-hidden="true"` and `focusable="false"`. The heading and sentence next to it carry the message.
 - Scales down with `max-width: 100%`; it never pushes the heading below the fold at 1280 by 720.

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace KonradMichalik\Typo3Letterbox\Controller;
 
 use DateTimeImmutable;
-use KonradMichalik\Typo3Letterbox\Backend\{InboxQuery, MailListView, ReadState, RetentionText};
+use KonradMichalik\Typo3Letterbox\Backend\{InactiveScreen, InboxQuery, MailListView, ReadState, RetentionText};
 use KonradMichalik\Typo3Letterbox\Check\{Finding, MailChecker, Severity, SiteHosts};
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
@@ -88,6 +88,7 @@ final readonly class InboxController
         private MailRelease $mailRelease,
         private MailChecker $mailChecker,
         private SiteHosts $siteHosts,
+        private InactiveScreen $inactiveScreen,
     ) {}
 
     public function indexAction(ServerRequestInterface $request): ResponseInterface
@@ -238,10 +239,12 @@ final readonly class InboxController
         $this->pageRenderer->loadJavaScriptModule($this->typo3Version->getMajorVersion() >= 14 ? '@typo3/backend/tab.js' : '@typo3/backend/tabs.js');
 
         $list = $this->listVariables($request, $query);
+        $state = $this->inactiveScreen->moduleState((array) ($GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? []), $list['total']);
         $view = $this->moduleTemplateFactory->create($request);
         $view->setTitle($this->translate('module.title'));
-        $this->addDocHeaderButtons($view, $request, $list['total'] > 0);
-        $view->assignMultiple($list + $variables + [
+        $this->addDocHeaderButtons($view, $request, $state['clearable']);
+        $view->assignMultiple($list + $variables + $state + [
+            'browse' => $query->browse,
             'configured' => $this->repository->isConfigured(),
             'path' => $this->repository->path(),
             'size' => $this->repository->sizeInBytes(),

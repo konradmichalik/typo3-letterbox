@@ -62,7 +62,9 @@ Download the zip file from [TYPO3 extension repository (TER)](https://extensions
 
 ## 🚀 Quick start
 
-Set the transport in `config/system/additional.php`:
+Turn on "Catch mails with Letterbox" (`enable`) in Admin Tools › Settings › Extension Configuration › `typo3_letterbox` (System › Settings in TYPO3 14) and flush the caches. Letterbox then takes over the mail transport, an existing `MAIL/dsn` included, and writes caught mails to `var/letterbox/mails.mbox`. Set `LETTERBOX_ENABLE=1` or `0` to switch it per system, see [configuration](docs/configuration.md#switch).
+
+Alternatively, set the transport in `config/system/additional.php`:
 
 ```php
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['dsn'] = '';
@@ -71,15 +73,15 @@ $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mail
 ```
 
 > [!WARNING]
-> If `MAIL/dsn` is not empty, TYPO3 core ignores `MAIL/transport` and sends live through the DSN. Letterbox is bypassed. Keep `dsn` empty.
+> If `MAIL/dsn` is not empty, TYPO3 core ignores `MAIL/transport` and sends live through the DSN. Letterbox is bypassed. Keep `dsn` empty. The switch clears it for you.
 
-Then open System › Letterbox as an administrator. Outside the exact root context `Production` all mails are caught.
+Then open System › Letterbox as an administrator. Outside the exact root context `Production` all mails are caught. In `Production` the default mode is `listed`: with an empty catch list every mail is still delivered.
 
 ## 📚 Documentation
 
 | Page | What's inside |
 |------|---------------|
-| [Configuration](docs/configuration.md) | Transport settings, release list and extension settings |
+| [Configuration](docs/configuration.md) | The switch, transport settings, release list and extension settings |
 | [Delivery modes](docs/delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
 | [Backend module](docs/backend-module.md) | Search, filters, tabs, checks, release, preview, navigation, delete and clear |
 | [Operations](docs/operations.md) | Retention, console commands, sendmail intake, toolbar item, Reports status and dashboard widget |

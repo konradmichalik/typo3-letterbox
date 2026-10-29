@@ -16,7 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Mail;
 use DateTimeImmutable;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
+use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, TransportTakeover};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Tests\Functional\Fixtures\RecordingLogger;
 use KonradMichalik\Typo3Letterbox\Tests\Functional\Mail\Fixtures\RecordingTransport;
@@ -24,7 +24,7 @@ use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Symfony\Component\Mime\Email;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Mail\Mailer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -287,6 +287,57 @@ final class LetterboxTransportTest extends FunctionalTestCase
         }
 
         self::assertSame(['New', 'Old'], $this->subjects());
+    }
+
+    #[Test]
+    public function takeoverInProductionDeliversEverythingThroughTheOriginalTransport(): void
+    {
+        $this->useContext('Production');
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = TransportTakeover::apply(['transport' => RecordingTransport::class, 'dsn' => '', 'transport_mbox_file' => $this->path], true, 'setting', Environment::getVarPath());
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Hello')->text('Body'));
+
+        self::assertSame([['customer@example.org']], RecordingTransport::$recipients, 'the empty catch list of mode listed catches nothing');
+        self::assertFileDoesNotExist($this->path);
+    }
+
+    #[Test]
+    public function takeoverDeliversThroughTheOriginalDsn(): void
+    {
+        $this->useContext('Production');
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = TransportTakeover::apply(['transport' => RecordingTransport::class, 'dsn' => 'null://null', 'transport_mbox_file' => $this->path], true, 'env', Environment::getVarPath());
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Hello')->text('Body'));
+
+        self::assertSame([], RecordingTransport::$recipients, 'core routes a class name to the original DSN, as before the takeover');
+        self::assertFileDoesNotExist($this->path);
+    }
+
+    #[Test]
+    public function takeoverCatchesIntoTheDefaultMailboxBelowTheVarPath(): void
+    {
+        $varPath = Environment::getVarPath().'/letterbox-test/takeover-'.bin2hex(random_bytes(4));
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = TransportTakeover::apply(['transport' => RecordingTransport::class, 'dsn' => ''], true, 'setting', $varPath);
+
+        $this->send((new Email())->from('shop@example.org')->to('customer@example.org')->subject('Hello')->text('Body'));
+
+        self::assertSame([], RecordingTransport::$recipients);
+        self::assertStringContainsString('Subject: Hello', (string) file_get_contents($varPath.'/letterbox/mails.mbox'));
+    }
+
+    private function useContext(string $context): void
+    {
+        Environment::initialize(
+            new ApplicationContext($context),
+            Environment::isCli(),
+            Environment::isComposerMode(),
+            Environment::getProjectPath(),
+            Environment::getPublicPath(),
+            Environment::getVarPath(),
+            Environment::getConfigPath(),
+            Environment::getCurrentScript(),
+            Environment::isWindows() ? 'WINDOWS' : 'UNIX',
+        );
     }
 
     private function retention(int $maxMessages, int $maxAgeDays): void

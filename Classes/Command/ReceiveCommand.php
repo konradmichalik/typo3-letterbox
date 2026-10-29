@@ -16,7 +16,7 @@ namespace KonradMichalik\Typo3Letterbox\Command;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Domain\Model\Mail;
-use KonradMichalik\Typo3Letterbox\Mail\RetentionService;
+use KonradMichalik\Typo3Letterbox\Mail\{RetentionService, TransportTakeover};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat, MessageParser};
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
@@ -115,6 +115,7 @@ final class ReceiveCommand extends Command
         if (!(new FileNameValidator())->isValid($path)) {
             throw new RuntimeException(sprintf('The mailbox file "%s" is not allowed by the file deny pattern.', $path), 1761700005);
         }
+        TransportTakeover::prepareMailbox((array) $GLOBALS['TYPO3_CONF_VARS']['MAIL']);
 
         return $path;
     }

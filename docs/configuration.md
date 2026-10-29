@@ -2,9 +2,35 @@
 
 Back to [documentation overview](README.md).
 
+## Switch
+
+The extension setting `enable` ("Catch mails with Letterbox") turns Letterbox on without touching `additional.php`. Set it in Admin Tools › Settings › Extension Configuration › `typo3_letterbox` (System › Settings in TYPO3 14) and flush the caches.
+
+The environment variable `LETTERBOX_ENABLE` overrides the setting on one system:
+
+| `LETTERBOX_ENABLE` | Effect |
+|--------------------|--------|
+| `1`, `true`, `on` | On, whatever the setting says |
+| `0`, `false`, `off` | Off, whatever the setting says |
+| empty, unset or anything else | The setting decides |
+
+When it is on and `MAIL/transport` is not Letterbox yet, `ext_localconf.php` takes over the transport. TYPO3 has loaded `settings.php` and `additional.php` at that point and has not built a mailer yet.
+
+* `MAIL/transport` becomes the Letterbox transport and `MAIL/dsn` is cleared, because a DSN would bypass it.
+* The original `transport` and `dsn` are kept for this request only, in `MAIL/transport_letterbox_takeover`. Nothing is written to `settings.php`.
+* Without `transport_letterbox_delivery`, mails that are not caught are delivered through the original transport and DSN (see [delivery modes](delivery-modes.md#delivery-after-a-takeover)). The loop detection applies to it as to any delivery.
+* Without `transport_mbox_file`, mails go to `var/letterbox/mails.mbox` below the TYPO3 var path. The directory is created with the first mail.
+* Other `transport_letterbox_*` keys from `additional.php` (mode, catch list, delivery, release, mbox file) are used as set.
+* In the root context `Production` the default mode stays `listed`. With an empty catch list every mail is still delivered through the original transport, so turning the switch on there catches nothing until you add addresses.
+* Reports and the toolbar dropdown say "Letterbox took over the mail transport" with the source (extension setting or `LETTERBOX_ENABLE`) and the original transport as type, or DSN scheme, host and port. User, password and query of the DSN are never shown or logged.
+
+When it is off, nothing changes. An explicit configuration in `additional.php` keeps working: the switch cannot turn that off. Remove the lines from `additional.php` instead.
+
+Flush the caches after changing the setting. `LETTERBOX_ENABLE` is read on every request, a changed value applies once PHP sees it (for example after `ddev restart`).
+
 ## Transport
 
-Letterbox is a Symfony mail transport. Activate it in `config/system/additional.php`:
+Instead of the switch, activate the transport in `config/system/additional.php`:
 
 ```php
 $GLOBALS['TYPO3_CONF_VARS']['MAIL']['dsn'] = '';
@@ -47,6 +73,7 @@ Set in Admin Tools > Settings > Extension Configuration.
 
 | Setting | Type | Default | Effect |
 |---------|------|---------|--------|
+| `enable` | boolean | `0` | Catch mails with Letterbox: takes over the mail transport on this system, see [switch](#switch). `LETTERBOX_ENABLE` overrides it. |
 | `debugMode` | boolean | `0` | Registers the `letterbox:testmails:send` command. |
 | `enableBackendModule` | boolean | `1` | Shows the backend module. |
 | `mailsPerPage` | integer | `10` | Mails per page in the list. |
@@ -54,6 +81,6 @@ Set in Admin Tools > Settings > Extension Configuration.
 | `maxAgeDays` | integer | `30` | Remove mails older than this many days after a new mail is caught. `0` for no limit. |
 | `showToolbarItem` | boolean | `1` | Shows the [toolbar item](operations.md#toolbar-item) to administrators while Letterbox catches mails. |
 
-Flush the caches after changing `debugMode` or `enableBackendModule`.
+Flush the caches after changing `enable`, `debugMode` or `enableBackendModule`.
 
-The environment variables for [external access](external-access.md#activation) are set outside TYPO3.
+`LETTERBOX_ENABLE` and the environment variables for [external access](external-access.md#activation) are set outside TYPO3.
