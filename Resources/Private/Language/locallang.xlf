@@ -366,9 +366,6 @@
 			<trans-unit id="inbox.release.unavailable" resname="inbox.release.unavailable">
 				<source>Release is not available</source>
 			</trans-unit>
-			<trans-unit id="inbox.close" resname="inbox.close">
-				<source>Close</source>
-			</trans-unit>
 			<trans-unit id="inbox.release.dialog.title" resname="inbox.release.dialog.title">
 				<source>Release mail</source>
 			</trans-unit>
@@ -590,6 +587,21 @@
 			</trans-unit>
 			<trans-unit id="status.delivery.loopsMessage" resname="status.delivery.loopsMessage">
 				<source>MAIL/transport_letterbox_delivery hands mails back to Letterbox (core mbox transport, or sendmail running letterbox:receive). In modes listed and off, every mail that should be delivered fails with an exception. Configure a real delivery, for example smtp.</source>
+			</trans-unit>
+			<trans-unit id="status.release.title" resname="status.release.title">
+				<source>Release</source>
+			</trans-unit>
+			<trans-unit id="status.release.on" resname="status.release.on">
+				<source>Release to %s</source>
+			</trans-unit>
+			<trans-unit id="status.release.onMessage" resname="status.release.onMessage">
+				<source>Administrators can release a caught mail to an address matching this list. It is delivered through MAIL/transport_letterbox_delivery.</source>
+			</trans-unit>
+			<trans-unit id="status.release.off" resname="status.release.off">
+				<source>Release is off</source>
+			</trans-unit>
+			<trans-unit id="status.release.senderMissing" resname="status.release.senderMissing">
+				<source>MAIL/defaultMailFromAddress is empty, so mails without a From address cannot be released. Set MAIL/defaultMailFromAddress to release every mail.</source>
 			</trans-unit>
 			<trans-unit id="status.mode.title" resname="status.mode.title">
 				<source>Delivery mode</source>

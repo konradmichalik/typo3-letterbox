@@ -43,21 +43,6 @@ const returnFocus = (modal, button, isSubmitted) => {
 };
 
 /**
- * A refused release shows the reason only, with a single Close button. The server refuses as well.
- */
-const openRefusal = (button, content) => {
-  const modal = Modal.advanced({
-    title: button.dataset.title,
-    content,
-    severity: Severity.notice,
-    buttons: [{ text: button.dataset.buttonCloseText, btnClass: 'btn-default', name: 'close', trigger: (event, current) => current.hideModal() }],
-  });
-  addTitleIcon(modal);
-  modal.addEventListener('typo3-modal-shown', () => modal.querySelector('.modal-footer button')?.focus());
-  returnFocus(modal, button, () => false);
-};
-
-/**
  * Core opens the modal in the top frame, so the dialog only collects the address and submits the form that stays
  * in the module document.
  */
@@ -107,16 +92,11 @@ const openRelease = (button, content, form) => {
 const openDialog = (button) => {
   const doc = button.ownerDocument;
   const template = doc.getElementById('letterbox-release-dialog');
-  if (template === null) {
+  const form = doc.getElementById('letterbox-release-form');
+  if (template === null || form === null) {
     return;
   }
-  const content = template.content.firstElementChild.cloneNode(true);
-  const form = doc.getElementById('letterbox-release-form');
-  if (form === null) {
-    openRefusal(button, content);
-  } else {
-    openRelease(button, content, form);
-  }
+  openRelease(button, template.content.firstElementChild.cloneNode(true), form);
 };
 
 // Delegated on the document, so the button keeps working after inbox.js swapped the detail region.

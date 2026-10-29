@@ -160,12 +160,12 @@ Administrators see a Letterbox button in the backend toolbar while mails are bei
 
 ## Reports status
 
-With EXT:reports installed (`composer require typo3/cms-reports`, listed under `suggest`), Admin Tools > Reports > Status has a "Letterbox" section. It names the transport, the delivery mode, the mbox file, the retention limits and whether external access is on. When another transport is configured it only says that Letterbox is not the mail transport.
+With EXT:reports installed (`composer require typo3/cms-reports`, listed under `suggest`), Admin Tools > Reports > Status has a "Letterbox" section. It names the transport, the delivery mode, whether [release](backend-module.md#release) works, the mbox file, the retention limits and whether external access is on. When another transport is configured it only says that Letterbox is not the mail transport.
 
 * Error: the mail settings are invalid.
-* Warning: mode `all` in the exact root context `Production`, an mbox file or directory that is not writable, no mbox file configured.
-* Info: mode `listed` (the value shows how many addresses are caught), external access on. It is never on in root `Production`.
-* OK: the rest, including "Keeps all mails" when both retention limits are `0`.
+* Warning: mode `all` in the exact root context `Production`, an mbox file or directory that is not writable, no mbox file configured, a release list that cannot work (invalid entry, no or looping delivery transport, or empty `MAIL/defaultMailFromAddress`, with the setting to change).
+* Info: mode `listed` (the value shows how many addresses are caught), release off, external access on. It is never on in root `Production`.
+* OK: the rest, including "Release to" with the allowed patterns, and "Keeps all mails" when both retention limits are `0`.
 
 ## Recent mails widget
 

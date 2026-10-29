@@ -323,7 +323,7 @@ final readonly class InboxController
     }
 
     /**
-     * The template hides the button for refusal release_off and explains any other refusal in the dialog.
+     * The template shows the button only without a refusal. Reports explains a refusal of the configuration.
      *
      * @return array{url: string, refusal: string, recipient: string, allowlist: string}
      */

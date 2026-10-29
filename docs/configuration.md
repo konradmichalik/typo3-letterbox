@@ -36,9 +36,10 @@ Details on the modes are in [delivery modes](delivery-modes.md).
 `transport_letterbox_release` is the allowlist for [releasing a caught mail](backend-module.md#release) to a real address. It uses the same patterns as the catch list: full addresses and `*@domain`, case insensitive.
 
 * Release is opt-in. An empty or missing list hides the button.
+* The button is shown only on a mail that can be released. Every other refusal hides it as well, and Reports > Status names the reason in its "Release" line.
 * One invalid entry switches release off for everybody, so a typo cannot widen the list.
 * Release sends through `transport_letterbox_delivery`, so that key must be set, and must not lead back into Letterbox. See the [refusals](backend-module.md#release).
-* Set `MAIL/defaultMailFromAddress`. Release uses it as the envelope sender, and falls back to the From of the mail only when it is empty.
+* Set `MAIL/defaultMailFromAddress`. Release uses it as the envelope sender, and falls back to the From of the mail only when it is empty. Without it, a mail without From has no release button and Reports warns.
 
 ## Extension settings
 

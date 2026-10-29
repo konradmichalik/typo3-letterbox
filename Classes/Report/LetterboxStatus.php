@@ -19,7 +19,7 @@ use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\ExternalAccessGuard;
-use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern, RetentionSettings};
+use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern, ReleaseSettings, RetentionSettings};
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
@@ -80,6 +80,7 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         if ($settings->deliveryLoops) {
             $statuses['delivery'] = $this->status('delivery', 'status.delivery.loops', 'status.delivery.loopsMessage', ContextualFeedbackSeverity::ERROR);
         }
+        $statuses['release'] = $this->release($mail);
         $statuses['file'] = $this->file($settings);
         $statuses['retention'] = $this->retention();
         $statuses['external'] = $this->external();
@@ -118,6 +119,31 @@ final readonly class LetterboxStatus implements StatusProviderInterface
             Environment::getContext()->isProduction() => new Status($title, $value, sprintf($this->escape($this->translate('status.mode.allWarningSubContext')), $this->escape($context)), ContextualFeedbackSeverity::WARNING),
             default => new Status($title, $value, $this->escape($this->translate('status.mode.allMessage'))),
         };
+    }
+
+    /**
+     * The module shows the release button only for a mail that can be released, so this line explains why it is missing.
+     *
+     * @param array<string, mixed> $mail
+     */
+    private function release(array $mail): Status
+    {
+        $title = $this->translate('status.release.title');
+        $settings = ReleaseSettings::fromMailSettings($mail);
+        $refusal = $settings->refusal();
+        if (ReleaseSettings::OFF === $refusal) {
+            return new Status($title, $this->translate('status.release.off'), $this->escape($this->translate('inbox.release.refusal.release_off')), ContextualFeedbackSeverity::INFO);
+        }
+        if (null !== $refusal) {
+            return new Status($title, $this->translate('inbox.release.unavailable'), $this->escape($this->translate('inbox.release.refusal.'.$refusal)), ContextualFeedbackSeverity::WARNING);
+        }
+
+        $value = sprintf($this->translate('status.release.on'), implode(', ', array_map(static fn (RecipientPattern $pattern): string => $pattern->value(), $settings->allowlist)));
+        if ('' === trim((string) ($mail['defaultMailFromAddress'] ?? ''))) {
+            return new Status($title, $value, $this->escape($this->translate('status.release.senderMissing')), ContextualFeedbackSeverity::WARNING);
+        }
+
+        return new Status($title, $value, $this->escape($this->translate('status.release.onMessage')));
     }
 
     private function file(LetterboxSettings $settings): Status

@@ -21,7 +21,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Tests\Functional\Mail\Fixtures\RecordingTransport;
-use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\{Router, UriBuilder};
@@ -1357,23 +1357,38 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertLessThan((int) strpos($body, 'letterbox/source'), strpos($body, 'data-letterbox-release'));
     }
 
+    /**
+     * @param array<string, string> $overrides
+     */
     #[Test]
-    public function refusedReleaseShowsReasonInDialog(): void
+    #[DataProvider('refusedReleaseSettings')]
+    public function noButtonWhenReleaseIsRefused(array $overrides, bool $withFrom): void
     {
-        $this->enableRelease(['transport_letterbox_delivery' => 'mbox']);
-        $this->append('Hold');
+        $this->enableRelease($overrides);
+        if ($withFrom) {
+            $this->append('Hold');
+        } else {
+            $this->appendRaw("To: r@example.org\nSubject: Hold\n\nbody\n");
+        }
 
         $body = $this->show($this->firstId());
 
-        self::assertMatchesRegularExpression('/<button\\s+type="button"[^>]*data-letterbox-release[^>]*aria-label="Release this mail: Hold"/', $body);
-        self::assertStringNotContainsString('aria-disabled', $body);
-        self::assertSame(1, preg_match('/<template id="letterbox-release-dialog">(.*?)<\/template>/s', $body, $dialog));
-        self::assertStringContainsString('callout-danger', $dialog[1] ?? '');
-        self::assertStringContainsString('loop', $dialog[1] ?? '');
-        self::assertStringContainsString('transport_letterbox_delivery', $dialog[1] ?? '');
-        self::assertStringNotContainsString('<input', $dialog[1] ?? '');
-        self::assertStringNotContainsString('letterbox-release-form', $body);
-        self::assertMatchesRegularExpression('/data-letterbox-release[^>]*data-button-close-text="Close"/', $body);
+        self::assertStringContainsString('Hold', $body);
+        self::assertStringNotContainsString('data-letterbox-release', $body);
+        self::assertStringNotContainsString('letterbox-release-', $body);
+    }
+
+    /**
+     * @return array<string, array{array<string, string>, bool}>
+     */
+    public static function refusedReleaseSettings(): array
+    {
+        return [
+            'release list invalid' => [['transport_letterbox_release' => 'not an address'], true],
+            'delivery missing' => [['transport_letterbox_delivery' => ''], true],
+            'delivery loops' => [['transport_letterbox_delivery' => 'mbox'], true],
+            'no sender' => [['defaultMailFromAddress' => ''], false],
+        ];
     }
 
     private function assertFragmentHeaders(ResponseInterface $response): void

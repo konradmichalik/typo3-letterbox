@@ -20,7 +20,7 @@ use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccess
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Report\LetterboxStatus;
-use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\{DataProvider, Test};
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -212,6 +212,61 @@ final class LetterboxStatusTest extends FunctionalTestCase
 
         $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_delivery' => 'smtp']);
         self::assertArrayNotHasKey('delivery', $this->provider()->getStatus());
+    }
+
+    #[Test]
+    public function releaseWithoutListIsInfo(): void
+    {
+        $status = $this->provider()->getStatus()['release'];
+
+        self::assertSame(ContextualFeedbackSeverity::INFO, $status->getSeverity());
+        self::assertSame('Release is off', $status->getValue());
+    }
+
+    #[Test]
+    public function enabledReleaseNamesThePatterns(): void
+    {
+        $this->useMailSettings(['transport_letterbox_release' => '*@example.org, <b>@example.com', 'transport_letterbox_delivery' => 'smtp', 'defaultMailFromAddress' => 'site@example.org']);
+        self::assertSame(ContextualFeedbackSeverity::WARNING, $this->provider()->getStatus()['release']->getSeverity(), 'an invalid entry switches release off');
+
+        $this->useMailSettings(['transport_letterbox_release' => '*@example.org, qa@example.com', 'transport_letterbox_delivery' => 'smtp', 'defaultMailFromAddress' => 'site@example.org']);
+        $status = $this->provider()->getStatus()['release'];
+
+        self::assertSame(ContextualFeedbackSeverity::OK, $status->getSeverity());
+        self::assertSame('Release to *@example.org, qa@example.com', $status->getValue());
+    }
+
+    /**
+     * @param array<string, string> $overrides
+     */
+    #[Test]
+    #[DataProvider('refusedRelease')]
+    public function refusedReleaseWarnsWithTheReason(array $overrides, string $reason): void
+    {
+        $this->useMailSettings([
+            'transport_letterbox_release' => '*@example.org',
+            'transport_letterbox_delivery' => 'smtp',
+            'defaultMailFromAddress' => 'site@example.org',
+            ...$overrides,
+        ]);
+
+        $status = $this->provider()->getStatus()['release'];
+
+        self::assertSame(ContextualFeedbackSeverity::WARNING, $status->getSeverity());
+        self::assertStringContainsString($reason, $status->getMessage());
+    }
+
+    /**
+     * @return array<string, array{array<string, string>, string}>
+     */
+    public static function refusedRelease(): array
+    {
+        return [
+            'list invalid' => [['transport_letterbox_release' => '<script>'], 'invalid entry'],
+            'delivery missing' => [['transport_letterbox_delivery' => ''], 'No delivery transport'],
+            'delivery loops' => [['transport_letterbox_delivery' => 'mbox'], 'loop'],
+            'no default sender' => [['defaultMailFromAddress' => ''], 'MAIL/defaultMailFromAddress'],
+        ];
     }
 
     #[Test]

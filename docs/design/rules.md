@@ -87,9 +87,9 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 ## Release
 
-- The release button is the first icon action in the mail header, with the tooltip "Release to a real address" and an accessible name that includes the subject. Without `transport_letterbox_release` it is not rendered.
+- The release button is the first icon action in the mail header, with the tooltip "Release to a real address" and an accessible name that includes the subject. It is rendered only when this mail can be released.
 - The dialog is a core modal with a paper-plane icon in the title. A warning callout says the mail leaves the system and that the copy stays, a list shows Subject, From and Sent to, and one email field "Release to" carries help text with the allowed patterns and an error text linked with `aria-describedby`. Footer: Cancel and the primary "Release mail". Enter submits, Escape closes and returns focus to the button.
-- When release is configured but refused, the same button opens a danger callout "Release is not available" with the reason and the setting to change, no field, and only a "Close" button that takes focus.
+- A refused release has no button and no dialog markup. The reason and the setting to change are in the "Release" line of the Reports status.
 - The result is a core flash message after a redirect back to the same mail.
 
 ## Mail preview
