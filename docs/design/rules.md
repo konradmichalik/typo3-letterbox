@@ -6,7 +6,7 @@ These rules are binding for every change to Letterbox's backend module, the test
 
 The screens these rules produce are listed in [screens.md](screens.md).
 
-Phase 5 implemented. Phases 2, 3 and 4 are implemented as well: inbox, detail view, empty state, the "No mail selected" state, the external access page, the tester inbox, the toolbar item, the Reports status and the dashboard widget, and in Phase 5 the Checks tab and the release dialog.
+Phase 5 implemented. Phases 2, 3 and 4 are implemented as well: inbox, detail view, empty state, the "No mail selected" state, the external access page, the tester inbox, the toolbar item, the Reports status and the dashboard widget, and in Phase 5 the Checks tab.
 
 ## Principles
 
@@ -75,7 +75,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 ## Mail detail
 
 - Header: subject as `h2`, then a definition list (`dl`) with the rows From, To, Cc and Date. Labels sit in a narrow muted column (48px), values in the second, 4px between rows. An address shows the display name in semibold and the address in muted angle brackets, or only the address in normal weight when there is no name. Cc only when present. The Date row carries the full date and time and ends with "All headers", which jumps to the Headers tab; there is no second, collapsible header block.
-- Actions are icon-only buttons with a tooltip and an accessible name that includes the subject: release, download `.eml`, delete.
+- Actions are icon-only buttons with a tooltip and an accessible name that includes the subject: download `.eml`, delete.
 - Tabs: HTML, Text, Headers, Source, Links, Checks, Attachments. Core tab markup with the full ARIA tabs pattern.
 - Preview width: icon-only toggles for desktop, tablet and mobile width, with tooltip and accessible name.
 
@@ -84,13 +84,6 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 - The panel has one intro line ("Rule based checks of this mail. Nothing is fetched from the network."), then one core card per finding, errors first, then warnings, then infos.
 - A finding has a badge with icon and severity word (never colour alone), a semibold message and, where there is something to point at, a short excerpt in `code`. No line numbers.
 - The tab label counts errors and warnings, no number at 0. Without findings the panel says "No findings."
-
-## Release
-
-- The release button is the first icon action in the mail header, with the tooltip "Release to a real address" and an accessible name that includes the subject. It is rendered only when this mail can be released.
-- The dialog is a core modal with a paper-plane icon in the title. A warning callout says the mail leaves the system and that the copy stays, a list shows Subject, From and Sent to, and one email field "Release to" carries help text with the allowed patterns and an error text linked with `aria-describedby`. Footer: Cancel and the primary "Release mail". Enter submits, Escape closes and returns focus to the button.
-- A refused release has no button and no dialog markup. The reason and the setting to change are in the "Release" line of the Reports status.
-- The result is a core flash message after a redirect back to the same mail.
 
 ## Mail preview
 
@@ -108,14 +101,13 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 | No mails | Large centred illustration (the unDraw "empty mailbox", 240px wide), `h2` "No mails caught yet", one sentence on how mails arrive, a Reload button, and the test mail command as a muted hint when debug mode is on. Replaces both columns |
 | No mail selected | Detail column shows the 150px illustration, `h2` "No mail selected" and "Pick a mail from the list to read it here." |
 | No HTML preview | Core callout, Text tab selected |
-| Catching in a Production context (mode `all`) | Warning in toolbar and reports |
-| Mode `listed` | Info: "Catching N addresses" |
+| Catching in a Production context | Warning in toolbar and reports |
 | External access on | Shown in the External access status card and in reports |
 
 ## Toolbar, widget, reports
 
 - Toolbar item: core toolbar button with an envelope icon and a badge counting the unread mails of the current user (no badge at 0), accessible name "Mail catcher active, N unread mails". Admins only, can be switched off with `showToolbarItem`.
-- Dropdown: after a takeover a muted line "Letterbox took over the mail transport (source). Original transport: …", then one sentence on what happens to mails, a divider, the latest five subjects (each linking to the mail, cropped to 60 characters, unread ones in bold with a visually hidden "Unread"), a divider and a core button to the module. The badge is Warning for mode `all` and Info for `listed`.
+- Dropdown: after a takeover a muted line "Letterbox took over the mail transport (source). Original transport: …", then one sentence that mails are not delivered, a divider, the latest five subjects (each linking to the mail, cropped to 60 characters, unread ones in bold with a visually hidden "Unread"), a divider and a core button to the module. The badge is Warning.
 - Dashboard widget "Recent mails": core widget markup, admin only, subject, recipient and time.
 - Reports: core status provider with core severities; no own markup.
 
@@ -151,7 +143,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 - English in the code and the XLIFF source; translations through XLIFF.
 - Sentence case for labels and buttons.
-- Names: Letterbox, Mail inbox, External access, Tester inbox, Access token, Catch list, Delivery mode.
+- Names: Letterbox, Mail inbox, External access, Tester inbox, Access token.
 - Separate facts with ` · `.
 
 ## Pull request checklist

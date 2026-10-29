@@ -54,7 +54,6 @@ final class SendTestMailsCommandTest extends FunctionalTestCase
         }
         $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = [
             'transport' => LetterboxTransport::class,
-            'transport_letterbox_mode' => 'all',
             'transport_mbox_file' => $path,
         ];
     }

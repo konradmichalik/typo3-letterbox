@@ -20,7 +20,7 @@ use KonradMichalik\Typo3Letterbox\External\{EnvironmentVariables, ExternalAccess
 use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, TransportTakeover};
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use KonradMichalik\Typo3Letterbox\Report\LetterboxStatus;
-use PHPUnit\Framework\Attributes\{DataProvider, Test};
+use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -113,60 +113,30 @@ final class LetterboxStatusTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function allModeInRootProductionWarns(): void
+    public function catchingInRootProductionWarns(): void
     {
         $this->useContext('Production');
-        $this->useMailSettings(['transport_letterbox_mode' => 'all']);
 
-        $statuses = $this->provider()->getStatus();
-
-        self::assertSame(ContextualFeedbackSeverity::WARNING, $statuses['mode']->getSeverity());
+        self::assertSame(ContextualFeedbackSeverity::WARNING, $this->provider()->getStatus()['catching']->getSeverity());
     }
 
     #[Test]
-    public function allModeInProductionSubContextWarns(): void
+    public function catchingInProductionSubContextWarns(): void
     {
         $this->useContext('Production/Live');
-        $this->useMailSettings(['transport_letterbox_mode' => 'all']);
 
-        $status = $this->provider()->getStatus()['mode'];
+        $status = $this->provider()->getStatus()['catching'];
 
         self::assertSame(ContextualFeedbackSeverity::WARNING, $status->getSeverity());
         self::assertStringContainsString('Production/Live', $status->getMessage());
     }
 
     #[Test]
-    public function productionSubcontextDefaultsToListed(): void
-    {
-        $this->useContext('Production/Staging');
-        $this->useMailSettings([]);
-
-        $status = $this->provider()->getStatus()['mode'];
-
-        self::assertSame(ContextualFeedbackSeverity::INFO, $status->getSeverity());
-        self::assertSame('Listed, 0 addresses', $status->getValue());
-    }
-
-    #[Test]
-    public function allModeOutsideProductionIsOk(): void
+    public function catchingOutsideProductionIsOk(): void
     {
         $this->useContext('Development');
-        $this->useMailSettings(['transport_letterbox_mode' => 'all']);
 
-        self::assertSame(ContextualFeedbackSeverity::OK, $this->provider()->getStatus()['mode']->getSeverity());
-    }
-
-    #[Test]
-    public function listedModeIsInfoWithCatchCount(): void
-    {
-        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => '*@example.org, a@example.com']);
-
-        $status = $this->provider()->getStatus()['mode'];
-
-        self::assertSame(ContextualFeedbackSeverity::INFO, $status->getSeverity());
-        self::assertStringContainsString('2', $status->getValue());
-        self::assertStringNotContainsString('example.org', $status->getValue());
-        self::assertStringContainsString('*@example.org', $status->getMessage());
+        self::assertSame(ContextualFeedbackSeverity::OK, $this->provider()->getStatus()['catching']->getSeverity());
     }
 
     #[Test]
@@ -220,82 +190,12 @@ final class LetterboxStatusTest extends FunctionalTestCase
     #[Test]
     public function invalidMailSettingsAreAnError(): void
     {
-        $this->useMailSettings(['transport_letterbox_mode' => 'bogus']);
+        $this->useMailSettings(['transport_mbox_file' => '/var/www/html/public/x.php']);
 
         $statuses = $this->provider()->getStatus();
 
         self::assertSame(ContextualFeedbackSeverity::ERROR, $statuses['settings']->getSeverity());
         self::assertSame('Mail settings invalid', $statuses['settings']->getValue());
-    }
-
-    #[Test]
-    public function deliveryBackIntoLetterboxIsAnError(): void
-    {
-        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_delivery' => 'mbox']);
-
-        $statuses = $this->provider()->getStatus();
-
-        self::assertSame(ContextualFeedbackSeverity::ERROR, $statuses['delivery']->getSeverity());
-        self::assertSame('Delivery loops back', $statuses['delivery']->getValue());
-        self::assertStringContainsString('transport_letterbox_delivery', $statuses['delivery']->getMessage());
-
-        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_delivery' => 'smtp']);
-        self::assertArrayNotHasKey('delivery', $this->provider()->getStatus());
-    }
-
-    #[Test]
-    public function releaseWithoutListIsInfo(): void
-    {
-        $status = $this->provider()->getStatus()['release'];
-
-        self::assertSame(ContextualFeedbackSeverity::INFO, $status->getSeverity());
-        self::assertSame('Release is off', $status->getValue());
-    }
-
-    #[Test]
-    public function enabledReleaseNamesThePatterns(): void
-    {
-        $this->useMailSettings(['transport_letterbox_release' => '*@example.org, <b>@example.com', 'transport_letterbox_delivery' => 'smtp', 'defaultMailFromAddress' => 'site@example.org']);
-        self::assertSame(ContextualFeedbackSeverity::WARNING, $this->provider()->getStatus()['release']->getSeverity(), 'an invalid entry switches release off');
-
-        $this->useMailSettings(['transport_letterbox_release' => '*@example.org, qa@example.com', 'transport_letterbox_delivery' => 'smtp', 'defaultMailFromAddress' => 'site@example.org']);
-        $status = $this->provider()->getStatus()['release'];
-
-        self::assertSame(ContextualFeedbackSeverity::OK, $status->getSeverity());
-        self::assertSame('Release to *@example.org, qa@example.com', $status->getValue());
-    }
-
-    /**
-     * @param array<string, string> $overrides
-     */
-    #[Test]
-    #[DataProvider('refusedRelease')]
-    public function refusedReleaseWarnsWithTheReason(array $overrides, string $reason): void
-    {
-        $this->useMailSettings([
-            'transport_letterbox_release' => '*@example.org',
-            'transport_letterbox_delivery' => 'smtp',
-            'defaultMailFromAddress' => 'site@example.org',
-            ...$overrides,
-        ]);
-
-        $status = $this->provider()->getStatus()['release'];
-
-        self::assertSame(ContextualFeedbackSeverity::WARNING, $status->getSeverity());
-        self::assertStringContainsString($reason, $status->getMessage());
-    }
-
-    /**
-     * @return array<string, array{array<string, string>, string}>
-     */
-    public static function refusedRelease(): array
-    {
-        return [
-            'list invalid' => [['transport_letterbox_release' => '<script>'], 'invalid entry'],
-            'delivery missing' => [['transport_letterbox_delivery' => ''], 'No delivery transport'],
-            'delivery loops' => [['transport_letterbox_delivery' => 'mbox'], 'loop'],
-            'no default sender' => [['defaultMailFromAddress' => ''], 'MAIL/defaultMailFromAddress'],
-        ];
     }
 
     #[Test]
@@ -329,7 +229,6 @@ final class LetterboxStatusTest extends FunctionalTestCase
     public function externalAccessIsOffInRootProduction(): void
     {
         $this->useContext('Production');
-        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => '*@example.org']);
 
         $status = $this->provider(['LETTERBOX_EXTERNAL_ACCESS' => 'Production', 'LETTERBOX_ACCESS_TOKEN' => str_repeat('a', 32)])->getStatus()['external'];
 
@@ -340,7 +239,7 @@ final class LetterboxStatusTest extends FunctionalTestCase
     #[Test]
     public function valuesAreEscaped(): void
     {
-        $this->useMailSettings(['transport_mbox_file' => Environment::getVarPath().'/letterbox-test/a&b.mbox', 'transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => 'o&neil@example.org']);
+        $this->useMailSettings(['transport_mbox_file' => Environment::getVarPath().'/letterbox-test/a&b.mbox']);
 
         $statuses = $this->provider()->getStatus();
 
@@ -349,7 +248,6 @@ final class LetterboxStatusTest extends FunctionalTestCase
             self::assertDoesNotMatchRegularExpression('/&(?!amp;|lt;|gt;|quot;|#)/', $status->getMessage());
         }
         self::assertStringContainsString('a&amp;b.mbox', $statuses['file']->getMessage());
-        self::assertStringContainsString('o&amp;neil@example.org', $statuses['mode']->getMessage());
     }
 
     #[Test]

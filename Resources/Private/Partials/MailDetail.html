@@ -16,10 +16,6 @@
                     <div class="btn-group">
                         <f:variable name="downloadLabel" value="{f:translate(key: 'inbox.downloadEml', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
                         <f:variable name="deleteLabel" value="{f:translate(key: 'inbox.delete', extensionName: 'Typo3Letterbox', arguments: {0: subject})}" />
-                        <f:comment>Only a mail that can be released gets the button. Reports explains why release is unavailable.</f:comment>
-                        <f:if condition="{release.refusal}">
-                            <f:else><f:render section="ReleaseButton" arguments="{release: release, subject: subject}" /></f:else>
-                        </f:if>
                         <a class="btn btn-sm btn-default" href="{f:be.uri(route: 'system_letterbox.source', parameters: {id: mail.id})}" title="{downloadLabel}" aria-label="{downloadLabel}">
                             <span aria-hidden="true"><core:icon identifier="actions-download" /></span>
                         </a>
@@ -39,9 +35,6 @@
                         </button>
                     </div>
                 </form>
-                <f:if condition="{release.refusal}">
-                    <f:else><f:render section="Release" arguments="{release: release, mail: mail, subject: subject, token: token}" /></f:else>
-                </f:if>
             </div>
         </div>
 
@@ -276,59 +269,6 @@
     </div>
 </article>
 
-
-<f:section name="ReleaseButton">
-    <f:comment>Opens the dialog of release.js, which needs JavaScript like the confirmation of delete.</f:comment>
-    <button
-        type="button"
-        class="btn btn-sm btn-default"
-        data-letterbox-release
-        title="{f:translate(key: 'inbox.release.tooltip', extensionName: 'Typo3Letterbox')}"
-        aria-label="{f:translate(key: 'inbox.release', extensionName: 'Typo3Letterbox', arguments: {0: subject})}"
-        aria-haspopup="dialog"
-        data-allowlist="{release.allowlist}"
-        data-title="{f:translate(key: 'inbox.release.dialog.title', extensionName: 'Typo3Letterbox')}"
-        data-button-close-text="{f:translate(key: 'inbox.cancel', extensionName: 'Typo3Letterbox')}"
-        data-button-ok-text="{f:translate(key: 'inbox.release.dialog.ok', extensionName: 'Typo3Letterbox')}"
-    >
-        <span aria-hidden="true"><core:icon identifier="actions-paperplane" /></span>
-    </button>
-</f:section>
-
-<f:section name="Release">
-    <f:comment>Core shows the modal in the top frame. release.js copies the template content there and submits the form.</f:comment>
-    <form id="letterbox-release-form" method="post" action="{release.url}">
-        <input type="hidden" name="id" value="{mail.id}" />
-        <input type="hidden" name="letterboxToken" value="{token}" />
-        <input type="hidden" name="recipient" value="" />
-    </form>
-    <template id="letterbox-release-dialog">
-        <form class="text-start" novalidate>
-            <div class="callout callout-warning">
-                <div class="callout-icon" aria-hidden="true">
-                    <span class="icon-emphasized"><core:icon identifier="actions-exclamation-triangle-alt" /></span>
-                </div>
-                <div class="callout-content">
-                    <div class="callout-body"><f:translate key="inbox.release.dialog.notice" extensionName="Typo3Letterbox" /></div>
-                </div>
-            </div>
-            <dl class="text-break">
-                <dt class="text-variant"><f:translate key="inbox.release.dialog.subject" extensionName="Typo3Letterbox" /></dt>
-                <dd>{subject}</dd>
-                <dt class="text-variant"><f:translate key="inbox.detail.from" extensionName="Typo3Letterbox" /></dt>
-                <dd><f:if condition="{mail.from}"><f:then><f:render section="Address" arguments="{address: mail.from}" /></f:then><f:else><f:translate key="inbox.unknownSender" extensionName="Typo3Letterbox" /></f:else></f:if></dd>
-                <f:if condition="{mail.to}">
-                    <dt class="text-variant"><f:translate key="inbox.release.dialog.sentTo" extensionName="Typo3Letterbox" /></dt>
-                    <dd><f:render section="Addresses" arguments="{addresses: mail.to}" /></dd>
-                </f:if>
-            </dl>
-            <label class="form-label" for="letterbox-release-recipient"><f:translate key="inbox.release.dialog.label" extensionName="Typo3Letterbox" /></label>
-            <input class="form-control" type="email" id="letterbox-release-recipient" value="{release.recipient}" required autocomplete="off" spellcheck="false" aria-describedby="letterbox-release-error letterbox-release-help" />
-            <p class="invalid-feedback" id="letterbox-release-error" hidden><f:translate key="inbox.release.dialog.invalid" extensionName="Typo3Letterbox" /></p>
-            <p class="form-text mb-0" id="letterbox-release-help"><f:translate key="inbox.release.dialog.help" extensionName="Typo3Letterbox" arguments="{0: release.allowlist}" /></p>
-        </form>
-    </template>
-</f:section>
 <f:section name="FindingBadge">
     <span class="badge badge-{badge} d-inline-flex align-items-center gap-1">
         <span aria-hidden="true"><core:icon identifier="{icon}" /></span>

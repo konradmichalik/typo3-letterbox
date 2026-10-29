@@ -99,48 +99,11 @@ final class TransportTakeoverTest extends TestCase
     }
 
     #[Test]
-    public function deliveryDefaultsToTheOriginalTransport(): void
-    {
-        $taken = TransportTakeover::apply(['transport' => 'smtp', 'dsn' => ''], true, 'setting', self::VAR_PATH);
-
-        self::assertSame('smtp', $taken['transport_letterbox_delivery']);
-    }
-
-    #[Test]
-    public function deliveryOfAPureDsnSetupIsTheDsn(): void
-    {
-        $taken = TransportTakeover::apply(['transport' => '', 'dsn' => 'smtp://mail.example.org'], true, 'setting', self::VAR_PATH);
-
-        self::assertSame('dsn', $taken['transport_letterbox_delivery']);
-        self::assertSame('smtp://mail.example.org', TransportTakeover::deliverySettings($taken)['dsn']);
-    }
-
-    #[Test]
-    public function configuredDeliveryAndLetterboxKeysAreRespected(): void
-    {
-        $mail = [
-            'transport' => 'smtp',
-            'transport_letterbox_delivery' => 'sendmail',
-            'transport_letterbox_mode' => 'all',
-            'transport_letterbox_catch' => '*@example.org',
-        ];
-
-        $taken = TransportTakeover::apply($mail, true, 'setting', self::VAR_PATH);
-
-        self::assertSame('sendmail', $taken['transport_letterbox_delivery']);
-        self::assertSame('all', $taken['transport_letterbox_mode']);
-        self::assertSame('*@example.org', $taken['transport_letterbox_catch']);
-    }
-
-    #[Test]
-    public function deliverySettingsRestoreTheOriginalDsn(): void
+    public function originalRestoresTheTransportAndDsnBeforeTheTakeover(): void
     {
         $taken = TransportTakeover::apply(['transport' => 'sendmail', 'dsn' => 'smtp://mail.example.org'], true, 'setting', self::VAR_PATH);
 
         self::assertSame('', $taken['dsn']);
-        self::assertSame('smtp://mail.example.org', TransportTakeover::deliverySettings($taken)['dsn']);
-
-        $plain = ['transport' => LetterboxTransport::class, 'dsn' => ''];
-        self::assertSame($plain, TransportTakeover::deliverySettings($plain), 'without a takeover nothing changes');
+        self::assertSame(['transport' => 'sendmail', 'dsn' => 'smtp://mail.example.org'], array_intersect_key(TransportTakeover::original($taken) ?? [], ['transport' => 1, 'dsn' => 1]));
     }
 }

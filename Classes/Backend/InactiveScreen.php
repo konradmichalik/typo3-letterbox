@@ -15,10 +15,9 @@ namespace KonradMichalik\Typo3Letterbox\Backend;
 
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\External\EnvironmentVariables;
-use KonradMichalik\Typo3Letterbox\Mail\{LetterboxSettings, LetterboxTransport, TransportSummary, TransportTakeover};
+use KonradMichalik\Typo3Letterbox\Mail\{LetterboxTransport, TransportSummary, TransportTakeover};
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Information\Typo3Version;
 
 /**
@@ -69,7 +68,7 @@ final readonly class InactiveScreen
     /**
      * @param array<string, mixed> $mail the MAIL section of TYPO3_CONF_VARS
      *
-     * @return array{transport: string, setting: bool, environment: string, context: string, defaultMode: string, settingsUrl: string, settingsGroup: string, snippet: string}
+     * @return array{transport: string, setting: bool, environment: string, settingsUrl: string, settingsGroup: string, snippet: string}
      */
     private function variables(array $mail): array
     {
@@ -77,8 +76,6 @@ final readonly class InactiveScreen
             'transport' => TransportSummary::of($mail),
             'setting' => TransportTakeover::BY_SETTING === TransportTakeover::source('', $this->extensionSettings->raw('enable')),
             'environment' => $this->environment->get(TransportTakeover::ENVIRONMENT_VARIABLE),
-            'context' => (string) Environment::getContext(),
-            'defaultMode' => LetterboxSettings::defaultMode(Environment::getContext())->value,
             'settingsUrl' => $this->settingsUrl(),
             'settingsGroup' => $this->typo3Version->getMajorVersion() >= 14 ? 'system' : 'tools',
             'snippet' => self::SNIPPET,

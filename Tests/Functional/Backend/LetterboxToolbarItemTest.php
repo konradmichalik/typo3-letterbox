@@ -121,16 +121,6 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function badgeColourFollowsTheMode(): void
-    {
-        $this->append('Unread');
-        self::assertStringContainsString('badge-warning', $this->item()->getItem());
-
-        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => 'a@example.org']);
-        self::assertStringContainsString('badge-info', $this->item()->getItem());
-    }
-
-    #[Test]
     public function dropdownMarksUnreadMailsAndSeparatesSections(): void
     {
         $this->append('Seen');
@@ -163,28 +153,6 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
         $GLOBALS['BE_USER'] = $user;
 
         self::assertFalse($this->item()->checkAccess());
-    }
-
-    #[Test]
-    public function listedModeSaysCatchingNAddresses(): void
-    {
-        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => 'a@example.org, *@example.com']);
-        $this->append('Caught');
-
-        $html = $this->item()->getItem();
-
-        self::assertTrue($this->item()->checkAccess());
-        self::assertStringContainsString('Catching 2 addresses', $html);
-        self::assertStringNotContainsString('Mail catcher active', $html);
-    }
-
-    #[Test]
-    public function listedModeWithOneAddressUsesTheSingular(): void
-    {
-        $this->useMailSettings(['transport_letterbox_mode' => 'listed', 'transport_letterbox_catch' => 'a@example.org']);
-        $this->append('Caught');
-
-        self::assertStringContainsString('Catching 1 address,', $this->item()->getItem());
     }
 
     #[Test]
@@ -234,14 +202,6 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function absentInModeOff(): void
-    {
-        $this->useMailSettings(['transport_letterbox_mode' => 'off', 'transport_letterbox_delivery' => 'smtp']);
-
-        self::assertFalse($this->item()->checkAccess());
-    }
-
-    #[Test]
     public function unconfiguredMailboxRendersNotConfigured(): void
     {
         $this->useMailSettings(['transport_mbox_file' => '']);
@@ -257,7 +217,7 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     #[Test]
     public function invalidSettingsRenderInvalidSettingsWithoutException(): void
     {
-        $this->useMailSettings(['transport_letterbox_mode' => 'bogus']);
+        $this->useMailSettings(['transport_mbox_file' => '/var/www/html/public/x.php']);
         $item = $this->item();
 
         self::assertTrue($item->checkAccess());

@@ -292,7 +292,7 @@
 				<source>Turn on Letterbox</source>
 			</trans-unit>
 			<trans-unit id="inbox.inactive.turnOn.text" resname="inbox.inactive.turnOn.text">
-				<source>Enable "Catch mails with Letterbox" in the extension configuration. Letterbox then takes over the mail transport on this system, an existing MAIL/dsn included, and delivers through it again whenever a mail is not caught.</source>
+				<source>Enable "Catch mails with Letterbox" in the extension configuration. Letterbox then takes over the mail transport on this system, an existing MAIL/dsn included, and catches every mail.</source>
 			</trans-unit>
 			<trans-unit id="inbox.inactive.openSettings" resname="inbox.inactive.openSettings">
 				<source>Open extension configuration</source>
@@ -326,15 +326,6 @@
 			</trans-unit>
 			<trans-unit id="inbox.inactive.perSystemCurrent" resname="inbox.inactive.perSystemCurrent">
 				<source>This system sets LETTERBOX_ENABLE=%s.</source>
-			</trans-unit>
-			<trans-unit id="inbox.inactive.context" resname="inbox.inactive.context">
-				<source>Context</source>
-			</trans-unit>
-			<trans-unit id="inbox.inactive.context.all" resname="inbox.inactive.context.all">
-				<source>%s: the default mode all catches every mail.</source>
-			</trans-unit>
-			<trans-unit id="inbox.inactive.context.listed" resname="inbox.inactive.context.listed">
-				<source>%s: the default mode listed catches only the addresses on the catch list. With an empty list every mail is still delivered.</source>
 			</trans-unit>
 			<trans-unit id="inbox.inactive.additional" resname="inbox.inactive.additional">
 				<source>Configure it in additional.php instead</source>
@@ -422,63 +413,6 @@
 			</trans-unit>
 			<trans-unit id="flash.deleted" resname="flash.deleted">
 				<source>Mail deleted.</source>
-			</trans-unit>
-			<trans-unit id="inbox.release" resname="inbox.release">
-				<source>Release this mail: %s</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.tooltip" resname="inbox.release.tooltip">
-				<source>Release to a real address</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.notice" resname="inbox.release.dialog.notice">
-				<source>This mail leaves the system. It is delivered through the real mail server to the address below. The copy in Letterbox stays.</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.subject" resname="inbox.release.dialog.subject">
-				<source>Subject</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.sentTo" resname="inbox.release.dialog.sentTo">
-				<source>Sent to</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.refusal.release_off" resname="inbox.release.refusal.release_off">
-				<source>Release is off: MAIL/transport_letterbox_release lists no addresses.</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.unavailable" resname="inbox.release.unavailable">
-				<source>Release is not available</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.title" resname="inbox.release.dialog.title">
-				<source>Release mail</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.label" resname="inbox.release.dialog.label">
-				<source>Release to</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.help" resname="inbox.release.dialog.help">
-				<source>Only addresses matching the release list are accepted: %s</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.invalid" resname="inbox.release.dialog.invalid">
-				<source>Enter one address that matches the release list.</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.dialog.ok" resname="inbox.release.dialog.ok">
-				<source>Release mail</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.refusal.release_invalid" resname="inbox.release.refusal.release_invalid">
-				<source>MAIL/transport_letterbox_release contains an invalid entry. Use exact addresses or *@domain patterns only.</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.refusal.delivery_missing" resname="inbox.release.refusal.delivery_missing">
-				<source>No delivery transport is set. Set MAIL/transport_letterbox_delivery to a real mail transport, for example smtp.</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.refusal.delivery_loops" resname="inbox.release.refusal.delivery_loops">
-				<source>The delivery transport would hand the mail back to Letterbox, a loop. Point MAIL/transport_letterbox_delivery at a real mail server, not at Letterbox, mbox or a sendmail command that runs letterbox:receive.</source>
-			</trans-unit>
-			<trans-unit id="inbox.release.refusal.sender_missing" resname="inbox.release.refusal.sender_missing">
-				<source>This mail has no sender address. Set MAIL/defaultMailFromAddress to release it.</source>
-			</trans-unit>
-			<trans-unit id="flash.released" resname="flash.released">
-				<source>Mail released to %s.</source>
-			</trans-unit>
-			<trans-unit id="flash.releaseNotAllowed" resname="flash.releaseNotAllowed">
-				<source>The mail was not released: the address is not allowed. Enter exactly one address that matches MAIL/transport_letterbox_release.</source>
-			</trans-unit>
-			<trans-unit id="flash.releaseFailed" resname="flash.releaseFailed">
-				<source>The mail could not be released. The delivery transport reported an error, see the TYPO3 log.</source>
 			</trans-unit>
 			<trans-unit id="flash.markedAllRead" resname="flash.markedAllRead">
 				<source>All mails marked as read.</source>
@@ -573,12 +507,6 @@
 			<trans-unit id="toolbar.active" resname="toolbar.active">
 				<source>Mail catcher active</source>
 			</trans-unit>
-			<trans-unit id="toolbar.catching.one" resname="toolbar.catching.one">
-				<source>Catching %d address</source>
-			</trans-unit>
-			<trans-unit id="toolbar.catching.other" resname="toolbar.catching.other">
-				<source>Catching %d addresses</source>
-			</trans-unit>
 			<trans-unit id="toolbar.unread.one" resname="toolbar.unread.one">
 				<source>%s, %d unread mail</source>
 			</trans-unit>
@@ -596,9 +524,6 @@
 			</trans-unit>
 			<trans-unit id="toolbar.intro" resname="toolbar.intro">
 				<source>Outgoing mails are written to the mbox file and not delivered to their recipients.</source>
-			</trans-unit>
-			<trans-unit id="toolbar.introListed" resname="toolbar.introListed">
-				<source>Mails to the listed addresses are written to the mbox file and not delivered to their recipients.</source>
 			</trans-unit>
 			<trans-unit id="toolbar.takeover" resname="toolbar.takeover">
 				<source>Letterbox took over the mail transport (%1$s). Original transport: %2$s.</source>
@@ -652,13 +577,25 @@
 				<source>Letterbox is installed but not the mail transport.</source>
 			</trans-unit>
 			<trans-unit id="status.transport.takeoverMessage" resname="status.transport.takeoverMessage">
-				<source>Letterbox took over the mail transport (%1$s). Mails that are not caught are delivered through the original transport: %2$s.</source>
+				<source>Letterbox took over the mail transport (%1$s). It replaced: %2$s.</source>
 			</trans-unit>
 			<trans-unit id="takeover.by.setting" resname="takeover.by.setting">
 				<source>extension setting</source>
 			</trans-unit>
 			<trans-unit id="takeover.by.env" resname="takeover.by.env">
 				<source>LETTERBOX_ENABLE</source>
+			</trans-unit>
+			<trans-unit id="status.catching.title" resname="status.catching.title">
+				<source>Catching</source>
+			</trans-unit>
+			<trans-unit id="status.catching.value" resname="status.catching.value">
+				<source>All mails are caught</source>
+			</trans-unit>
+			<trans-unit id="status.catching.message" resname="status.catching.message">
+				<source>Every mail is caught and not delivered.</source>
+			</trans-unit>
+			<trans-unit id="status.catching.warning" resname="status.catching.warning">
+				<source>Every mail is caught and none is delivered, although %s is a Production context. That is right for a stage system. On a live system turn Letterbox off.</source>
 			</trans-unit>
 			<trans-unit id="status.settings.title" resname="status.settings.title">
 				<source>Mail settings</source>
@@ -667,61 +604,7 @@
 				<source>Mail settings invalid</source>
 			</trans-unit>
 			<trans-unit id="status.settings.invalidMessage" resname="status.settings.invalidMessage">
-				<source>The MAIL settings of Letterbox are invalid, so mails are not caught. Check the mbox file name, the mode and the delivery transport.</source>
-			</trans-unit>
-			<trans-unit id="status.delivery.title" resname="status.delivery.title">
-				<source>Delivery transport</source>
-			</trans-unit>
-			<trans-unit id="status.delivery.loops" resname="status.delivery.loops">
-				<source>Delivery loops back</source>
-			</trans-unit>
-			<trans-unit id="status.delivery.loopsMessage" resname="status.delivery.loopsMessage">
-				<source>MAIL/transport_letterbox_delivery hands mails back to Letterbox (core mbox transport, or sendmail running letterbox:receive). In modes listed and off, every mail that should be delivered fails with an exception. Configure a real delivery, for example smtp.</source>
-			</trans-unit>
-			<trans-unit id="status.release.title" resname="status.release.title">
-				<source>Release</source>
-			</trans-unit>
-			<trans-unit id="status.release.on" resname="status.release.on">
-				<source>Release to %s</source>
-			</trans-unit>
-			<trans-unit id="status.release.onMessage" resname="status.release.onMessage">
-				<source>Administrators can release a caught mail to an address matching this list. It is delivered through MAIL/transport_letterbox_delivery.</source>
-			</trans-unit>
-			<trans-unit id="status.release.off" resname="status.release.off">
-				<source>Release is off</source>
-			</trans-unit>
-			<trans-unit id="status.release.senderMissing" resname="status.release.senderMissing">
-				<source>MAIL/defaultMailFromAddress is empty, so mails without a From address cannot be released. Set MAIL/defaultMailFromAddress to release every mail.</source>
-			</trans-unit>
-			<trans-unit id="status.mode.title" resname="status.mode.title">
-				<source>Delivery mode</source>
-			</trans-unit>
-			<trans-unit id="status.mode.all" resname="status.mode.all">
-				<source>All mails are caught</source>
-			</trans-unit>
-			<trans-unit id="status.mode.allWarning" resname="status.mode.allWarning">
-				<source>Every mail is caught and none is delivered, although %s is a Production context. Mode all is set explicitly here, which is right for a stage system. On a live system set the mode to listed or off, or switch the transport.</source>
-			</trans-unit>
-			<trans-unit id="status.mode.allMessage" resname="status.mode.allMessage">
-				<source>Every mail is caught and not delivered.</source>
-			</trans-unit>
-			<trans-unit id="status.mode.listed" resname="status.mode.listed">
-				<source>Listed, %d addresses</source>
-			</trans-unit>
-			<trans-unit id="status.mode.listed.one" resname="status.mode.listed.one">
-				<source>Listed, 1 address</source>
-			</trans-unit>
-			<trans-unit id="status.mode.listedMessage" resname="status.mode.listedMessage">
-				<source>Only mails to these addresses are caught, all others are delivered: %s</source>
-			</trans-unit>
-			<trans-unit id="status.mode.listedEmptyMessage" resname="status.mode.listedEmptyMessage">
-				<source>The catch list is empty, so every mail is delivered.</source>
-			</trans-unit>
-			<trans-unit id="status.mode.off" resname="status.mode.off">
-				<source>Off</source>
-			</trans-unit>
-			<trans-unit id="status.mode.offMessage" resname="status.mode.offMessage">
-				<source>No mail is caught, all mails are delivered.</source>
+				<source>The MAIL settings of Letterbox are invalid, so mails are not caught. Check the mbox file name.</source>
 			</trans-unit>
 			<trans-unit id="status.file.title" resname="status.file.title">
 				<source>Mbox file</source>

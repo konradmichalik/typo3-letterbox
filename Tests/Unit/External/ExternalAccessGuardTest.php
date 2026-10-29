@@ -102,13 +102,11 @@ final class ExternalAccessGuardTest extends TestCase
         $this->useContext('Production');
         $env = ['LETTERBOX_EXTERNAL_ACCESS' => 'Production', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN];
 
-        foreach (['all', 'listed', 'off'] as $mode) {
-            $this->useMail(['transport' => LetterboxTransport::class, 'transport_mbox_file' => '/tmp/m.mbox', 'transport_letterbox_mode' => $mode, 'transport_letterbox_catch' => '*@example.org']);
-            $state = $this->guard($env)->evaluate($this->request());
+        $this->useMail(['transport' => LetterboxTransport::class, 'transport_mbox_file' => '/tmp/m.mbox']);
+        $state = $this->guard($env)->evaluate($this->request());
 
-            self::assertFalse($state->active, $mode);
-            self::assertSame([ExternalAccessState::PRODUCTION], $state->reasons, $mode);
-        }
+        self::assertFalse($state->active);
+        self::assertSame([ExternalAccessState::PRODUCTION], $state->reasons);
     }
 
     #[Test]

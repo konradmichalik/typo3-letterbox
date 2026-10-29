@@ -26,7 +26,7 @@ use function is_string;
  *
  * Makes Letterbox the mail transport when the extension setting `enable` or LETTERBOX_ENABLE says so. It runs in
  * ext_localconf.php, after settings.php and additional.php and before any mailer is built. The original transport
- * and DSN are kept for the delivery of mails that are not caught, at runtime only.
+ * and DSN are kept at runtime only, so the backend can name what Letterbox replaced.
  *
  * @author Konrad Michalik <hej@konradmichalik.dev>
  */
@@ -79,10 +79,6 @@ final class TransportTakeover
         if ('' === trim((string) ($mail['transport_mbox_file'] ?? ''))) {
             $takenOver['transport_mbox_file'] = rtrim($varPath, '/').self::MAILBOX;
             $takenOver[self::KEY]['mbox_file'] = $takenOver['transport_mbox_file'];
-        }
-        $delivery = '' !== $transport ? $transport : ('' !== $dsn ? 'dsn' : '');
-        if ('' === trim((string) ($mail['transport_letterbox_delivery'] ?? '')) && '' !== $delivery) {
-            $takenOver['transport_letterbox_delivery'] = $delivery;
         }
 
         return $takenOver;
@@ -140,19 +136,5 @@ final class TransportTakeover
         if ('' !== $path && !is_dir(dirname($path))) {
             GeneralUtility::mkdir_deep(dirname($path));
         }
-    }
-
-    /**
-     * The settings to build the delivery transport from: with the original DSN, so delivery works as before the takeover.
-     *
-     * @param array<string, mixed> $mail
-     *
-     * @return array<string, mixed>
-     */
-    public static function deliverySettings(array $mail): array
-    {
-        $takeover = self::of($mail);
-
-        return null === $takeover ? $mail : [...$mail, 'dsn' => $takeover['dsn']];
     }
 }

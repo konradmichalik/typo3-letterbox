@@ -19,14 +19,13 @@ use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\MailFilter;
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\External\ExternalAccessGuard;
-use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, RecipientPattern, ReleaseSettings, RetentionSettings, TransportSummary, TransportTakeover};
+use KonradMichalik\Typo3Letterbox\Mail\{LetterboxSettings, LetterboxTransport, RetentionSettings, TransportSummary, TransportTakeover};
 use TYPO3\CMS\Core\Core\{ApplicationContext, Environment};
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Reports\{Status, StatusProviderInterface};
 
-use function count;
 use function dirname;
 use function is_array;
 use function sprintf;
@@ -68,18 +67,14 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         $statuses = ['transport' => $this->transport($mail)];
         $context = Environment::getContext();
         try {
-            $settings = LetterboxSettings::fromMailSettings($mail, $context);
+            $settings = LetterboxSettings::fromMailSettings($mail);
         } catch (InvalidArgumentException) {
             $statuses['settings'] = $this->status('settings', 'status.settings.invalid', 'status.settings.invalidMessage', ContextualFeedbackSeverity::ERROR);
 
             return $statuses;
         }
 
-        $statuses['mode'] = $this->mode($settings, $context);
-        if ($settings->deliveryLoops) {
-            $statuses['delivery'] = $this->status('delivery', 'status.delivery.loops', 'status.delivery.loopsMessage', ContextualFeedbackSeverity::ERROR);
-        }
-        $statuses['release'] = $this->release($mail);
+        $statuses['catching'] = $this->catching($context);
         $statuses['file'] = $this->file($settings);
         $statuses['retention'] = $this->retention();
         $statuses['external'] = $this->external();
@@ -111,60 +106,17 @@ final readonly class LetterboxStatus implements StatusProviderInterface
         );
     }
 
-    private function mode(LetterboxSettings $settings, ApplicationContext $context): Status
-    {
-        $title = $this->translate('status.mode.title');
-        $count = count($settings->catch);
-
-        return match ($settings->mode) {
-            DeliveryMode::All => $this->modeAll($title, $context),
-            DeliveryMode::Listed => new Status(
-                $title,
-                1 === $count ? $this->translate('status.mode.listed.one') : sprintf($this->translate('status.mode.listed'), $count),
-                0 === $count
-                    ? $this->escape($this->translate('status.mode.listedEmptyMessage'))
-                    : sprintf($this->escape($this->translate('status.mode.listedMessage')), $this->escape(implode(', ', array_map(static fn (RecipientPattern $pattern): string => $pattern->value(), $settings->catch)))),
-                ContextualFeedbackSeverity::INFO,
-            ),
-            DeliveryMode::Off => $this->status('mode', 'status.mode.off', 'status.mode.offMessage'),
-        };
-    }
-
     /**
      * Any Production context warns, a live system may well run as Production/Live and would swallow every mail.
      */
-    private function modeAll(string $title, ApplicationContext $context): Status
+    private function catching(ApplicationContext $context): Status
     {
-        $value = $this->translate('status.mode.all');
+        $title = $this->translate('status.catching.title');
+        $value = $this->translate('status.catching.value');
 
         return $context->isProduction()
-            ? new Status($title, $value, sprintf($this->escape($this->translate('status.mode.allWarning')), $this->escape((string) $context)), ContextualFeedbackSeverity::WARNING)
-            : new Status($title, $value, $this->escape($this->translate('status.mode.allMessage')));
-    }
-
-    /**
-     * The module shows the release button only for a mail that can be released, so this line explains why it is missing.
-     *
-     * @param array<string, mixed> $mail
-     */
-    private function release(array $mail): Status
-    {
-        $title = $this->translate('status.release.title');
-        $settings = ReleaseSettings::fromMailSettings($mail);
-        $refusal = $settings->refusal();
-        if (ReleaseSettings::OFF === $refusal) {
-            return new Status($title, $this->translate('status.release.off'), $this->escape($this->translate('inbox.release.refusal.release_off')), ContextualFeedbackSeverity::INFO);
-        }
-        if (null !== $refusal) {
-            return new Status($title, $this->translate('inbox.release.unavailable'), $this->escape($this->translate('inbox.release.refusal.'.$refusal)), ContextualFeedbackSeverity::WARNING);
-        }
-
-        $value = sprintf($this->translate('status.release.on'), implode(', ', array_map(static fn (RecipientPattern $pattern): string => $pattern->value(), $settings->allowlist)));
-        if ('' === trim((string) ($mail['defaultMailFromAddress'] ?? ''))) {
-            return new Status($title, $value, $this->escape($this->translate('status.release.senderMissing')), ContextualFeedbackSeverity::WARNING);
-        }
-
-        return new Status($title, $value, $this->escape($this->translate('status.release.onMessage')));
+            ? new Status($title, $value, sprintf($this->escape($this->translate('status.catching.warning')), $this->escape((string) $context)), ContextualFeedbackSeverity::WARNING)
+            : new Status($title, $value, $this->escape($this->translate('status.catching.message')));
     }
 
     private function file(LetterboxSettings $settings): Status

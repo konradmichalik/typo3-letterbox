@@ -82,9 +82,7 @@ $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mail
                     <dt class="col-sm-3 text-variant fw-normal"><f:translate key="inbox.inactive.setting" extensionName="Typo3Letterbox" /></dt>
                     <dd class="col-sm-9"><f:translate key="{f:if(condition: inactive.setting, then: 'inbox.inactive.on', else: 'inbox.inactive.off')}" extensionName="Typo3Letterbox" /></dd>
                     <dt class="col-sm-3 text-variant fw-normal"><f:translate key="inbox.inactive.perSystem" extensionName="Typo3Letterbox" /></dt>
-                    <dd class="col-sm-9"><f:translate key="inbox.inactive.perSystemText" extensionName="Typo3Letterbox" /><f:if condition="{inactive.environment}"> <f:translate key="inbox.inactive.perSystemCurrent" extensionName="Typo3Letterbox" arguments="{0: inactive.environment}" /></f:if></dd>
-                    <dt class="col-sm-3 text-variant fw-normal"><f:translate key="inbox.inactive.context" extensionName="Typo3Letterbox" /></dt>
-                    <dd class="col-sm-9 mb-0"><f:translate key="inbox.inactive.context.{inactive.defaultMode}" extensionName="Typo3Letterbox" arguments="{0: inactive.context}" /></dd>
+                    <dd class="col-sm-9 mb-0"><f:translate key="inbox.inactive.perSystemText" extensionName="Typo3Letterbox" /><f:if condition="{inactive.environment}"> <f:translate key="inbox.inactive.perSystemCurrent" extensionName="Typo3Letterbox" arguments="{0: inactive.environment}" /></f:if></dd>
                 </dl>
                 <details class="letterbox-inactive-details">
                     <summary><f:translate key="inbox.inactive.additional" extensionName="Typo3Letterbox" /></summary>

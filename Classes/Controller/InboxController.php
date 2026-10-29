@@ -21,7 +21,7 @@ use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail, MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Html\MailHtmlDocument;
 use KonradMichalik\Typo3Letterbox\Http\DownloadResponseFactory;
-use KonradMichalik\Typo3Letterbox\Mail\{MailRelease, RetentionSettings};
+use KonradMichalik\Typo3Letterbox\Mail\RetentionSettings;
 use KonradMichalik\Typo3Letterbox\Mbox\{MessageIndexEntry, TextSegments};
 use KonradMichalik\Typo3Letterbox\Pagination\MailPaginator;
 use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
@@ -85,7 +85,6 @@ final readonly class InboxController
         private ReadState $readState,
         private MailListView $mailListView,
         private BackendViewFactory $backendViewFactory,
-        private MailRelease $mailRelease,
         private MailChecker $mailChecker,
         private SiteHosts $siteHosts,
         private InactiveScreen $inactiveScreen,
@@ -233,7 +232,6 @@ final readonly class InboxController
     {
         $this->pageRenderer->addCssFile('EXT:typo3_letterbox/Resources/Public/Css/inbox.css');
         $this->pageRenderer->loadJavaScriptModule('@konradmichalik/typo3-letterbox/inbox.js');
-        $this->pageRenderer->loadJavaScriptModule('@konradmichalik/typo3-letterbox/release.js');
         $this->pageRenderer->loadJavaScriptModule('@typo3/backend/modal.js');
         $this->pageRenderer->loadJavaScriptModule('@typo3/backend/copy-to-clipboard.js');
         $this->pageRenderer->loadJavaScriptModule($this->typo3Version->getMajorVersion() >= 14 ? '@typo3/backend/tab.js' : '@typo3/backend/tabs.js');
@@ -321,22 +319,6 @@ final readonly class InboxController
             'defaultTab' => $this->defaultTab($query->tab, $hasHtml, $hasPreview),
             'deleteUrl' => $this->mailListView->deleteUrl($query),
             'token' => $this->token($request),
-            'release' => $this->releaseVariables($query, $mail),
-        ];
-    }
-
-    /**
-     * The template shows the button only without a refusal. Reports explains a refusal of the configuration.
-     *
-     * @return array{url: string, refusal: string, recipient: string, allowlist: string}
-     */
-    private function releaseVariables(InboxQuery $query, Mail $mail): array
-    {
-        return [
-            'url' => $this->mailListView->releaseUrl($query),
-            'refusal' => (string) $this->mailRelease->refusal($mail),
-            'recipient' => $this->mailRelease->suggestedRecipient($mail),
-            'allowlist' => implode(', ', array_map(static fn ($pattern): string => $pattern->value(), $this->mailRelease->settings()->allowlist)),
         ];
     }
 

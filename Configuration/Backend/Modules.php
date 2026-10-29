@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-use KonradMichalik\Typo3Letterbox\Controller\{ExternalAccessController, InboxController, ReleaseController};
+use KonradMichalik\Typo3Letterbox\Controller\{ExternalAccessController, InboxController};
 
 if ('0' === (string) ($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['enableBackendModule'] ?? '1')) {
     return [];
@@ -48,10 +48,6 @@ return [
             ],
             'clear' => [
                 'target' => InboxController::class.'::clearAction',
-                'methods' => ['POST'],
-            ],
-            'release' => [
-                'target' => ReleaseController::class.'::releaseAction',
                 'methods' => ['POST'],
             ],
             'markAllRead' => [

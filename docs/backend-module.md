@@ -4,40 +4,47 @@ Back to [documentation overview](README.md).
 
 ![Letterbox backend module with mail list and HTML preview](images/backend-module.png)
 
-The module is under System › Letterbox and is available to administrators only. It reads the file set in `transport_mbox_file`, so existing mbox files stay readable.
+The module is under System › Letterbox, for administrators only. It reads the file set in `transport_mbox_file`, so existing mbox files stay readable.
 
-## Not the mail transport
+## Inbox
 
-While Letterbox is not the active mail transport, the module shows "Letterbox is not catching mails" instead of the inbox. The meta line reads "Mail inbox · not active". The screen names the transport the system uses, as type or DSN scheme, host and port (never user, password or query), and has a card "Turn on Letterbox" with:
-
-* a button to the core Settings module and the path to the extension configuration, where `enable` switches Letterbox on (see [switch](configuration.md#switch)),
-* the current transport, the extension setting (On or Off), `LETTERBOX_ENABLE` and the application context with what the default mode would do,
-* the three `additional.php` lines as an alternative, with a copy button.
-
-When the mbox file of an earlier setup still holds mails, a line below the card says how many and links "Show them" to the list. That list is read-only browsing of the old file: the doc header offers no "Clear all" while Letterbox is not the transport.
-
-
-* The mail list shows caught mails with pagination. It ends at the bottom of the visible area and its rows scroll inside it. It can be collapsed to give the detail view the full width, and the state is stored per backend user.
-* Each row shows the subject and "sender to recipient", using names where the mail has them and addresses otherwise.
-* The search field finds mails by sender, recipient (name or address) and subject. The quick filters All, Unread and Attachments show their counts for the current search. Search, filter and page stay in every link, also while a mail is open.
-* Unread mails carry a dot. A mail counts as read once its detail view has been opened, separately for each backend user. With the Unread filter active, an opened mail stays in the list until the list is fetched again.
-* While the current user has unread mails, the list header has a "Mark all as read" button. It marks every caught mail as read for this user only, keeps search, filter and page, and reloads the module. The read state holds at most the 2000 most recently read mails per user.
+* The mail list shows caught mails with pagination and scrolls inside its own area. It can be collapsed to give the detail view the full width, stored per backend user.
+* Each row shows the subject and "sender to recipient", with names where the mail has them.
+* Search finds mails by sender, recipient (name or address) and subject. The quick filters All, Unread and Attachments show counts for the current search. Search, filter and page stay in every link.
+* Unread mails carry a dot. A mail counts as read once its detail view was opened, per backend user, for at most the 2000 most recently read mails. With the Unread filter active, an opened mail stays in the list until the list is fetched again. "Mark all as read" in the list header marks every mail as read for this user only.
 * The detail view has these tabs:
-  * HTML: the sandboxed preview, with a Preview and Code switch (icon buttons) on the right above it. Code shows the HTML part as the sender sent it, escaped and unsanitised. It is also shown, without the switch, when no preview can be built (HTML over 2 MiB, too many elements or a parse failure).
+  * HTML: the sandboxed preview, with a Preview and Code switch. Code shows the HTML part as sent, escaped and unsanitised. It is also shown, without the switch, when no preview can be built (HTML over 2 MiB, too many elements or a parse failure).
   * Text: the plain text part, with `http` and `https` URLs linked
   * Headers: the main headers, with an "All headers" link
   * Source: the raw message, which can be downloaded
   * Links: every link in the mail with copy and open buttons. Password reset links are flagged.
-  * Checks: rule based findings with a short excerpt, sorted error, warning, info. The tab counts errors and warnings. See [Checks](#checks).
+  * Checks: findings sorted error, warning, info. The tab counts errors and warnings. See [Checks](#checks).
   * Attachments: each attachment can be downloaded
 * The meta line above the list shows the mbox file, the number and size of the mails and the [retention limits](operations.md#retention).
-* The preview width can be switched between desktop (full width), tablet (520px) and mobile (360px).
-* The HTML preview runs in a sandboxed frame and remote images are blocked. "Load remote images" allows them for the current mail only. They are loaded over https and nothing else, and the preview comes from its own route (`system_letterbox.preview`) with a restrictive content security policy. Images that point to a missing `cid:` part are reported above the preview. A PNG, JPEG, GIF or WebP image used more than once is embedded only once, as the background of a placeholder with the same size, so a newsletter that repeats its logo a thousand times keeps the preview small. Other repeated images (SVG, or images whose size PHP cannot read) are embedded on every use until those copies reach 5 MB. References beyond that stay empty and are listed with the missing `cid:` parts.
-* Header actions are icon buttons: release, download `.eml` and delete. See [Release](#release).
-* Deleting a single mail and clearing all mails ask for confirmation first, and a message confirms the result. After a delete the list keeps its search and filter. Opening a mail that no longer exists, for example through the browser history, returns to the list with a message.
-* Without caught mails the module shows an empty state. When `debugMode` is already enabled in the [extension settings](configuration.md#extension-settings), it also shows the command that sends test mails.
+* Header actions are icon buttons: download `.eml` and delete. Deleting a mail and clearing all mails ask for confirmation first. Opening a mail that no longer exists returns to the list with a message. Messages after delete, clear and mark all read appear as toasts, not above the module.
+* Without caught mails the module shows an empty state. When `debugMode` is enabled in the [extension settings](configuration.md#extension-settings), it also shows the command that sends test mails.
+
+## HTML preview
+
+The width can be switched between desktop (full width), tablet (520px) and mobile (360px).
+
+The preview runs in a sandboxed frame from its own route (`system_letterbox.preview`) with a restrictive content security policy. Remote images are blocked. "Load remote images" allows them for the current mail only, over https. Images that point to a missing `cid:` part are reported above the preview.
+
+A PNG, JPEG, GIF or WebP image used more than once is embedded only once, as the background of a placeholder with the same size, so a newsletter that repeats its logo a thousand times keeps the preview small. Other repeated images (SVG, or images whose size PHP cannot read) are embedded on every use until those copies reach 5 MB. References beyond that stay empty and are listed with the missing `cid:` parts.
+
+## Not the mail transport
+
+While Letterbox is not the active mail transport, the module shows "Letterbox is not catching mails" instead of the inbox, and the meta line reads "Mail inbox · not active". The screen names the transport in use, as type or DSN scheme, host and port (never user, password or query), and has a card "Turn on Letterbox" with:
+
+* a button to the core Settings module and the path to the extension configuration, where `enable` switches Letterbox on (see [switch](configuration.md#switch)),
+* the current transport, the extension setting (On or Off), and `LETTERBOX_ENABLE`,
+* the three `additional.php` lines as an alternative, with a copy button.
+
+When the mbox file of an earlier setup still holds mails, a line below the card says how many and links "Show them". That list is read-only: the doc header offers no "Clear all" while Letterbox is not the transport.
 
 ## Checks
+
+![Checks tab with warnings and infos for a newsletter](images/backend-module-checks.png)
 
 The Checks tab runs fixed rules over the stored mail. Nothing is fetched from the network, links and images are only read. Findings show a badge with the severity word, a message and, where there is something to point at, an excerpt of the offending HTML (at most 120 characters, whitespace collapsed). There are no line numbers. The tab label counts errors and warnings, and shows no number at 0. A mail without findings shows "No findings."
 
@@ -53,32 +60,6 @@ The Checks tab runs fixed rules over the stored mail. Nothing is fetched from th
 | `remote_image` | Info | An `img` loads from `http:` or `https:`. The message says when it looks like a tracking pixel: `width` and `height` attributes, or CSS `width` and `height`, both 0 or 1 (with or without `px`). |
 
 An HTML part over the parser limits (see HTML above) still gets `html_size` and the rules that read only the text, links and From address; the rules that read the HTML structure are skipped.
-
-## Release
-
-Release sends a caught mail on to one real address, for example to show a client how the mail looks in their inbox. It is off until `MAIL/transport_letterbox_release` lists addresses, see [configuration](configuration.md#release). The button appears only on a mail that can actually be released.
-
-Click "Release to a real address" in the mail header (admins only). The dialog repeats Subject, From and the current recipients, and asks for the address to release to. It is pre-filled with the first To recipient that matches the release list. An address outside the list is refused in the dialog and again on the server. Release needs JavaScript, like the delete confirmation.
-
-What is sent:
-
-* The stored message unchanged, except that the `X-Letterbox-Envelope-To` header is removed, with CRLF line endings. To and Cc still show the original recipients.
-* Only to the chosen address, as the envelope recipient. Nobody else gets it.
-* The envelope sender is `MAIL/defaultMailFromAddress`, else the From address of the mail. The site's own address comes first, because the From of a contact form mail is the visitor, who would get the bounces, and SPF would fail for their domain. The From header itself stays unchanged.
-* Through `MAIL/transport_letterbox_delivery`, never through Letterbox itself. A configured `transport_spool_type` is ignored for the release, because the spool would be flushed back into Letterbox.
-
-The copy in Letterbox stays. TYPO3 logs `Released mail <id> to a recipient at <domain> by backend user <uid>` at info level (the domain only, not the address). A failing transport shows an error message, and TYPO3 logs `Release of mail <id> to a recipient at <domain> failed: <exception class>` at warning level. The exception message is not logged, because it can carry addresses or server answers.
-
-When release cannot work, the mail has no release button. [Reports](operations.md#reports-status) has a "Release" line that names the reason and the setting to change, and the server refuses a release request with the same reason:
-
-| Reason | Cause | Change |
-|--------|-------|--------|
-| `release_invalid` | An entry of `transport_letterbox_release` is not an address or `*@domain` pattern. | Fix the entry. One bad entry switches release off. |
-| `delivery_missing` | `transport_letterbox_delivery` is empty. | Set it to a real transport such as `smtp`. |
-| `delivery_loops` | The delivery would hand the mail back to Letterbox, see below. | Point delivery at a real mail server. |
-| `sender_missing` | The mail has no usable From address and `defaultMailFromAddress` is empty or invalid. This one is per mail: other mails keep their button. Reports warns while `defaultMailFromAddress` is empty. | Set `MAIL/defaultMailFromAddress`. |
-
-Loops that are detected: delivery is the Letterbox transport, delivery `mbox` (core's mbox transport writes into the Letterbox file), delivery `sendmail` while the sendmail command (`transport_sendmail_command`, else `sendmail_path`) runs `letterbox:receive`, and a DSN (`dsn` delivery, or a class name while `MAIL/dsn` is set) that contains `letterbox:receive` or uses `native://` while `sendmail_path` runs it. The transport uses the same detection for normal delivery. Not detectable: an external sendmail binary or SMTP server that forwards mail back into `letterbox:receive` on its own. Check such a setup by hand.
 
 ## External access page
 

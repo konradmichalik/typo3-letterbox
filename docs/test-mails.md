@@ -21,4 +21,4 @@ vendor/bin/typo3 letterbox:testmails:send --count 10
 ddev exec vendor/bin/typo3 letterbox:testmails:send --count 10
 ```
 
-The mails are delivered according to the [delivery mode](delivery-modes.md), so they only appear in the module when they are caught.
+Letterbox catches every mail, so the test mails all appear in the module.

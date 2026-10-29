@@ -18,19 +18,14 @@ use InvalidArgumentException;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
-use RuntimeException;
 use Stringable;
-use Symfony\Component\Mailer\{Envelope, SentMessage};
+use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
-use Throwable;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Log\LogManager;
-use TYPO3\CMS\Core\Mail\TransportFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-
-use function sprintf;
 
 /**
  * LetterboxTransport.
@@ -54,7 +49,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
         $this->logger = $logger ?? GeneralUtility::makeInstance(LogManager::class)->getLogger(self::class);
         parent::__construct($dispatcher, $this->logger);
 
-        $this->settings = LetterboxSettings::fromMailSettings($mailSettings, Environment::getContext());
+        $this->settings = LetterboxSettings::fromMailSettings($mailSettings);
         if ('' === $this->settings->mboxFile) {
             throw new InvalidArgumentException('MAIL/transport_mbox_file must be set when using the Letterbox transport.', 1761561613);
         }
@@ -62,7 +57,7 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
 
     public function __toString(): string
     {
-        return 'letterbox://'.$this->settings->mode->value;
+        return 'letterbox://';
     }
 
     /**
@@ -75,112 +70,27 @@ final class LetterboxTransport extends AbstractTransport implements Stringable
 
     protected function doSend(SentMessage $message): void
     {
-        $envelope = $message->getEnvelope();
-        $caught = [];
-        $delivered = [];
-        foreach ($envelope->getRecipients() as $recipient) {
-            if ($this->isCaught($recipient->getAddress())) {
-                $caught[] = strtolower($recipient->getAddress());
-            } else {
-                $delivered[] = $recipient;
-            }
-        }
+        $recipients = array_values(array_map(static fn (Address $recipient): string => strtolower($recipient->getAddress()), $message->getEnvelope()->getRecipients()));
 
-        if ([] !== $delivered) {
-            $this->assertDeliverable();
-        }
-        if (DeliveryMode::Listed === $this->settings->mode) {
-            // Real recipients come first: their mail never depends on the mailbox.
-            $this->deliver($message, $delivered);
-            $this->storeOrLog($message, $caught);
-
-            return;
-        }
-        // Storing is the purpose of mode all, a failure must reach the sender.
-        if ([] !== $caught) {
-            $this->store($message, $caught);
-        }
-        $this->deliver($message, $delivered);
+        $this->store($message, $recipients);
     }
 
     /**
-     * @param list<Address> $recipients
+     * @param list<string> $recipients
      */
-    private function deliver(SentMessage $message, array $recipients): void
-    {
-        if ([] === $recipients) {
-            return;
-        }
-        GeneralUtility::makeInstance(TransportFactory::class)
-            ->get([...TransportTakeover::deliverySettings($this->mailSettings), 'transport' => $this->settings->delivery])
-            ->send($message->getOriginalMessage(), new Envelope($message->getEnvelope()->getSender(), $recipients));
-    }
-
-    /**
-     * @param list<string> $caught
-     */
-    private function storeOrLog(SentMessage $message, array $caught): void
-    {
-        if ([] === $caught) {
-            return;
-        }
-        try {
-            $this->store($message, $caught);
-        } catch (Throwable $exception) {
-            // The message names the mailbox path, never the mail.
-            $this->logger->error('Letterbox could not store a caught mail in mode listed, the other recipients got it: {exception}: {message}', [
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * Checked before anything is stored, so a refused delivery never leaves half a send behind.
-     */
-    private function assertDeliverable(): void
-    {
-        if ('' === $this->settings->delivery) {
-            throw new RuntimeException(sprintf('Letterbox needs MAIL/transport_letterbox_delivery for mode %s.', $this->settings->mode->value), 1761561614);
-        }
-        if ($this->settings->deliveryLoops) {
-            throw new RuntimeException(sprintf('MAIL/transport_letterbox_delivery "%s" hands mails back to Letterbox, refusing to deliver in mode %s.', $this->settings->delivery, $this->settings->mode->value), 1761561615);
-        }
-    }
-
-    /**
-     * @param list<string> $caught
-     */
-    private function store(SentMessage $message, array $caught): void
+    private function store(SentMessage $message, array $recipients): void
     {
         TransportTakeover::prepareMailbox($this->mailSettings);
         $this->writer()->append(
             $message->getEnvelope()->getSender()->getAddress(),
             new DateTimeImmutable(),
-            'X-Letterbox-Envelope-To: '.implode(', ', $caught)."\r\n".$message->toString(),
+            'X-Letterbox-Envelope-To: '.implode(', ', $recipients)."\r\n".$message->toString(),
         );
         // After append() released the lock: the lock is not re-entrant, pruning takes it again.
         GeneralUtility::makeInstance(RetentionService::class)->afterAppend($this->settings->mboxFile);
         if ($this->settings->isMailboxPublic(Environment::getPublicPath(), Environment::getVarPath())) {
             $this->logger->warning('The Letterbox mailbox is inside the public web path, everyone can download it. Move MAIL/transport_mbox_file out of the web root.');
         }
-    }
-
-    private function isCaught(string $address): bool
-    {
-        if (DeliveryMode::All === $this->settings->mode) {
-            return true;
-        }
-        if (DeliveryMode::Off === $this->settings->mode) {
-            return false;
-        }
-        foreach ($this->settings->catch as $pattern) {
-            if ($pattern->matches($address)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function writer(): MailboxWriter

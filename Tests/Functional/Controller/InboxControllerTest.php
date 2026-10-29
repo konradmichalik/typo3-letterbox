@@ -16,13 +16,12 @@ namespace KonradMichalik\Typo3Letterbox\Tests\Functional\Controller;
 use DateTimeImmutable;
 use DateTimeZone;
 use KonradMichalik\Typo3Letterbox\Backend\ReadState;
-use KonradMichalik\Typo3Letterbox\Controller\{InboxController, ReleaseController};
+use KonradMichalik\Typo3Letterbox\Controller\InboxController;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
 use KonradMichalik\Typo3Letterbox\Mail\LetterboxTransport;
 use KonradMichalik\Typo3Letterbox\Mbox\{MailboxLock, MailboxWriter, MboxFormat};
-use KonradMichalik\Typo3Letterbox\Tests\Functional\Mail\Fixtures\RecordingTransport;
-use PHPUnit\Framework\Attributes\{DataProvider, Test};
+use PHPUnit\Framework\Attributes\{Test};
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\{Router, UriBuilder};
@@ -208,14 +207,14 @@ final class InboxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function inactiveScreenNamesTheContextDefault(): void
+    public function inactiveScreenNamesTheCurrentTransport(): void
     {
         $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = ['transport' => 'smtp', 'transport_smtp_server' => 'mail.example.org:25', 'transport_mbox_file' => ''];
 
         $body = (string) $this->controller()->indexAction($this->request('system_letterbox'))->getBody();
 
         self::assertStringContainsString('<strong>SMTP (mail.example.org:25)</strong>', $body);
-        self::assertMatchesRegularExpression('/<dt[^>]*>Context<\/dt>\s*<dd[^>]*>Testing: the default mode all catches every mail\.<\/dd>/', $body);
+        self::assertStringNotContainsString('>Context<', $body);
     }
 
     #[Test]
@@ -1335,143 +1334,6 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringNotContainsString('Mark all as read', $after);
     }
 
-    #[Test]
-    public function releaseNeedsPostTokenAndAdmin(): void
-    {
-        $this->enableRelease();
-        $this->append('Hold');
-        $id = $this->firstId();
-        $controller = $this->get(ReleaseController::class);
-
-        $get = $controller->releaseAction($this->request('system_letterbox.release', [], 'GET', ['id' => $id, 'recipient' => 'r@example.org']));
-        $noToken = $controller->releaseAction($this->request('system_letterbox.release', [], 'POST', ['id' => $id, 'recipient' => 'r@example.org']));
-        $this->get(ConnectionPool::class)->getConnectionForTable('be_users')
-            ->insert('be_users', ['uid' => 2, 'pid' => 0, 'username' => 'editor', 'password' => 'not-a-real-hash', 'admin' => 0]);
-        $this->backendUser = $this->setUpBackendUser(2);
-        $request = $this->request('system_letterbox.release', [], 'POST');
-        $editor = $controller->releaseAction($request->withParsedBody(['id' => $id, 'recipient' => 'r@example.org', 'letterboxToken' => $this->token($request)]));
-
-        self::assertSame(405, $get->getStatusCode());
-        self::assertSame(403, $noToken->getStatusCode());
-        self::assertSame(403, $editor->getStatusCode());
-        self::assertSame([], RecordingTransport::$messages);
-    }
-
-    #[Test]
-    public function releaseSendsTheMailAndReturnsToIt(): void
-    {
-        $this->enableRelease();
-        $this->append('Hold');
-        $id = $this->firstId();
-        $before = (string) file_get_contents($this->path);
-        $request = $this->request('system_letterbox.release', ['q' => 'Hold', 'tab' => 'text'], 'POST');
-        $request = $request->withParsedBody(['id' => $id, 'recipient' => 'r@example.org', 'letterboxToken' => $this->token($request)]);
-
-        $response = $this->get(ReleaseController::class)->releaseAction($request);
-
-        self::assertSame(303, $response->getStatusCode());
-        $location = $response->getHeaderLine('Location');
-        self::assertStringContainsString('id='.$id, $location);
-        self::assertStringContainsString('q=Hold', $location);
-        self::assertStringContainsString('tab=text', $location);
-        $this->assertFlashMessage(ContextualFeedbackSeverity::OK, 'r@example.org');
-        self::assertSame([['r@example.org']], RecordingTransport::$recipients);
-        self::assertSame($before, file_get_contents($this->path));
-    }
-
-    #[Test]
-    public function releaseToAddressOutsideAllowlistShowsError(): void
-    {
-        $this->enableRelease();
-        $this->append('Hold');
-        $request = $this->request('system_letterbox.release', [], 'POST');
-        $request = $request->withParsedBody(['id' => $this->firstId(), 'recipient' => "r@example.org\r\nBcc: eve@evil.test", 'letterboxToken' => $this->token($request)]);
-
-        $response = $this->get(ReleaseController::class)->releaseAction($request);
-
-        self::assertSame(303, $response->getStatusCode());
-        $this->assertErrorFlashMessage('not allowed');
-        self::assertSame([], RecordingTransport::$messages);
-    }
-
-    #[Test]
-    public function releaseIsRefusedWhileDeliveryLoops(): void
-    {
-        $this->enableRelease(['transport_letterbox_delivery' => 'mbox']);
-        $this->append('Hold');
-        $request = $this->request('system_letterbox.release', [], 'POST');
-        $request = $request->withParsedBody(['id' => $this->firstId(), 'recipient' => 'r@example.org', 'letterboxToken' => $this->token($request)]);
-
-        $response = $this->get(ReleaseController::class)->releaseAction($request);
-
-        self::assertSame(303, $response->getStatusCode());
-        $this->assertErrorFlashMessage('loop');
-    }
-
-    #[Test]
-    public function noButtonWhenReleaseIsOff(): void
-    {
-        $this->append('Hold');
-
-        $body = $this->show($this->firstId());
-
-        self::assertStringNotContainsString('data-letterbox-release', $body);
-        self::assertStringNotContainsString('letterbox-release-', $body);
-    }
-
-    #[Test]
-    public function releaseDialogIsPrefilledWithAnAllowedRecipient(): void
-    {
-        $this->enableRelease();
-        $this->append('Hold');
-
-        $body = $this->show($this->firstId(), ['q' => 'Hold']);
-
-        self::assertSame(1, preg_match('/<form id="letterbox-release-form" method="post" action="([^"]+)">(.*?)<\/form>/s', $body, $form));
-        self::assertStringContainsString('letterbox/release', $form[1] ?? '');
-        self::assertStringContainsString('q=Hold', $form[1] ?? '');
-        self::assertStringContainsString('name="letterboxToken"', $form[2] ?? '');
-        self::assertMatchesRegularExpression('/<button\s+type="button"[^>]*data-letterbox-release[^>]*aria-label="Release this mail: Hold"/', $body);
-        self::assertMatchesRegularExpression('/<input[^>]+type="email"[^>]+value="r@example.org"/', $body);
-        self::assertStringContainsString('This mail leaves the system.', $body);
-        self::assertStringContainsString('Only addresses matching the release list are accepted: *@example.org', $body);
-        self::assertLessThan((int) strpos($body, 'letterbox/source'), strpos($body, 'data-letterbox-release'));
-    }
-
-    /**
-     * @param array<string, string> $overrides
-     */
-    #[Test]
-    #[DataProvider('refusedReleaseSettings')]
-    public function noButtonWhenReleaseIsRefused(array $overrides, bool $withFrom): void
-    {
-        $this->enableRelease($overrides);
-        if ($withFrom) {
-            $this->append('Hold');
-        } else {
-            $this->appendRaw("To: r@example.org\nSubject: Hold\n\nbody\n");
-        }
-
-        $body = $this->show($this->firstId());
-
-        self::assertStringContainsString('Hold', $body);
-        self::assertStringNotContainsString('data-letterbox-release', $body);
-        self::assertStringNotContainsString('letterbox-release-', $body);
-    }
-
-    /**
-     * @return array<string, array{array<string, string>, bool}>
-     */
-    public static function refusedReleaseSettings(): array
-    {
-        return [
-            'release list invalid' => [['transport_letterbox_release' => 'not an address'], true],
-            'delivery missing' => [['transport_letterbox_delivery' => ''], true],
-            'delivery loops' => [['transport_letterbox_delivery' => 'mbox'], true],
-            'no sender' => [['defaultMailFromAddress' => ''], false],
-        ];
-    }
-
     private function assertFragmentHeaders(ResponseInterface $response): void
     {
         self::assertContains('X-Letterbox-Fragment', $response->getHeader('Vary'));
@@ -1485,20 +1347,6 @@ final class InboxControllerTest extends FunctionalTestCase
     private function show(string $id, array $query = []): string
     {
         return (string) $this->controller()->showAction($this->request('system_letterbox.show', ['id' => $id] + $query))->getBody();
-    }
-
-    /**
-     * @param array<string, string> $overrides
-     */
-    private function enableRelease(array $overrides = []): void
-    {
-        RecordingTransport::reset();
-        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = [
-            ...$GLOBALS['TYPO3_CONF_VARS']['MAIL'],
-            'transport_letterbox_release' => '*@example.org',
-            'transport_letterbox_delivery' => RecordingTransport::class,
-            ...$overrides,
-        ];
     }
 
     private function skipWhenRoot(): void

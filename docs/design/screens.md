@@ -21,7 +21,7 @@ The rules behind these screens are in [rules.md](rules.md). The previews are exp
 | No mail selected | Inbox, nothing opened | The 150px illustration, `h2` "No mail selected" and one sentence in the detail column | <a href="screens/11-no-mail-selected.png"><img src="screens/11-no-mail-selected.png" width="200" alt="No mail selected"></a> |
 | External access | Sub page of the module | Status card with token state, card with inbox URL, API URL and example. The screenshot still shows the earlier tester links table and form | <a href="screens/05-external-access.png"><img src="screens/05-external-access.png" width="200" alt="External access"></a> |
 
-The canvas also has a board "Backend module · Not the mail transport", implemented as described in [rules.md](rules.md#states), and boards for the Checks tab and the release dialog (the refusal board is superseded: a refused release has no button). They are not exported to `screens/` yet, the owner exports them later. Screenshots 05 and 06 are outdated, see their rows.
+The canvas also has a board "Backend module · Not the mail transport", implemented as described in [rules.md](rules.md#states), and a board for the Checks tab. They are not exported to `screens/` yet, the owner exports them later. Screenshots 05 and 06 are outdated, see their rows.
 
 ## Outside the backend and system surfaces
 

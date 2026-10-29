@@ -10,7 +10,7 @@
 </f:if>
 <f:if condition="{state} == 'ok'">
     <f:then>
-        <p class="dropdown-item-text"><f:if condition="{listed}"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.introListed" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.intro" /></f:else></f:if></p>
+        <p class="dropdown-item-text"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.intro" /></p>
         <p class="dropdown-item-text text-variant"><f:if condition="{total} == 1"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.summary.one" arguments="{0: count}" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.summary.other" arguments="{0: total, 1: count}" /></f:else></f:if></p>
         <hr class="dropdown-divider" aria-hidden="true">
         <f:if condition="{mails}">

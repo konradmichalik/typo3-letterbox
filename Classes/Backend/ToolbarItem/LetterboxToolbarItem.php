@@ -20,7 +20,7 @@ use KonradMichalik\Typo3Letterbox\Backend\ReadState;
 use KonradMichalik\Typo3Letterbox\Configuration\ExtensionSettings;
 use KonradMichalik\Typo3Letterbox\Domain\Model\{MailFilter, QuickFilter};
 use KonradMichalik\Typo3Letterbox\Domain\Repository\MailRepository;
-use KonradMichalik\Typo3Letterbox\Mail\{DeliveryMode, LetterboxSettings, LetterboxTransport, TransportSummary, TransportTakeover};
+use KonradMichalik\Typo3Letterbox\Mail\{LetterboxSettings, LetterboxTransport, TransportSummary, TransportTakeover};
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Throwable;
@@ -28,10 +28,8 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Toolbar\{RequestAwareToolbarItemInterface, ToolbarItemInterface};
 use TYPO3\CMS\Backend\View\BackendViewFactory;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Core\Environment;
 
 use function array_flip;
-use function count;
 use function is_array;
 
 /**
@@ -76,13 +74,9 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
         }
 
         $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
-        $mail = is_array($mail) ? $mail : [];
-        if (!LetterboxTransport::isSelectedIn($mail)) {
-            return false;
-        }
 
         // Invalid settings keep the item: it is where the admin learns that Letterbox is not working.
-        return DeliveryMode::Off !== $this->settings($mail)?->mode;
+        return LetterboxTransport::isSelectedIn(is_array($mail) ? $mail : []);
     }
 
     public function getItem(): string
@@ -141,8 +135,6 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
         $settings = $this->settings(is_array($mail) ? $mail : []);
         $variables = [
             'state' => null === $settings ? 'invalid' : 'noFile',
-            'listed' => DeliveryMode::Listed === $settings?->mode,
-            'catchCount' => null === $settings ? 0 : count($settings->catch),
             'count' => 0,
             'total' => 0,
             'mails' => [],
@@ -213,7 +205,7 @@ final class LetterboxToolbarItem implements ToolbarItemInterface, RequestAwareTo
     private function settings(array $mail): ?LetterboxSettings
     {
         try {
-            return LetterboxSettings::fromMailSettings($mail, Environment::getContext());
+            return LetterboxSettings::fromMailSettings($mail);
         } catch (InvalidArgumentException) {
             return null;
         }

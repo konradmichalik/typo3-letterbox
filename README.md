@@ -1,6 +1,6 @@
 <div align="center">
 
-![Extension icon](Resources/Public/Icons/Extension.svg)
+<img src="Resources/Public/Icons/Extension.svg" alt="Extension icon" width="240" height="240">
 
 # TYPO3 extension `typo3_letterbox`
 
@@ -14,35 +14,28 @@
 
 </div>
 
-Catches TYPO3 mails in an mbox file and shows them in the backend, for local, stage and test systems.
+Catches TYPO3 mails in an [mbox](https://en.wikipedia.org/wiki/Mbox) file and shows them in the backend, for local, stage and test systems.
 
 > [!NOTE]
-> Test systems must not send real mails to real people, but testers need to see what a mail looks like. Letterbox catches outgoing mails in a local mbox file and shows them in the backend, so nothing leaves the system. It is a rewrite of [`t3/mbox`](https://github.com/a-r-m-i-n/mbox) by Armin Vieweg for TYPO3 13 and 14.
+> Test systems must not send real mails to real people, but testers need to see what a mail looks like. Letterbox catches outgoing mails in a local mbox file and shows them in the backend, so nothing leaves the system.
 
 ![Letterbox backend module with mail list and HTML preview](docs/images/backend-module.png)
 
 ## ✨ Features
 
-* [Mail transport](docs/delivery-modes.md) that appends every caught mail to a local mbox file (RFC 4155)
-* Three [delivery modes](docs/delivery-modes.md): `all` catches everything, `listed` catches only chosen recipients and delivers the rest, `off` delivers everything
-* [Backend module](docs/backend-module.md) under System › Letterbox with search, quick filters, per-user unread state, detail tabs (HTML, text, headers, source, links, checks, attachments), download and delete
-* [Release](docs/backend-module.md#release) of a caught mail to an allowed real address, for example to show a client the real inbox view
-* [Checks](docs/backend-module.md#checks) per mail: rule based findings such as images without `alt`, `http` links, tracking pixels, scripts and a size over Gmail's clip limit
-* [Sendmail intake](docs/operations.md#letterboxreceive): `letterbox:receive` catches mails that bypass the TYPO3 mailer, such as PHP `mail()`
-* Sandboxed HTML preview with a width switch (desktop, tablet, mobile) that blocks remote images until you load them per mail
-* Collapsible mail list and navigation without page reload, with a full-page fallback when JavaScript is off
-* [External access](docs/external-access.md) for test systems, off by default and always off in root `Production`: a token-protected [JSON API](docs/api.md) for end-to-end tests and a read-only tester inbox. Everyone with the link sees all caught mails of the system
-* [Retention](docs/operations.md#retention) that keeps the file small (500 mails or 30 days by default), and [console commands](docs/operations.md#console-commands) to list, show, clear and prune mails
-* [Admin signals](docs/operations.md#toolbar-item): a toolbar item with the unread count, a Reports status and a dashboard widget (the last two need `typo3/cms-reports` and `typo3/cms-dashboard`)
-* [Test mail command](docs/test-mails.md) for development (`letterbox:testmails:send`, needs `debugMode`)
-* Works from Composer and from TER (parser libraries are bundled), see [configuration](docs/configuration.md)
+* [Mail transport](docs/configuration.md#caught-mails) that catches every mail in a local mbox file and delivers none
+* [Backend module](docs/backend-module.md) under System › Letterbox with search, filters, per-user unread state and a sandboxed HTML preview
+* [Checks](docs/backend-module.md#checks) per mail, such as images without `alt`, `http` links and tracking pixels
+* [Sendmail intake](docs/operations.md#letterboxreceive) for mails that bypass the TYPO3 mailer, such as PHP `mail()`
+* [External access](docs/external-access.md) for test systems: a token-protected [JSON API](docs/api.md) and a read-only tester inbox
+* [Retention](docs/operations.md#retention) and [console commands](docs/operations.md#console-commands) to keep the mbox file small
 
 ## 🔥 Installation
 
 ### Requirements
 
-* TYPO3 13.4 LTS or 14.x
-* PHP 8.2, 8.3, 8.4, or 8.5
+* TYPO3 13.4 LTS or 14.3 LTS
+* PHP 8.2 to 8.5
 
 ### Composer
 
@@ -75,21 +68,18 @@ $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/mbox/mail
 > [!WARNING]
 > If `MAIL/dsn` is not empty, TYPO3 core ignores `MAIL/transport` and sends live through the DSN. Letterbox is bypassed. Keep `dsn` empty. The switch clears it for you.
 
-Then open System › Letterbox as an administrator. Outside a `Production` context all mails are caught. In `Production` and every sub context such as `Production/Staging` the default mode is `listed`: with an empty catch list every mail is still delivered.
+Then open System › Letterbox as an administrator. Letterbox is either on and catches every mail, or off and changes nothing.
 
 ## 📚 Documentation
 
 | Page | What's inside |
 |------|---------------|
-| [Configuration](docs/configuration.md) | The switch, transport settings, release list and extension settings |
-| [Delivery modes](docs/delivery-modes.md) | `all`, `listed` and `off`, defaults per context, personal data |
-| [Backend module](docs/backend-module.md) | Search, filters, tabs, checks, release, preview, navigation, delete and clear |
+| [Configuration](docs/configuration.md) | The switch, transport settings, caught mails and extension settings |
+| [Backend module](docs/backend-module.md) | Search, filters, tabs, checks, preview, navigation, delete and clear |
 | [Operations](docs/operations.md) | Retention, console commands, sendmail intake, toolbar item, Reports status and dashboard widget |
 | [External access](docs/external-access.md) | Activation, the shared token, guard reasons and the tester inbox |
 | [JSON API](docs/api.md) | Endpoints, authentication, response shape, Playwright example |
 | [Test mails](docs/test-mails.md) | Console command `letterbox:testmails:send` |
-| [Design rules](docs/design/rules.md) | Binding rules for every UI change |
-| [Screen designs](docs/design/screens.md) | Target screens for the backend module |
 
 ## 🧑‍💻 Contributing
 

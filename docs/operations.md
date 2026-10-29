@@ -121,7 +121,7 @@ Keep the `--` after the command name. Without it the console application reads s
 * `sendmail_path` is `PHP_INI_SYSTEM`. Set it in `php.ini` or the FPM pool configuration (`php_admin_value[sendmail_path]`), not with `ini_set()` or `.user.ini`.
 * The command boots TYPO3 for each mail, so it needs the same environment as the web request, above all `TYPO3_CONTEXT` and the database variables. PHP-FPM pools with `clear_env = yes` (the default) do not pass them on. Set `clear_env = no` or list the variables in the pool with `env[NAME] = ...`.
 * One TYPO3 boot per mail. Fine for test systems, slow for mass mailing.
-* It stores every mail regardless of `transport_letterbox_mode`. Using it is the explicit choice to catch.
+* It stores every mail. Using it is the explicit choice to catch.
 * The [retention](#retention) limits are applied afterwards, as for a caught mail.
 
 Flags are read from the raw command line, because TYPO3 would drop everything after the first flag it does not know:
@@ -145,28 +145,25 @@ Bcc recipients go into the `X-Letterbox-Envelope-To` header and the `Bcc` header
 
 Errors go to stderr as one line starting with `letterbox:receive:`.
 
-> [!WARNING]
-> Do not combine this with `transport_letterbox_delivery = sendmail` while `sendmail_path` runs `letterbox:receive`. Core's sendmail transport falls back to `sendmail_path`, so mails that should be delivered would be stored instead. Letterbox refuses this setup: release is off, sending throws in modes `listed` and `off`, and Reports shows an error.
-
 ## Toolbar item
 
 Administrators see a Letterbox button in the backend toolbar while mails are being caught. It is how a tester learns why a mail did not arrive.
 
-* Shown to admins only, when Letterbox is the configured transport and the mode is not `off`. It stays visible with invalid mail settings, because that is where the problem shows. `showToolbarItem` in the [extension settings](configuration.md#extension-settings) turns it off.
-* The label is "Mail catcher active" in mode `all` and "Catching 3 addresses" in mode `listed`.
-* The badge counts the mails the current backend user has not opened yet, see [unread state](backend-module.md). At 0 there is no badge. It is yellow in mode `all` and blue in mode `listed`.
-* The dropdown explains what happens to mails, lists the subjects of the latest 5 mails with their arrival time (unread ones in bold), each linking to the mail, and has an "Open Letterbox" button. Without the backend module (`enableBackendModule` off) the subjects are plain text and the button is missing.
+* Shown to admins only, when Letterbox is the configured transport. It stays visible with invalid mail settings, because that is where the problem shows. `showToolbarItem` in the [extension settings](configuration.md#extension-settings) turns it off.
+* The label is "Mail catcher active".
+* The badge counts the mails the current backend user has not opened yet, see [unread state](backend-module.md). At 0 there is no badge.
+* The dropdown explains that mails are not delivered, lists the subjects of the latest 5 mails with their arrival time (unread ones in bold), each linking to the mail, and has an "Open Letterbox" button. Without the backend module (`enableBackendModule` off) the subjects are plain text and the button is missing.
 * After a [takeover](configuration.md#switch) the dropdown starts with "Letterbox took over the mail transport (extension setting)" or "(LETTERBOX_ENABLE)" and the original transport (type, or DSN scheme, host and port).
 * Instead of the mails the dropdown names the problem: no mbox file configured, invalid mail settings (sending fails until they are fixed), or an mbox file that cannot be read, for example a directory or a file without read permission.
 
 ## Reports status
 
-With EXT:reports installed (`composer require typo3/cms-reports`, listed under `suggest`), Admin Tools > Reports > Status has a "Letterbox" section. It names the transport, the delivery mode, whether [release](backend-module.md#release) works, the mbox file, the retention limits and whether external access is on. When another transport is configured it only says that Letterbox is not the mail transport. After a [takeover](configuration.md#switch) the transport line is Info and says "Letterbox took over the mail transport" with the source and the original transport, without credentials.
+With EXT:reports installed (`composer require typo3/cms-reports`, listed under `suggest`), Admin Tools > Reports > Status has a "Letterbox" section. It names the transport, that every mail is caught, the mbox file, the retention limits and whether external access is on. When another transport is configured it only says that Letterbox is not the mail transport. After a [takeover](configuration.md#switch) the transport line is Info and says "Letterbox took over the mail transport" with the source and the original transport, without credentials.
 
 * Error: the mail settings are invalid.
-* Warning: mode `all` in any `Production` context (only possible when set explicitly), an mbox file or directory that is not writable, no mbox file configured, a release list that cannot work (invalid entry, no or looping delivery transport, or empty `MAIL/defaultMailFromAddress`, with the setting to change).
-* Info: mode `listed` (the value shows how many addresses are caught), release off, external access on. It is never on in root `Production`.
-* OK: the rest, including "Release to" with the allowed patterns, and "Keeps all mails" when both retention limits are `0`.
+* Warning: Letterbox catches in any `Production` context, an mbox file or directory that is not writable, no mbox file configured.
+* Info: external access on. It is never on in root `Production`.
+* OK: the rest, including "Keeps all mails" when both retention limits are `0`.
 
 ## Recent mails widget
 
