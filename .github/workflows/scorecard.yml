@@ -9,6 +9,8 @@ on:
 
 jobs:
   scorecard:
+    # The default token cannot read a private repository, Scorecard runs once it is public.
+    if: ${{ !github.event.repository.private }}
     uses: konradmichalik/reusable-github-actions/.github/workflows/scorecard.yml@c460c0166a646cb65fd059c8d2f7d895ff3c787b # 0.1.0
     permissions:
       contents: read
