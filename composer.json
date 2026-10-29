@@ -37,7 +37,7 @@
 		"typo3/cms-backend": "^13.4 || ^14.0",
 		"typo3/cms-core": "^13.4 || ^14.0",
 		"typo3/cms-frontend": "^13.4 || ^14.0",
-		"zbateson/mail-mime-parser": "^4.0.7"
+		"zbateson/mail-mime-parser": "^4.0.8"
 	},
 	"require-dev": {
 		"ext-posix": "*",
@@ -51,7 +51,7 @@
 		"typo3/cms-dashboard": "^13.4 || ^14.0",
 		"typo3/cms-lowlevel": "^13.4 || ^14.0",
 		"typo3/cms-reports": "^13.4 || ^14.0",
-		"typo3/testing-framework": "^8.2 || ^9.0 || ^10.0"
+		"typo3/testing-framework": "^9.1 || ^10.0"
 	},
 	"suggest": {
 		"typo3/cms-dashboard": "Adds the recent mails dashboard widget",

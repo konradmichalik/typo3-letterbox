@@ -134,7 +134,8 @@ final class AttachmentCounter
         while (false !== ($found = strpos($this->raw, $delimiter, $position)) && $found < $end) {
             $lineEnd = strpos($this->raw, "\n", $found + 1);
             $lineEnd = false === $lineEnd || $lineEnd > $end ? $end : $lineEnd;
-            $rest = substr($this->raw, $found + strlen($delimiter), $lineEnd - $found - strlen($delimiter));
+            // RFC 2046 allows transport padding after a delimiter, and mail-mime-parser ignores it since 4.0.8.
+            $rest = rtrim(substr($this->raw, $found + strlen($delimiter), $lineEnd - $found - strlen($delimiter)), " \t");
             $position = $lineEnd;
             if ('' !== $rest && '--' !== $rest) {
                 continue;
