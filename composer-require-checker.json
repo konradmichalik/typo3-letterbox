@@ -1,5 +1,11 @@
 {
 	"symbol-whitelist": [
-		"TYPO3"
+		"TYPO3",
+		"TYPO3\\CMS\\Dashboard\\Widgets\\AdminOnlyWidgetInterface",
+		"TYPO3\\CMS\\Dashboard\\Widgets\\RequestAwareWidgetInterface",
+		"TYPO3\\CMS\\Dashboard\\Widgets\\WidgetConfigurationInterface",
+		"TYPO3\\CMS\\Dashboard\\Widgets\\WidgetInterface",
+		"TYPO3\\CMS\\Reports\\Status",
+		"TYPO3\\CMS\\Reports\\StatusProviderInterface"
 	]
 }
