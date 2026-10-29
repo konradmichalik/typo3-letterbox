@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace KonradMichalik\Typo3Letterbox\Command;
 
-use KonradMichalik\Typo3Letterbox\Domain\Model\{Mail};
+use KonradMichalik\Typo3Letterbox\Domain\Model\Mail;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\{InputArgument, InputInterface, InputOption};
