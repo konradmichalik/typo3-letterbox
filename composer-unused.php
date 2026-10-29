@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-use ComposerUnused\ComposerUnused\Configuration\Configuration;
+use ComposerUnused\ComposerUnused\Configuration\{Configuration, NamedFilter};
 
 return static function (Configuration $config): Configuration {
     // Runtime-only dependencies (used via configuration files, not PHP symbols)
     // go here, each with a comment explaining why:
-    // ->addNamedFilter(NamedFilter::fromString('typo3/cms-frontend'))
-    return $config;
+    // The middlewares are ordered before 'typo3/cms-frontend/site' in Configuration/RequestMiddlewares.php.
+    return $config->addNamedFilter(NamedFilter::fromString('typo3/cms-frontend'));
 };
