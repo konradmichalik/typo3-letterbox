@@ -12,6 +12,8 @@ use_dns_when_possible: true
 composer_version: "2"
 web_environment:
     - LETTERBOX_EXTERNAL_ACCESS=Development
+    # Local test inbox only, not a secret. Never reuse it anywhere else, and do not run `ddev share` with it.
+    - LETTERBOX_ACCESS_TOKEN=ddev-local-letterbox-test-token-0000
 nodejs_version: "24"
 corepack_enable: false
 
