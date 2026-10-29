@@ -50,6 +50,8 @@ final readonly class MailboxWriter
                 $written = fwrite($handle, $entry);
             } finally {
                 fclose($handle);
+                // PHP before 8.3 keeps the size from before the write, and the next span check would call it stale.
+                clearstatcache(true, $this->path);
             }
 
             if (strlen($entry) !== $written) {
@@ -113,6 +115,7 @@ final readonly class MailboxWriter
                 throw new RuntimeException(sprintf('Cannot open mailbox "%s" for writing.', $this->path), 8293706140);
             }
             fclose($handle);
+            clearstatcache(true, $this->path);
         });
     }
 
