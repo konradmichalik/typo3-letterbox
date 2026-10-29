@@ -176,7 +176,7 @@ final class InboxControllerTest extends FunctionalTestCase
     #[Test]
     public function inactiveScreenNamesTheTransportWithoutCredentials(): void
     {
-        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = ['transport' => 'dsn', 'dsn' => 'smtp://mailuser:hunter2@mail.example.org:587?token=abc', 'transport_mbox_file' => ''];
+        $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = ['transport' => 'dsn', 'dsn' => 'smtp://mailuser:hunter2@mail.example.org:587?secret=zq-not-a-token', 'transport_mbox_file' => ''];
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['enable'] = '0';
 
         $response = $this->controller()->indexAction($this->request('system_letterbox'));
@@ -198,7 +198,7 @@ final class InboxControllerTest extends FunctionalTestCase
         self::assertStringContainsString('Clear the TYPO3 caches after changing the configuration.', $body);
         self::assertStringNotContainsString('hunter2', $body);
         self::assertStringNotContainsString('mailuser', $body);
-        self::assertStringNotContainsString('token=abc', $body);
+        self::assertStringNotContainsString('secret=zq-not-a-token', $body);
         self::assertStringNotContainsString('letterbox-clear-all', $body);
         self::assertStringNotContainsString('from an earlier setup', $body);
         $readme = (string) file_get_contents(__DIR__.'/../../../README.md');
