@@ -379,6 +379,46 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function remoteImagesAreLoadedOnlyOnRequestAndOnlyOverHttps(): void
+    {
+        $id = $this->appendRaw(
+            "From: s@example.org\nTo: anna@example.org\nSubject: Html mail\nMessage-ID: <remote@example.org>\nMIME-Version: 1.0\n"
+            ."Content-Type: text/html; charset=utf-8\n\n<p>Rich part</p><img src=\"https://tracker.example/pixel.png\">\n",
+        );
+        $middleware = $this->middleware();
+
+        $blocked = $this->send($middleware, '/_letterbox/inbox/'.$id, $this->cookie());
+        self::assertSame(self::PAGE_CSP, $blocked->getHeaderLine('Content-Security-Policy'));
+        self::assertStringContainsString('href="/_letterbox/inbox/'.$id.'?images=1"', (string) $blocked->getBody());
+        self::assertStringContainsString('Remote images are blocked.', (string) $blocked->getBody());
+
+        $loaded = $this->send($middleware, '/_letterbox/inbox/'.$id.'?images=1', $this->cookie());
+        self::assertSame(200, $loaded->getStatusCode());
+        self::assertStringContainsString("img-src 'self' data: https:;", $loaded->getHeaderLine('Content-Security-Policy'));
+        self::assertStringNotContainsString('http:', $loaded->getHeaderLine('Content-Security-Policy'));
+        self::assertStringContainsString("frame-ancestors 'none'", $loaded->getHeaderLine('Content-Security-Policy'));
+        self::assertStringContainsString('Remote images are loaded for this view only.', (string) $loaded->getBody());
+        self::assertSame(1, preg_match('/srcdoc="([^"]*)"/', (string) $loaded->getBody(), $srcdoc));
+        self::assertStringContainsString("img-src data: https:; style-src 'unsafe-inline'", html_entity_decode($srcdoc[1] ?? '', \ENT_QUOTES | \ENT_HTML5));
+
+        $text = $this->send($middleware, '/_letterbox/inbox/'.$id.'?images=1&view=text', $this->cookie());
+        self::assertSame(self::PAGE_CSP, $text->getHeaderLine('Content-Security-Policy'), 'the text view never widens the policy');
+
+        $list = $this->send($middleware, '/_letterbox/inbox?images=1', $this->cookie());
+        self::assertSame(self::PAGE_CSP, $list->getHeaderLine('Content-Security-Policy'), 'only the detail page of one mail does');
+    }
+
+    #[Test]
+    public function notDeliveredBadgeHasAnAccessibleTooltip(): void
+    {
+        $body = (string) $this->send($this->middleware(), '/_letterbox/inbox', $this->cookie())->getBody();
+
+        self::assertStringContainsString('aria-describedby="tester-note-tip"', $body);
+        self::assertStringContainsString('id="tester-note-tip" role="tooltip"', $body);
+        self::assertStringContainsString('The mails here never reached their real recipients.', $body);
+    }
+
+    #[Test]
     public function previewIsSandboxedWithoutRemoteImages(): void
     {
         $id = $this->appendRaw(

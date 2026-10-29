@@ -109,10 +109,63 @@ dd {
 
 .tester-header__note {
   background: var(--tester-note-bg);
+  border: 0;
   border-radius: var(--tester-radius);
   color: var(--tester-note-text);
+  cursor: help;
+  font: inherit;
   font-weight: bold;
   padding: 0.25rem 0.625rem;
+  position: relative;
+}
+
+/* A hit area of 44px high without a taller badge. */
+.tester-header__note::after {
+  content: '';
+  inset: -0.75rem -0.25rem;
+  position: absolute;
+}
+
+/* The tester page runs no script, so the tooltip opens on hover and on keyboard focus with CSS alone. */
+.tester-note {
+  position: relative;
+}
+
+.tester-note__tip {
+  background: var(--tester-surface);
+  border: 1px solid var(--tester-control-border);
+  border-radius: var(--tester-radius);
+  color: var(--tester-text);
+  display: none;
+  font-size: 0.875rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.5rem 0.75rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.375rem);
+  width: 18rem;
+  z-index: 1;
+}
+
+.tester-note:hover .tester-note__tip,
+.tester-note:focus-within .tester-note__tip {
+  display: block;
+}
+
+.tester-notice {
+  align-items: center;
+  background: var(--tester-surface-muted);
+  border: 1px solid var(--tester-border);
+  border-radius: var(--tester-radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.625rem 0.875rem;
+}
+
+.tester-notice__text {
+  flex: 1 1 14rem;
 }
 
 .tester-main {

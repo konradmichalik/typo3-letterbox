@@ -6,6 +6,9 @@
 			<trans-unit id="page.brand" resname="page.brand">
 				<source>Test inbox</source>
 			</trans-unit>
+			<trans-unit id="page.notDeliveredHint" resname="page.notDeliveredHint">
+				<source>This system catches every mail it sends instead of delivering it. The mails here never reached their real recipients.</source>
+			</trans-unit>
 			<trans-unit id="page.heading" resname="page.heading">
 				<source>Caught mails</source>
 			</trans-unit>
@@ -89,6 +92,21 @@
 			</trans-unit>
 			<trans-unit id="detail.preview" resname="detail.preview">
 				<source>Preview of %s</source>
+			</trans-unit>
+			<trans-unit id="detail.remoteBlocked" resname="detail.remoteBlocked">
+				<source>Remote images are blocked.</source>
+			</trans-unit>
+			<trans-unit id="detail.remoteHint" resname="detail.remoteHint">
+				<source>Loading them tells the sender your IP address and that the mail was opened.</source>
+			</trans-unit>
+			<trans-unit id="detail.remoteLoad" resname="detail.remoteLoad">
+				<source>Load remote images</source>
+			</trans-unit>
+			<trans-unit id="detail.remoteActive" resname="detail.remoteActive">
+				<source>Remote images are loaded for this view only.</source>
+			</trans-unit>
+			<trans-unit id="detail.remoteBlock" resname="detail.remoteBlock">
+				<source>Block remote images</source>
 			</trans-unit>
 			<trans-unit id="detail.noText" resname="detail.noText">
 				<source>This mail has no text part.</source>

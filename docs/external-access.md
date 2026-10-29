@@ -46,7 +46,8 @@ php -r 'echo hash_hmac("sha256", "tester-link", getenv("LETTERBOX_ACCESS_TOKEN")
 * The cookie holds its issue time and an HMAC of that time keyed with the token, never the token itself. The server refuses a cookie older than 7 days or with a changed time, so a copied cookie stops working after a week, whatever its `Expires` says. Opening the tester link again starts a new week.
 * Every request checks the cookie again, so changing `LETTERBOX_ACCESS_TOKEN` ends every session and invalidates the tester link at once. That is the only way to revoke access, and it revokes it for everyone.
 * The inbox lists all caught mails with search and pagination. It shows subject, sender, recipients, date, an HTML view and a text view, the links in the mail, and a button for the first password reset link. It lists the attachments of a mail and lets the tester download them.
-* It never shows headers, the source or `.eml` files, loads no remote images and runs no JavaScript. The HTML view is a sandboxed `srcdoc` frame. The inbox only answers GET and changes nothing. A tester cannot delete mails.
+* It never shows headers, the source or `.eml` files and runs no JavaScript. The HTML view is a sandboxed `srcdoc` frame. Remote images are blocked. "Load remote images" reloads that one mail with `?images=1`: the page policy then allows `img-src https:` for that response only, never in the text view, the list or any other mail. Loading them tells the sender the tester's IP address and that the mail was opened, which the notice says.
+* The "Mails are not delivered" badge in the header explains itself on hover and on keyboard focus (CSS only, the page runs no script). The inbox only answers GET and changes nothing. A tester cannot delete mails.
 * It works without a configured site and in maintenance mode, and answers are never cached.
 
 ## Host header
@@ -59,7 +60,7 @@ Everyone with the link can read the reset link of a backend user. Set `BE/passwo
 
 ## DDEV
 
-`.ddev/config.yaml` sets `LETTERBOX_EXTERNAL_ACCESS=Development`. Put the token only in the git-ignored `.ddev/config.local.yaml` and run `ddev restart`:
+`.ddev/config.yaml` sets `LETTERBOX_EXTERNAL_ACCESS=Development` and a fixed test token, so the tester inbox and the API work right after `ddev install`. The token is public in this repository, so it is for DDEV only: never reuse it, and do not run `ddev share` with it. To use your own token, put it in the git-ignored `.ddev/config.local.yaml` and run `ddev restart`. The later file wins:
 
 ```yaml
 web_environment:

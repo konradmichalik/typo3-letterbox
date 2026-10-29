@@ -18,7 +18,10 @@
                 <p class="tester-header__title">{labels.brand}</p>
                 <p class="tester-header__host">{host}</p>
             </div>
-            <p class="tester-header__note">{labels.notDelivered}</p>
+            <div class="tester-note">
+                <button type="button" class="tester-header__note" aria-describedby="tester-note-tip">{labels.notDelivered}</button>
+                <p class="tester-note__tip" id="tester-note-tip" role="tooltip">{labels.notDeliveredHint}</p>
+            </div>
         </div>
     </header>
     <main id="tester-main" class="tester-main" tabindex="-1">

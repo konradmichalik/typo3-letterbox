@@ -41,6 +41,7 @@ final readonly class TesterInboxView
     private const LABELS = [
         'brand' => 'page.brand',
         'notDelivered' => 'page.notDelivered',
+        'notDeliveredHint' => 'page.notDeliveredHint',
         'skip' => 'page.skip',
         'searchLabel' => 'search.label',
         'searchSubmit' => 'search.submit',
@@ -64,6 +65,11 @@ final readonly class TesterInboxView
         'viewHtml' => 'detail.viewHtml',
         'viewText' => 'detail.viewText',
         'noText' => 'detail.noText',
+        'remoteBlocked' => 'detail.remoteBlocked',
+        'remoteHint' => 'detail.remoteHint',
+        'remoteLoad' => 'detail.remoteLoad',
+        'remoteActive' => 'detail.remoteActive',
+        'remoteBlock' => 'detail.remoteBlock',
         'resetLink' => 'links.reset',
         'newTab' => 'links.newTab',
     ];
@@ -102,15 +108,15 @@ final readonly class TesterInboxView
     }
 
     /**
-     * The detail page shows no headers and no source. The HTML part is only ever a sandboxed srcdoc document
-     * without remote content.
+     * The detail page shows no headers and no source. The HTML part is only ever a sandboxed srcdoc document,
+     * with remote images over HTTPS only when the tester asked for them.
      */
-    public function show(ServerRequestInterface $request, Mail $mail, string $basePath, bool $textView): ResponseInterface
+    public function show(ServerRequestInterface $request, Mail $mail, string $basePath, bool $textView, bool $remoteImages = false): ResponseInterface
     {
         $language = $this->languageServiceFactory->create('default');
         $subject = '' !== trim($mail->subject) ? $mail->subject : $this->label($language, 'row.noSubject');
         $detailUrl = $basePath.'/'.$mail->id;
-        $html = $textView ? '' : $this->htmlDocument->build($mail);
+        $html = $textView ? '' : $this->htmlDocument->build($mail, $remoteImages);
         $hasHtml = '' !== $html || ($textView && $this->htmlDocument->canBuild($mail));
         $date = $mail->date?->setTimezone(new DateTimeZone(date_default_timezone_get()));
         $reset = array_values(array_filter($mail->links, static fn (MailLink $mailLink): bool => $mailLink->isPasswordReset))[0] ?? null;
@@ -130,6 +136,8 @@ final readonly class TesterInboxView
             'htmlUrl' => $detailUrl,
             'textUrl' => $detailUrl.'?view=text',
             'htmlDocument' => $html,
+            'remote' => $remoteImages,
+            'remoteUrl' => $detailUrl.'?'.TesterInboxMiddleware::REMOTE_PARAMETER.'=1',
             'previewTitle' => sprintf($this->label($language, 'detail.preview'), $subject),
             'textSegments' => '' !== trim($mail->text) ? TextSegments::split($mail->text) : [],
             'links' => $mail->links,

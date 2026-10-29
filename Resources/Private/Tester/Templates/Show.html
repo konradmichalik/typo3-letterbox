@@ -41,6 +41,20 @@
                     </f:if>
                 </f:then>
                 <f:else>
+                    <f:if condition="{remote}">
+                        <f:then>
+                            <div class="tester-notice">
+                                <p class="tester-notice__text">{labels.remoteActive}</p>
+                                <a class="tester-button" href="{htmlUrl}">{labels.remoteBlock}</a>
+                            </div>
+                        </f:then>
+                        <f:else>
+                            <div class="tester-notice">
+                                <p class="tester-notice__text">{labels.remoteBlocked} {labels.remoteHint}</p>
+                                <a class="tester-button" href="{remoteUrl}">{labels.remoteLoad}</a>
+                            </div>
+                        </f:else>
+                    </f:if>
                     <div class="tester-preview-frame">
                         <iframe class="tester-preview" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="{htmlDocument}" title="{previewTitle}"></iframe>
                     </div>

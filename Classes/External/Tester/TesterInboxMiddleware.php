@@ -38,7 +38,13 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
 {
     public const PATH_PREFIX = '_letterbox/inbox';
     public const TOKEN_PARAMETER = 't';
-    private const CSP = "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+    public const REMOTE_PARAMETER = 'images';
+    private const CSP_HEAD = "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:";
+    private const CSP_TAIL = "; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+    private const CSP = self::CSP_HEAD.self::CSP_TAIL;
+    // The detail page of one mail with its remote images: the sandboxed srcdoc frame inherits this policy. The frame
+    // document itself still allows images over HTTPS only.
+    private const CSP_REMOTE_IMAGES = self::CSP_HEAD.' https:'.self::CSP_TAIL;
     private const PER_PAGE = 20;
     private const MAX_QUERY_LENGTH = 200;
     private const ID_PATTERN = '/^[0-9a-f]{32}$/D';
@@ -65,7 +71,9 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        return $this->responses->withPolicy($this->answer($request, $segments, $params->getSitePath().self::PATH_PREFIX), self::CSP);
+        $policy = $this->wantsRemoteImages($request, $segments) ? self::CSP_REMOTE_IMAGES : self::CSP;
+
+        return $this->responses->withPolicy($this->answer($request, $segments, $params->getSitePath().self::PATH_PREFIX), $policy);
     }
 
     /**
@@ -120,7 +128,22 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
         }
         $textView = 'text' === ($request->getQueryParams()['view'] ?? '');
 
-        return $this->view->show($request, $mail, $basePath, $textView);
+        return $this->view->show($request, $mail, $basePath, $textView, $this->wantsRemoteImages($request, [$id]));
+    }
+
+    /**
+     * Only the detail page of one mail can load remote images, and never in the text view.
+     *
+     * @param list<string> $segments
+     */
+    private function wantsRemoteImages(ServerRequestInterface $request, array $segments): bool
+    {
+        $query = $request->getQueryParams();
+
+        return 1 === count($segments)
+            && 1 === preg_match(self::ID_PATTERN, $segments[0])
+            && '1' === ($query[self::REMOTE_PARAMETER] ?? null)
+            && 'text' !== ($query['view'] ?? '');
     }
 
     private function attachment(ServerRequestInterface $request, string $id, string $index): ResponseInterface
