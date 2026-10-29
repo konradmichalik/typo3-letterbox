@@ -9,6 +9,5 @@
 | [External access](external-access.md) | Activation, the shared token, guard reasons and the tester inbox |
 | [JSON API](api.md) | Endpoints, authentication, response shape, Playwright example |
 | [Test mails](test-mails.md) | Console command `letterbox:testmails:send` |
-| [Migration from EXT:mbox](migration-from-mbox.md) | Switching from `t3/mbox` to Letterbox |
 | [Design rules](design/rules.md) | Binding rules for every UI change |
 | [Screen designs](design/screens.md) | Target screens for the backend module |

@@ -86,7 +86,6 @@ Then open System › Letterbox as an administrator. Outside the exact root conte
 | [External access](docs/external-access.md) | Activation, the shared token, guard reasons and the tester inbox |
 | [JSON API](docs/api.md) | Endpoints, authentication, response shape, Playwright example |
 | [Test mails](docs/test-mails.md) | Console command `letterbox:testmails:send` |
-| [Migration from EXT:mbox](docs/migration-from-mbox.md) | Switching from `t3/mbox` to Letterbox |
 | [Design rules](docs/design/rules.md) | Binding rules for every UI change |
 | [Screen designs](docs/design/screens.md) | Target screens for the backend module |
 
