@@ -92,8 +92,7 @@ final class ClearCommandTest extends MailboxCommandTestCase
     #[Test]
     public function isNotSchedulable(): void
     {
-        $registry = $this->get(CommandRegistry::class);
-        $names = array_keys($registry->getSchedulableCommandsConfiguration());
+        $names = array_keys(iterator_to_array($this->get(CommandRegistry::class)->getSchedulableCommands()));
 
         self::assertNotContains('letterbox:clear', $names);
         self::assertNotContains('letterbox:list', $names);
