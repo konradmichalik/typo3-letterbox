@@ -44,7 +44,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
     private const DEFAULT_LIMIT = 20;
     private const MAX_LIMIT = 100;
     private const MAX_OFFSET = 1_000_000;
-    private const ID_PATTERN = '/^[0-9a-f]{32}$/';
+    private const ID_PATTERN = '/^[0-9a-f]{32}$/D';
 
     public function __construct(
         private ExternalAccessGuard $guard,
