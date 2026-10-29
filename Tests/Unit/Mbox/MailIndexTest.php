@@ -17,8 +17,10 @@ use KonradMichalik\Typo3Letterbox\Mbox\{MailIndex, Mailbox, MboxFormat, MessageI
 use KonradMichalik\Typo3Letterbox\Tests\Unit\Mbox\Fixtures\ExtMboxFixture;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
 use TYPO3\CMS\Core\Cache\Frontend\{FrontendInterface, VariableFrontend};
+use TYPO3\CMS\Core\Information\Typo3Version;
 
 /**
  * MailIndexTest.
@@ -63,7 +65,7 @@ final class MailIndexTest extends TestCase
     public function theCacheHoldsPlainArraysThatRestoreTheSameEntries(): void
     {
         file_put_contents($this->path, ExtMboxFixture::contents()."From a@example.org Wed Oct  7 10:42:00 2026\nDate: Fri, 1 Jan 2016 00:00:00 +0000\nFrom: \"Shop\" <shop@example.org>\nTo: Anna <anna@example.org>\nCc: b@example.org\nSubject: Last\n\nbody\n\n");
-        $cache = new VariableFrontend('letterbox_test', new TransientMemoryBackend());
+        $cache = new VariableFrontend('letterbox_test', $this->memoryBackend());
 
         $built = $this->index($cache)->entries();
         $stored = $cache->get('v8_'.hash('sha256', $this->path));
@@ -102,5 +104,15 @@ final class MailIndexTest extends TestCase
         $cache->method('get')->willReturn(false);
 
         return new MailIndex(new Mailbox($this->path, new MboxFormat()), new MessageParser(), $cache);
+    }
+
+    /**
+     * TYPO3 13 passes the application context to a cache backend, TYPO3 14 only the options.
+     */
+    private function memoryBackend(): TransientMemoryBackend
+    {
+        $arguments = (new Typo3Version())->getMajorVersion() < 14 ? ['Testing'] : [];
+
+        return (new ReflectionClass(TransientMemoryBackend::class))->newInstanceArgs($arguments);
     }
 }
