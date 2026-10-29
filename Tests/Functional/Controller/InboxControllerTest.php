@@ -1278,8 +1278,11 @@ final class InboxControllerTest extends FunctionalTestCase
             self::assertStringNotContainsString('data-letterbox-opened-label', $body);
             self::assertMatchesRegularExpression('/data-letterbox-index="[^"]*\/module\/system\/letterbox[?"]/', $body);
             self::assertMatchesRegularExpression('/data-letterbox-show="[^"]*\/module\/system\/letterbox\/show[?"]/', $body);
-            self::assertSame(1, substr_count($body, 'data-letterbox-reload'));
-            self::assertMatchesRegularExpression('/<a\b[^>]*\bdata-letterbox-reload\b[^>]*\btitle="Reload"|<a\b[^>]*\btitle="Reload"[^>]*\bdata-letterbox-reload\b/', $body);
+            // Every reload link is the module's own, the automatic one of core is off.
+            self::assertGreaterThan(0, preg_match_all('/<a\b[^>]*\btitle="Reload"[^>]*>/', $body, $reloadLinks));
+            foreach ($reloadLinks[0] as $reloadLink) {
+                self::assertStringContainsString('data-letterbox-reload', $reloadLink);
+            }
         }
     }
 
