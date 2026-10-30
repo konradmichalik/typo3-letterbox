@@ -45,9 +45,9 @@ final readonly class MailHtmlDocument
     // progressive enhancement: without the media query the content is visible at once.
     private const SHELL_STYLE = 'html{background-color:Canvas;color-scheme:light}@media (prefers-reduced-motion:no-preference){@keyframes letterbox-fade-in{from{opacity:0}}body{animation:letterbox-fade-in .2s ease-out}}';
     private const SHELL_SUFFIX = '</body></html>';
-    private const REMOVED_TAGS = ['script', 'xmp', 'plaintext', 'noembed', 'noframes', 'iframe', 'object', 'embed', 'link', 'base', 'meta'];
+    // SVG set and animate could swap a link target at runtime, past LinkTargets.
+    private const REMOVED_TAGS = ['script', 'xmp', 'plaintext', 'noembed', 'noframes', 'iframe', 'object', 'embed', 'link', 'base', 'meta', 'set', 'animate'];
     private const WRAPPER_TAGS = ['html', 'head', 'body'];
-
     /** @var WeakMap<Mail, array{HTML5, DOMDocument}|false> one parse per mail, shared by the read-only callers */
     private WeakMap $parsed;
 
@@ -172,10 +172,8 @@ final readonly class MailHtmlDocument
 
             return;
         }
-        // SVG links carry their target in href or the older xlink:href.
-        if (in_array($tag, ['a', 'area'], true) && ($node->hasAttribute('href') || $node->hasAttribute('xlink:href'))) {
-            $node->setAttribute('target', '_blank');
-            $node->setAttribute('rel', 'noopener noreferrer');
+        if (in_array($tag, ['a', 'area'], true)) {
+            LinkTargets::secure($node);
 
             return;
         }

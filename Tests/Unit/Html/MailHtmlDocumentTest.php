@@ -226,6 +226,35 @@ final class MailHtmlDocumentTest extends TestCase
     }
 
     #[Test]
+    public function linksWithAnotherSchemeLoseTheirTarget(): void
+    {
+        $doc = (new MailHtmlDocument())->build($this->mailWithHtml(
+            '<a href="javascript:alert(1)">js</a><a href=" Java&#09;Script:alert(1)">obfuscated</a><a href="data:text/html,x">data</a>'
+            .'<svg><a xlink:href="javascript:alert(1)"><text>svg</text></a></svg><map name="m"><area shape="rect" coords="0,0,1,1" href="vbscript:x"></map>'
+            .'<a href="mailto:a@example.org">mail</a><a href="tel:+491">tel</a><a href="#top">anchor</a><a href="/path">relative</a>',
+        ));
+
+        self::assertStringNotContainsStringIgnoringCase('script:', $doc);
+        self::assertStringNotContainsString('data:text/html', $doc);
+        self::assertStringContainsString('<a>js</a>', $doc);
+        self::assertStringContainsString('href="mailto:a@example.org"', $doc);
+        self::assertStringContainsString('href="tel:+491"', $doc);
+        self::assertStringContainsString('href="#top"', $doc);
+        self::assertStringContainsString('href="/path"', $doc);
+    }
+
+    #[Test]
+    public function svgAnimationsCannotSwapALinkTarget(): void
+    {
+        $doc = (new MailHtmlDocument())->build($this->mailWithHtml(
+            '<svg><a href="https://example.org/"><set attributeName="href" to="javascript:alert(1)"/><animate attributeName="href" values="javascript:alert(2)"/><text>x</text></a></svg>',
+        ));
+
+        self::assertStringNotContainsStringIgnoringCase('javascript:', $doc);
+        self::assertStringContainsString('href="https://example.org/"', $doc);
+    }
+
+    #[Test]
     public function areasAndSvgLinksOpenInNewTabWithoutOpenerOrReferrer(): void
     {
         $doc = (new MailHtmlDocument())->build($this->mailWithHtml(
