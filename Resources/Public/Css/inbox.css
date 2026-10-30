@@ -21,9 +21,12 @@
   margin-bottom: 0;
 }
 
-.letterbox-list-header {
+/* Explicit padding and divider: v13's card header has neither below, so the quick filter would sit flush on the list. The second class beats core's `.card-header`, which loads after this file. */
+.card-header.letterbox-list-header {
+  border-block-end: 1px solid var(--typo3-component-border-color);
   display: grid;
   gap: 0.75rem;
+  padding-block-end: 1rem;
 }
 
 .letterbox-search {
