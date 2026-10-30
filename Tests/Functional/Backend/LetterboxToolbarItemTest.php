@@ -97,14 +97,14 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function dropdownShowsTotalAndUnreadWithTheCoreEnvelopeIcon(): void
+    public function dropdownShowsTotalAndUnreadWithTheLetterboxIcon(): void
     {
         $this->append('First');
         $this->append('Second');
         $this->markRead('Second');
 
         self::assertStringContainsString('2 mails, 1 unread', $this->item()->getDropDown());
-        self::assertStringContainsString('actions-envelope', $this->item()->getItem());
+        self::assertStringContainsString('letterbox-glyph', $this->item()->getItem());
     }
 
     #[Test]
@@ -133,8 +133,8 @@ final class LetterboxToolbarItemTest extends FunctionalTestCase
         self::assertMatchesRegularExpression('/fw-bold[^>]*>\s*<span class="visually-hidden">Unread<\/span>\s*Fresh/', $html);
         self::assertStringNotContainsString('toolbar.mbox', $html);
         self::assertStringNotContainsString('Mbox file', $html);
-        self::assertGreaterThanOrEqual(2, substr_count($html, 'dropdown-divider'));
-        self::assertMatchesRegularExpression('/<a class="btn btn-default btn-sm[^"]*" href="[^"]*">Open Letterbox<\/a>/', $html);
+        self::assertSame(1, substr_count($html, 'dropdown-divider'));
+        self::assertMatchesRegularExpression('/2 mails, 1 unread<\/span>\s*<a class="btn btn-default btn-sm[^"]*" href="[^"]*">Open Letterbox<\/a>/', $html);
     }
 
     #[Test]

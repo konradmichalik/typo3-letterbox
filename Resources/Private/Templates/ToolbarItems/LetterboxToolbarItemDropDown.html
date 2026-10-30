@@ -11,7 +11,12 @@
 <f:if condition="{state} == 'ok'">
     <f:then>
         <p class="dropdown-item-text"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.intro" /></p>
-        <p class="dropdown-item-text text-variant"><f:if condition="{total} == 1"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.summary.one" arguments="{0: count}" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.summary.other" arguments="{0: total, 1: count}" /></f:else></f:if></p>
+        <div class="dropdown-item-text d-flex align-items-center justify-content-between gap-3">
+            <span class="text-variant"><f:if condition="{total} == 1"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.summary.one" arguments="{0: count}" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.summary.other" arguments="{0: total, 1: count}" /></f:else></f:if></span>
+            <f:if condition="{openUrl}">
+                <a class="btn btn-default btn-sm" href="{openUrl}"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.open" /></a>
+            </f:if>
+        </div>
         <hr class="dropdown-divider" aria-hidden="true">
         <f:if condition="{mails}">
             <f:then>
@@ -37,12 +42,6 @@
             <f:else>
                 <p class="dropdown-item-text"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.empty" /></p>
             </f:else>
-        </f:if>
-        <f:if condition="{openUrl}">
-            <hr class="dropdown-divider" aria-hidden="true">
-            <div class="dropdown-item-text">
-                <a class="btn btn-default btn-sm" href="{openUrl}"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.open" /></a>
-            </div>
         </f:if>
     </f:then>
     <f:else>

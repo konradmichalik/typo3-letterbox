@@ -5,7 +5,7 @@
 >
 <f:variable name="title"><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.active" /></f:variable>
 <f:variable name="name"><f:if condition="{count} > 0"><f:then><f:if condition="{count} == 1"><f:then><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.unread.one" arguments="{0: title, 1: count}" /></f:then><f:else><f:translate key="LLL:EXT:typo3_letterbox/Resources/Private/Language/locallang.xlf:toolbar.unread.other" arguments="{0: title, 1: count}" /></f:else></f:if></f:then><f:else>{title}</f:else></f:if></f:variable>
-<span class="toolbar-item-icon" title="{title}" aria-hidden="true"><core:icon identifier="actions-envelope" size="small" alternativeMarkupIdentifier="inline" /></span>
+<span class="toolbar-item-icon" title="{title}" aria-hidden="true"><core:icon identifier="letterbox-glyph" size="small" alternativeMarkupIdentifier="inline" /></span>
 <span class="toolbar-item-title">{name}</span>
 <f:if condition="{count} > 0">
     <span class="toolbar-item-badge badge badge-pill badge-warning" aria-hidden="true">{count}</span>

@@ -21,6 +21,11 @@ $moduleIcon = GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion
     : 'Extension.svg';
 
 return [
+    // The toolbar draws the monochrome glyph in every version, unlike the module menu of TYPO3 13.
+    'letterbox-glyph' => [
+        'provider' => SvgIconProvider::class,
+        'source' => 'EXT:typo3_letterbox/Resources/Public/Icons/module-letterbox.svg',
+    ],
     'letterbox-module' => [
         'provider' => SvgIconProvider::class,
         'source' => 'EXT:typo3_letterbox/Resources/Public/Icons/'.$moduleIcon,

@@ -106,7 +106,7 @@ Reference values measured in TYPO3 14.3 (theme "fresh") and 13.4, for orientatio
 
 ## Toolbar, widget, reports
 
-- Toolbar item: core toolbar button with an envelope icon and a badge counting the unread mails of the current user (no badge at 0), accessible name "Mail catcher active, N unread mails". Admins only, can be switched off with `showToolbarItem`.
+- Toolbar item: core toolbar button with the Letterbox mailbox icon (the glyph of the module icon) and a badge counting the unread mails of the current user (no badge at 0), accessible name "Mail catcher active, N unread mails". Admins only, can be switched off with `showToolbarItem`.
 - Dropdown: after a takeover a muted line "Letterbox took over the mail transport (source). Original transport: …", then one sentence that mails are not delivered, a divider, the latest five subjects (each linking to the mail, cropped to 60 characters, unread ones in bold with a visually hidden "Unread"), a divider and a core button to the module. The badge is Warning.
 - Dashboard widget "Recent mails": core widget markup, admin only, subject, recipient and time.
 - Reports: core status provider with core severities; no own markup.
