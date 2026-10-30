@@ -67,7 +67,17 @@
         <div class="card-body">
             <dl class="row">
                 <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.connect.inbox" extensionName="Typo3Letterbox" /></dt>
-                <dd class="col-sm-8"><code class="text-break">{inboxUrl}</code></dd>
+                <dd class="col-sm-8">
+                    <div class="d-flex align-items-start gap-2">
+                        <code class="text-break">{inboxUrl}</code>
+                        <f:if condition="{testerLink}">
+                            <f:variable name="copyLabel"><f:translate key="access.connect.copyInbox" extensionName="Typo3Letterbox" /></f:variable>
+                            <typo3-copy-to-clipboard class="btn btn-sm btn-default flex-shrink-0" text="{inboxUrl}" title="{copyLabel}" aria-label="{copyLabel}">
+                                <span aria-hidden="true"><core:icon identifier="actions-clipboard" /></span>
+                            </typo3-copy-to-clipboard>
+                        </f:if>
+                    </div>
+                </dd>
                 <dt class="col-sm-4 text-variant fw-normal"><f:translate key="access.connect.api" extensionName="Typo3Letterbox" /></dt>
                 <dd class="col-sm-8 mb-0"><code class="text-break">{apiUrl}</code></dd>
             </dl>

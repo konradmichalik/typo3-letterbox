@@ -37,7 +37,7 @@ Access also needs the Letterbox transport in `MAIL/transport` and HTTPS. If anyt
 
 ## Tester inbox
 
-Copy the tester link from the backend page "External access" and share it with your testers. It has the form `<site URL>_letterbox/inbox?t=<link secret>`. The link secret is `hash_hmac('sha256', 'tester-link', <token>)`, 64 hex characters. It opens the read-only inbox only: the API never accepts it, and the inbox never accepts the raw token in `?t=`. A leaked tester link therefore exposes the mails but cannot delete them or download sources.
+Copy the tester link from the backend page "External access" (it has a copy button) and share it with your testers. It has the form `<site URL>_letterbox/inbox?t=<link secret>`. The link secret is `hash_hmac('sha256', 'tester-link', <token>)`, 64 hex characters. It opens the read-only inbox only: the API never accepts it, and the inbox never accepts the raw token in `?t=`. A leaked tester link therefore exposes the mails but cannot delete them or download sources.
 
 To build the link without the backend:
 

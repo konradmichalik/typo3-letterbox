@@ -69,7 +69,7 @@ The "External access" button in the doc header opens `system_letterbox.access`, 
 
 * Whether external access is on. When it is off, each reason says what to change, for example which value `LETTERBOX_EXTERNAL_ACCESS` needs.
 * Whether `LETTERBOX_ACCESS_TOKEN` is configured (at least 32 characters). The token itself is never shown.
-* The ready-to-share tester link `<inbox URL>?t=<link secret>`, once the token is configured. The link secret is derived from the token and opens only the read-only inbox, see [external access](external-access.md#tester-inbox). Admins can read every mail anyway, so the page shows it in full.
+* The ready-to-share tester link `<inbox URL>?t=<link secret>`, once the token is configured, with a copy button. The link secret is derived from the token and opens only the read-only inbox, see [external access](external-access.md#tester-inbox). Admins can read every mail anyway, so the page shows it in full.
 * The API base URL and a `curl` example with a placeholder token.
 * A reminder that changing the token revokes the link for everyone.
 

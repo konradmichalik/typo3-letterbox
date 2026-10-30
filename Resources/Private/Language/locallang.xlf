@@ -495,6 +495,9 @@
 			<trans-unit id="access.connect.inbox" resname="access.connect.inbox">
 				<source>Tester inbox</source>
 			</trans-unit>
+			<trans-unit id="access.connect.copyInbox" resname="access.connect.copyInbox">
+				<source>Copy tester link</source>
+			</trans-unit>
 			<trans-unit id="access.connect.api" resname="access.connect.api">
 				<source>JSON API</source>
 			</trans-unit>

@@ -109,6 +109,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
 
         $link = 'https://typo3-testing.local/sub/_letterbox/inbox?t='.hash_hmac('sha256', 'tester-link', self::TOKEN);
         self::assertStringContainsString('<code class="text-break">'.$link.'</code>', $body);
+        self::assertMatchesRegularExpression('/<typo3-copy-to-clipboard[^>]*text="'.preg_quote($link, '/').'"[^>]*aria-label="Copy tester link"/', $body);
         self::assertStringContainsString('<code class="text-break">https://typo3-testing.local/sub/_letterbox/api/v1</code>', $body);
         self::assertStringContainsString('Share this link with your testers. It opens the read-only inbox only, never the API. Changing the token revokes it for everyone.', $body);
         self::assertStringContainsString('curl -H "X-Letterbox-Token: &lt;token&gt;" https://typo3-testing.local/sub/_letterbox/api/v1/messages', $body);
@@ -124,6 +125,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
         $body = $this->page();
 
         self::assertStringNotContainsString('_letterbox/inbox?t=', $body);
+        self::assertStringNotContainsString('Copy tester link', $body);
         self::assertStringContainsString('<code class="text-break">https://typo3-testing.local/_letterbox/inbox</code>', $body);
     }
 
