@@ -91,7 +91,7 @@
 			},
 			"cms-package-dir": "{$vendor-dir}/typo3/cms",
 			"extension-key": "typo3_letterbox",
-			"version": "1.0.0",
+			"version": "0.1.0",
 			"web-dir": "public"
 		}
 	},
