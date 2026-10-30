@@ -68,7 +68,7 @@ final class MailIndexTest extends TestCase
         $cache = new VariableFrontend('letterbox_test', $this->memoryBackend());
 
         $built = $this->index($cache)->entries();
-        $stored = $cache->get('v8_'.hash('sha256', $this->path));
+        $stored = $cache->get('v9_'.hash('sha256', $this->path));
         $restored = $this->index($cache)->entries();
 
         self::assertIsArray($stored);

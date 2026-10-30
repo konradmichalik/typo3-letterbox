@@ -109,7 +109,7 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
             return $this->list($request, $basePath);
         }
         $id = $segments[0];
-        if (1 !== preg_match(self::ID_PATTERN, $id)) {
+        if (1 !== preg_match(self::ID_PATTERN, $id) || $this->repository->hasBackendReset($id)) {
             return $this->view->notFound($request);
         }
 
@@ -189,7 +189,7 @@ final readonly class TesterInboxMiddleware implements MiddlewareInterface
     private function list(ServerRequestInterface $request, string $basePath): ResponseInterface
     {
         $query = $this->query($request);
-        $filter = MailFilter::create($query, QuickFilter::All, []);
+        $filter = MailFilter::create($query, QuickFilter::All, [])->withoutBackendReset();
         $total = $this->repository->count($filter);
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = min($this->page($request), $pages);

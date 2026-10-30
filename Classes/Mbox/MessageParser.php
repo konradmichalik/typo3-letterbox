@@ -32,6 +32,8 @@ final readonly class MessageParser
     public const URL_PATTERN = '#https?://[^\s<>"\']+#i';
     public const URL_TRAILING_PUNCTUATION = '.,;:!?)]}';
     private const READ_CHUNK_BYTES = 65536;
+    /** TYPO3's own reset mail is a few KB, so a larger mail is not worth parsing in full at index time. */
+    private const RESET_SCAN_LIMIT_BYTES = 1048576;
 
     private MailMimeParser $parser;
 
@@ -125,6 +127,7 @@ final readonly class MessageParser
             $message->getHeaderValue('Message-ID') ?? '',
             $listed['To'],
             $listed['Cc'],
+            $this->hasBackendResetLink($raw),
         );
     }
 
@@ -242,12 +245,31 @@ final readonly class MessageParser
      */
     private static function isPasswordReset(string $url): bool
     {
-        $path = (string) parse_url($url, \PHP_URL_PATH);
-        if (str_contains($path, '/typo3/login/password-reset/')) {
+        if (self::isBackendPasswordReset($url)) {
             return true;
         }
         $query = rawurldecode((string) parse_url($url, \PHP_URL_QUERY));
 
         return str_contains($query, 'tx_felogin_login[action]=showChangePassword') || str_contains($query, 'tx_felogin_login[hash]=');
+    }
+
+    private static function isBackendPasswordReset(string $url): bool
+    {
+        return str_contains((string) parse_url($url, \PHP_URL_PATH), '/typo3/login/password-reset/');
+    }
+
+    private function hasBackendResetLink(string $raw): bool
+    {
+        if (strlen($raw) > self::RESET_SCAN_LIMIT_BYTES) {
+            return false;
+        }
+
+        foreach ($this->links($raw) as $link) {
+            if (self::isBackendPasswordReset($link->url)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

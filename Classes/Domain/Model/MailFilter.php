@@ -34,6 +34,7 @@ final readonly class MailFilter
         private array $readLookup,
         private string $recipient = '',
         private string $subject = '',
+        private bool $hideBackendReset = false,
     ) {}
 
     public static function all(): self
@@ -52,7 +53,7 @@ final readonly class MailFilter
 
     public function matches(MessageIndexEntry $entry): bool
     {
-        if (!$this->recipientAndSubjectMatch($entry)) {
+        if (!$this->recipientAndSubjectMatch($entry) || ($this->hideBackendReset && $entry->backendReset)) {
             return false;
         }
         if (QuickFilter::Unread === $this->quick && isset($this->readLookup[$entry->id])) {
@@ -77,17 +78,25 @@ final readonly class MailFilter
 
     public function withQuick(QuickFilter $quick): self
     {
-        return new self($this->query, $quick, $this->readLookup, $this->recipient, $this->subject);
+        return new self($this->query, $quick, $this->readLookup, $this->recipient, $this->subject, $this->hideBackendReset);
     }
 
     public function withRecipient(string $address): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, strtolower(trim($address)), $this->subject);
+        return new self($this->query, $this->quick, $this->readLookup, strtolower(trim($address)), $this->subject, $this->hideBackendReset);
     }
 
     public function withSubject(string $needle): self
     {
-        return new self($this->query, $this->quick, $this->readLookup, $this->recipient, $needle);
+        return new self($this->query, $this->quick, $this->readLookup, $this->recipient, $needle, $this->hideBackendReset);
+    }
+
+    /**
+     * For the surfaces outside the backend: a reset link of a backend user would hand out that account.
+     */
+    public function withoutBackendReset(): self
+    {
+        return new self($this->query, $this->quick, $this->readLookup, $this->recipient, $this->subject, true);
     }
 
     private function recipientAndSubjectMatch(MessageIndexEntry $entry): bool

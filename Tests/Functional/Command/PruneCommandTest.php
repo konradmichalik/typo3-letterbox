@@ -138,7 +138,7 @@ final class PruneCommandTest extends MailboxCommandTestCase
         $cache = $this->get(CacheManager::class)->getCache('typo3_letterbox_index');
         (new MailRepositoryFactory(new MailboxLock($this->get(LockFactory::class)), $cache))->forPath($this->path)->count(MailFilter::all());
         // Index entries whose IDs no longer match the file look like a rewrite by another process on every attempt.
-        $key = 'v8_'.hash('sha256', $this->path);
+        $key = 'v9_'.hash('sha256', $this->path);
         $cached = $cache->get($key);
         self::assertIsArray($cached);
         // Index 2 of a cached row is the mail id.

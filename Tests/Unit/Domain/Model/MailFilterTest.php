@@ -47,6 +47,20 @@ final class MailFilterTest extends TestCase
     }
 
     #[Test]
+    public function withoutBackendResetHidesFlaggedEntriesAndSurvivesEveryChange(): void
+    {
+        $reset = new MessageIndexEntry(new MessageSpan(0, 10), 'id', null, 'a@example.com', '', ['b@example.com'], ['b@example.com'], ['b@example.com'], 'Reset', 0, null, '', [], [], true);
+        $filter = MailFilter::all()->withoutBackendReset();
+
+        self::assertTrue(MailFilter::all()->matches($reset));
+        self::assertFalse($filter->matches($reset));
+        self::assertFalse($filter->withQuick(QuickFilter::All)->matches($reset));
+        self::assertFalse($filter->withRecipient('b@example.com')->matches($reset));
+        self::assertFalse($filter->withSubject('Reset')->matches($reset));
+        self::assertTrue($filter->matches($this->entry()));
+    }
+
+    #[Test]
     public function emptyQueryMatchesEverything(): void
     {
         self::assertTrue(MailFilter::create('', QuickFilter::All, [])->matches($this->entry()));

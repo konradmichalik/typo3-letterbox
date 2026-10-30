@@ -422,6 +422,28 @@ final class ApiMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function mailsWithABackendResetLinkNeverLeaveTheApi(): void
+    {
+        $this->append('Welcome', 'anna@example.org');
+        $this->appendRaw("From: Sender <s@example.org>\nTo: admin@example.org\nSubject: Backend reset\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\n\nOpen https://stage.example.org/typo3/login/password-reset/validate?token=abc\n");
+        $this->appendRaw("From: Sender <s@example.org>\nTo: editor@example.org\nSubject: Frontend reset\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\n\nOpen https://stage.example.org/login?tx_felogin_login%5Bhash%5D=abc\n");
+        $resetId = $this->mails()[1]->id;
+        $api = $this->middleware();
+
+        $list = $this->json($this->send($api, '/_letterbox/api/v1/messages'));
+
+        self::assertSame(2, $list['total']);
+        self::assertSame(['Frontend reset', 'Welcome'], array_column($list['items'], 'subject'));
+        self::assertSame('Frontend reset', $this->json($this->send($api, '/_letterbox/api/v1/messages/latest?to=editor@example.org'))['subject']);
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/latest?to=admin@example.org')->getStatusCode());
+        foreach (['', '/source', '/attachments/0'] as $suffix) {
+            self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$resetId.$suffix)->getStatusCode(), $suffix);
+        }
+        self::assertSame(404, $this->send($api, '/_letterbox/api/v1/messages/'.$resetId, 'DELETE')->getStatusCode());
+        self::assertCount(3, $this->mails(), 'the backend still sees every mail');
+    }
+
+    #[Test]
     public function subDirectoryInstallUsesSitePath(): void
     {
         $api = $this->middleware();

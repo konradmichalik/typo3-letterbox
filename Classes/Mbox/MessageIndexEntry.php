@@ -30,6 +30,7 @@ final readonly class MessageIndexEntry
      * @param ?DateTimeImmutable $received           arrival time from the separator line, unlike $date not set by the sender
      * @param list<Address>      $to
      * @param list<Address>      $cc
+     * @param bool               $backendReset       the mail holds a link of the TYPO3 backend password reset, which the external surfaces hide
      */
     public function __construct(
         public MessageSpan $span,
@@ -46,10 +47,11 @@ final readonly class MessageIndexEntry
         public string $messageId = '',
         public array $to = [],
         public array $cc = [],
+        public bool $backendReset = false,
     ) {}
 
     public function withSpan(MessageSpan $span): self
     {
-        return new self($span, $this->id, $this->date, $this->sender, $this->fromName, $this->recipients, $this->recipientLabels, $this->recipientAddresses, $this->subject, $this->attachmentCount, $this->received, $this->messageId, $this->to, $this->cc);
+        return new self($span, $this->id, $this->date, $this->sender, $this->fromName, $this->recipients, $this->recipientLabels, $this->recipientAddresses, $this->subject, $this->attachmentCount, $this->received, $this->messageId, $this->to, $this->cc, $this->backendReset);
     }
 }

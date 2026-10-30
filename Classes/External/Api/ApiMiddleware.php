@@ -140,7 +140,7 @@ final readonly class ApiMiddleware implements MiddlewareInterface
     private function route(ServerRequestInterface $request, array $segments): ?ResponseInterface
     {
         $method = $request->getMethod();
-        $filter = MailFilter::all();
+        $filter = MailFilter::all()->withoutBackendReset();
 
         return match (true) {
             ['messages'] === $segments && 'GET' === $method => $this->list($request, $filter),
@@ -156,6 +156,10 @@ final readonly class ApiMiddleware implements MiddlewareInterface
      */
     private function message(string $method, string $id, array $action): ?ResponseInterface
     {
+        if ($this->repository->hasBackendReset($id)) {
+            return null;
+        }
+
         return match (true) {
             [] === $action && 'GET' === $method => $this->detail($id),
             [] === $action && 'DELETE' === $method => $this->delete($id),

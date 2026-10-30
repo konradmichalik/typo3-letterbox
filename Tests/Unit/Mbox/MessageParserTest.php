@@ -147,6 +147,19 @@ final class MessageParserTest extends TestCase
     }
 
     #[Test]
+    public function summarizeFlagsOnlyLinksOfTheBackendPasswordReset(): void
+    {
+        $parser = new MessageParser();
+        $mail = static fn (string $headers, string $body): string => "To: a@example.org\nSubject: Reset\n".$headers."\n\n".$body."\n";
+        $backend = 'https://stage.example.org/typo3/login/password-reset/validate?t=abc';
+
+        self::assertTrue($parser->summarize($mail('Content-Type: text/plain', 'Open '.$backend), new MessageSpan(0, 10))->backendReset);
+        self::assertTrue($parser->summarize($mail('Content-Type: text/html', '<a href="'.$backend.'">Reset</a>'), new MessageSpan(0, 10))->backendReset);
+        self::assertFalse($parser->summarize($mail('Content-Type: text/plain', 'Open https://stage.example.org/login?tx_felogin_login%5Bhash%5D=abc'), new MessageSpan(0, 10))->backendReset);
+        self::assertFalse($parser->summarize($mail('Content-Type: text/plain', 'No link at all'), new MessageSpan(0, 10))->backendReset);
+    }
+
+    #[Test]
     public function linksAreReadFromTheBodiesLikeParse(): void
     {
         $raw = $this->fixture('html-with-attachment.eml');

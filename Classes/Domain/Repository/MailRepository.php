@@ -110,15 +110,19 @@ final readonly class MailRepository
         return MessageParser::idOf($raw) === $entry->id ? $this->parser->links($raw) : [];
     }
 
+    /**
+     * Whether the mail holds a link of the backend password reset, decided from the index alone.
+     */
+    public function hasBackendReset(string $id): bool
+    {
+        return $this->entryById($id)->backendReset ?? false;
+    }
+
     public function findById(string $id): ?Mail
     {
-        foreach ($this->index->entries() as $entry) {
-            if ($entry->id === $id) {
-                return $this->load($entry);
-            }
-        }
+        $entry = $this->entryById($id);
 
-        return null;
+        return null === $entry ? null : $this->load($entry);
     }
 
     public function attachment(string $id, int $index): ?Attachment
@@ -139,13 +143,9 @@ final readonly class MailRepository
 
     public function delete(string $id): bool
     {
-        foreach ($this->index->entries() as $entry) {
-            if ($entry->id === $id) {
-                return $this->remove([$entry]) > 0;
-            }
-        }
+        $entry = $this->entryById($id);
 
-        return false;
+        return null !== $entry && $this->remove([$entry]) > 0;
     }
 
     /**
@@ -200,6 +200,17 @@ final readonly class MailRepository
     public function sizeInBytes(): int
     {
         return $this->mailbox->exists() ? (int) filesize($this->mailbox->path()) : 0;
+    }
+
+    private function entryById(string $id): ?MessageIndexEntry
+    {
+        foreach ($this->index->entries() as $entry) {
+            if ($entry->id === $id) {
+                return $entry;
+            }
+        }
+
+        return null;
     }
 
     /**

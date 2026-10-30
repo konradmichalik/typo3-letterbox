@@ -33,7 +33,7 @@ use function is_string;
  */
 final class MailIndex
 {
-    private const CACHE_VERSION = 'v8_';
+    private const CACHE_VERSION = 'v9_';
 
     /** @var array{fingerprint: string, entries: list<MessageIndexEntry>}|null the index of this request, newest first */
     private ?array $memo = null;
@@ -201,6 +201,7 @@ final class MailIndex
             $entry->messageId,
             array_map(static fn (Address $address): array => [$address->address, $address->name], $entry->to),
             array_map(static fn (Address $address): array => [$address->address, $address->name], $entry->cc),
+            $entry->backendReset,
         ];
     }
 
@@ -214,7 +215,7 @@ final class MailIndex
         $entries = [];
         try {
             foreach ($rows as $row) {
-                if (!is_array($row) || 15 !== count($row)) {
+                if (!is_array($row) || 16 !== count($row)) {
                     return null;
                 }
                 $entries[] = new MessageIndexEntry(
@@ -232,6 +233,7 @@ final class MailIndex
                     $row[12],
                     self::addressesFromRow($row[13]),
                     self::addressesFromRow($row[14]),
+                    (bool) $row[15],
                 );
             }
         } catch (Throwable) {

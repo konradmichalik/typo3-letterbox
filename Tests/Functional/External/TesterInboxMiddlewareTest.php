@@ -208,6 +208,23 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function mailsWithABackendResetLinkAreHidden(): void
+    {
+        $visible = $this->append('Welcome', 'anna@example.org');
+        $frontend = $this->appendRaw("From: Sender <s@example.org>\nTo: editor@example.org\nSubject: Frontend reset\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\n\nOpen https://stage.example.org/login?tx_felogin_login%5Bhash%5D=abc\n");
+        $backend = $this->appendRaw("From: Sender <s@example.org>\nTo: admin@example.org\nSubject: Backend reset\nMessage-ID: <".bin2hex(random_bytes(4))."@example.org>\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\n\nOpen https://stage.example.org/typo3/login/password-reset/validate?token=abc\n");
+        $middleware = $this->middleware();
+
+        self::assertSame(2, $this->rows($this->send($middleware, '/_letterbox/inbox', $this->cookie())));
+        self::assertSame(200, $this->send($middleware, '/_letterbox/inbox/'.$visible, $this->cookie())->getStatusCode());
+        self::assertSame(200, $this->send($middleware, '/_letterbox/inbox/'.$frontend, $this->cookie())->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$backend, $this->cookie())->getStatusCode());
+        self::assertSame(404, $this->send($middleware, '/_letterbox/inbox/'.$backend.'/attachments/0', $this->cookie())->getStatusCode());
+        self::assertSame(0, $this->rows($this->send($middleware, '/_letterbox/inbox?q=Backend', $this->cookie())), 'a search never finds it');
+        self::assertCount(3, $this->get(MailRepository::class)->find(MailFilter::all(), 0, 100), 'the backend still sees every mail');
+    }
+
+    #[Test]
     public function wrongCookieClearsCookie(): void
     {
         $this->append('In scope', 'anna@example.org');
