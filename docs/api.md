@@ -121,7 +121,7 @@ function letterbox(baseUrl: string, token: string) {
 function isPasswordReset(url: string): boolean {
   const { pathname, searchParams } = new URL(url);
   return (
-    pathname.includes('/typo3/login/password-reset/') ||
+    pathname.toLowerCase().replace(/\/+$/, '').endsWith('/login/password-reset/validate') ||
     searchParams.has('tx_felogin_login[hash]') ||
     searchParams.get('tx_felogin_login[action]') === 'showChangePassword'
   );

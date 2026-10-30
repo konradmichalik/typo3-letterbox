@@ -414,7 +414,7 @@ final class MailRepositoryTest extends FunctionalTestCase
     private function assertCachedIndexIsCurrent(int $count): void
     {
         $mailbox = new Mailbox($this->path, new MboxFormat());
-        $cached = $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->get('v9_'.hash('sha256', $this->path));
+        $cached = $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->get('v10_'.hash('sha256', $this->path));
         $scanned = (new MailIndex($mailbox, new MessageParser(), new VariableFrontend('letterbox_scan', $this->memoryBackend())))->entries();
 
         self::assertIsArray($cached);

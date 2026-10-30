@@ -32,8 +32,8 @@ final readonly class MessageParser
     public const URL_PATTERN = '#https?://[^\s<>"\']+#i';
     public const URL_TRAILING_PUNCTUATION = '.,;:!?)]}';
     private const READ_CHUNK_BYTES = 65536;
-    /** TYPO3's own reset mail is a few KB, so a larger mail is not worth parsing in full at index time. */
-    private const RESET_SCAN_LIMIT_BYTES = 1048576;
+    // The route path below BE.entryPoint, which can be another path or a host of its own.
+    private const BACKEND_RESET_PATH = '/login/password-reset/validate';
 
     private MailMimeParser $parser;
 
@@ -241,7 +241,7 @@ final readonly class MessageParser
 
     /**
      * felogin: tx_felogin_login[action]=showChangePassword or tx_felogin_login[hash] (RecoveryService::prepareMail).
-     * Backend: route password_reset_validate, path /typo3/login/password-reset/validate (backend Routes.php).
+     * Backend: route password_reset_validate, path /login/password-reset/validate below the entry point (backend Routes.php).
      */
     private static function isPasswordReset(string $url): bool
     {
@@ -255,15 +255,14 @@ final readonly class MessageParser
 
     private static function isBackendPasswordReset(string $url): bool
     {
-        return str_contains((string) parse_url($url, \PHP_URL_PATH), '/typo3/login/password-reset/');
+        return str_ends_with(rtrim(strtolower((string) parse_url($url, \PHP_URL_PATH)), '/'), self::BACKEND_RESET_PATH);
     }
 
+    /**
+     * Reads every mail whatever its size: a skipped mail would hand the reset link out. Attachments stay undecoded.
+     */
     private function hasBackendResetLink(string $raw): bool
     {
-        if (strlen($raw) > self::RESET_SCAN_LIMIT_BYTES) {
-            return false;
-        }
-
         foreach ($this->links($raw) as $link) {
             if (self::isBackendPasswordReset($link->url)) {
                 return true;

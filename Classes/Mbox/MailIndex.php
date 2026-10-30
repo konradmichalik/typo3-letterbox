@@ -33,7 +33,7 @@ use function is_string;
  */
 final class MailIndex
 {
-    private const CACHE_VERSION = 'v9_';
+    private const CACHE_VERSION = 'v10_';
 
     /** @var array{fingerprint: string, entries: list<MessageIndexEntry>}|null the index of this request, newest first */
     private ?array $memo = null;

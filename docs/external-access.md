@@ -59,7 +59,7 @@ TYPO3 checks the `Host` header before Letterbox runs. With a wrong host and `SYS
 
 ## Backend password reset
 
-Letterbox hides every mail with a link of the TYPO3 backend password reset (path `/typo3/login/password-reset/`) from the tester inbox and the API. Such a mail is missing from lists, counts, search and `latest`, and its detail, source and attachments answer `404`, as does deleting it. Reset links of frontend users (felogin) stay visible. The backend module still shows the mail. The check runs when the mail is indexed and looks at mails up to 1 MiB, which covers the mail TYPO3 sends.
+Letterbox hides every mail with a link of the TYPO3 backend password reset (path ending in `/login/password-reset/validate`, so a custom `BE.entryPoint` is covered) from the tester inbox and the API. Such a mail is missing from lists, counts, search and `latest`, and its detail, source and attachments answer `404`, as does deleting it. Reset links of frontend users (felogin) stay visible. The backend module still shows the mail. The check runs when the mail is indexed and reads the text and HTML part of every mail, whatever its size.
 
 The filter does not replace the settings: a mail that reaches the mbox file by another route and links elsewhere is not covered. Set `BE/passwordResetForAdmins` to `false` so administrators cannot request a reset mail, or `BE/passwordReset` to `false` to turn the reset off.
 

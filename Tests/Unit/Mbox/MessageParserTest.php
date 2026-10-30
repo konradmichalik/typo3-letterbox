@@ -111,6 +111,16 @@ final class MessageParserTest extends TestCase
         self::assertTrue($this->linksOf('https://example.org/typo3/login/password-reset/validate?t=1&i=2&e=3&c=4')[0]->isPasswordReset);
     }
 
+    /**
+     * BE.entryPoint moves the backend to another path or to a host of its own.
+     */
+    #[Test]
+    public function backendResetLinkIsMarkedForEveryEntryPoint(): void
+    {
+        self::assertTrue($this->linksOf('https://example.org/admin/login/password-reset/validate?t=1')[0]->isPasswordReset);
+        self::assertTrue($this->linksOf('https://backend.example.org/login/password-reset/validate?t=1')[0]->isPasswordReset);
+    }
+
     #[Test]
     public function ordinaryLinkIsNotMarked(): void
     {
@@ -157,6 +167,15 @@ final class MessageParserTest extends TestCase
         self::assertTrue($parser->summarize($mail('Content-Type: text/html', '<a href="'.$backend.'">Reset</a>'), new MessageSpan(0, 10))->backendReset);
         self::assertFalse($parser->summarize($mail('Content-Type: text/plain', 'Open https://stage.example.org/login?tx_felogin_login%5Bhash%5D=abc'), new MessageSpan(0, 10))->backendReset);
         self::assertFalse($parser->summarize($mail('Content-Type: text/plain', 'No link at all'), new MessageSpan(0, 10))->backendReset);
+        self::assertTrue($parser->summarize($mail('Content-Type: text/plain', 'Open https://backend.example.org/login/password-reset/validate?t=abc'), new MessageSpan(0, 10))->backendReset);
+    }
+
+    #[Test]
+    public function summarizeFlagsTheBackendPasswordResetInALargeMail(): void
+    {
+        $raw = "To: a@example.org\nSubject: Reset\nContent-Type: text/plain\n\nOpen https://stage.example.org/typo3/login/password-reset/validate?t=abc\n".str_repeat("padding\n", 200000);
+
+        self::assertTrue((new MessageParser())->summarize($raw, new MessageSpan(0, 10))->backendReset);
     }
 
     #[Test]
