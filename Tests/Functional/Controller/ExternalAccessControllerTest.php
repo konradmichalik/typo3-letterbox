@@ -53,6 +53,7 @@ final class ExternalAccessControllerTest extends FunctionalTestCase
     {
         parent::setUp();
 
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['externalAccess'] = '1';
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = LetterboxTransport::class;
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = Environment::getVarPath().'/letterbox-test/access.mbox';
 

@@ -61,6 +61,7 @@ final class LetterboxStatusTest extends FunctionalTestCase
             unlink($this->path);
         }
         $this->useMailSettings([]);
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['externalAccess'] = '1';
         $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();
 
         $this->importCSVDataSet(__DIR__.'/../Fixtures/be_users.csv');

@@ -57,6 +57,7 @@ final readonly class ExternalAccessGuard
         $mail = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
 
         $reasons = [
+            '1' === (string) ($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['externalAccess'] ?? '0') ? null : ExternalAccessState::SETTING_OFF,
             '' === $access ? ExternalAccessState::ENV_MISSING : null,
             '' !== $access && $access !== $context ? ExternalAccessState::ENV_CONTEXT_MISMATCH : null,
             // Live mails must stay out of reach, whatever the environment says.

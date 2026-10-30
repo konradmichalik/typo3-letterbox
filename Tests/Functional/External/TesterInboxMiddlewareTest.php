@@ -76,8 +76,9 @@ final class TesterInboxMiddlewareTest extends FunctionalTestCase
         if (is_file($this->path)) {
             unlink($this->path);
         }
-        $mail = ['MAIL/transport' => LetterboxTransport::class, 'MAIL/transport_mbox_file' => $this->path];
+        $mail = ['MAIL/transport' => LetterboxTransport::class, 'MAIL/transport_mbox_file' => $this->path, 'EXTENSIONS/typo3_letterbox/externalAccess' => '1'];
         $this->get(ConfigurationManager::class)->setLocalConfigurationValuesByPathValuePairs($mail);
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['externalAccess'] = '1';
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = LetterboxTransport::class;
         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = $this->path;
         $this->get(CacheManager::class)->getCache('typo3_letterbox_index')->flush();

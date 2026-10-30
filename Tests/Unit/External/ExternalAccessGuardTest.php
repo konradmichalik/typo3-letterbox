@@ -37,9 +37,14 @@ final class ExternalAccessGuardTest extends TestCase
     /** @var array<string, mixed> */
     private array $previousEnvironment = [];
 
+    /** @var array<string, mixed> */
+    private array $extensionBackup = [];
+
     protected function setUp(): void
     {
         $this->mailBackup = $GLOBALS['TYPO3_CONF_VARS']['MAIL'] ?? [];
+        $this->extensionBackup = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS'] ?? [];
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['externalAccess'] = '1';
         // Reflection instead of the public getters: they cannot read, nor restore, the uninitialised state the unit suite starts in.
         $this->previousEnvironment = (new ReflectionClass(Environment::class))->getStaticProperties();
         $this->useContext('Production/Staging');
@@ -49,6 +54,7 @@ final class ExternalAccessGuardTest extends TestCase
     protected function tearDown(): void
     {
         $GLOBALS['TYPO3_CONF_VARS']['MAIL'] = $this->mailBackup;
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS'] = $this->extensionBackup;
         $environment = new ReflectionClass(Environment::class);
         foreach ($this->previousEnvironment as $name => $value) {
             $environment->setStaticPropertyValue($name, $value);
@@ -63,6 +69,21 @@ final class ExternalAccessGuardTest extends TestCase
         self::assertTrue($guard->evaluate($this->request())->active);
         self::assertSame(self::TOKEN, $guard->token());
         self::assertSame(hash_hmac('sha256', 'tester-link', self::TOKEN), $guard->testerLinkSecret());
+    }
+
+    #[Test]
+    public function untickedSettingKeepsEverythingOff(): void
+    {
+        $env = ['LETTERBOX_EXTERNAL_ACCESS' => 'Production/Staging', 'LETTERBOX_ACCESS_TOKEN' => self::TOKEN];
+
+        foreach (['0', '', 'on'] as $value) {
+            $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['externalAccess'] = $value;
+
+            self::assertSame([ExternalAccessState::SETTING_OFF], $this->guard($env)->status()->reasons, $value);
+        }
+
+        unset($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_letterbox']['externalAccess']);
+        self::assertSame([ExternalAccessState::SETTING_OFF], $this->guard($env)->status()->reasons);
     }
 
     #[Test]

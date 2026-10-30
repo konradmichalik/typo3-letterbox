@@ -54,18 +54,19 @@ Caught mails can contain personal data of testers and test users. The mbox file 
 
 ## Extension settings
 
-Set in Admin Tools > Settings > Extension Configuration.
+Set in Admin Tools > Settings > Extension Configuration (System > Settings in TYPO3 14). The settings are grouped in tabs: Basic (the switch), Backend, Retention, External access and Debug.
 
 | Setting | Type | Default | Effect |
 |---------|------|---------|--------|
 | `enable` | boolean | `0` | Catch mails with Letterbox: takes over the mail transport on this system, see [switch](#switch). `LETTERBOX_ENABLE` overrides it. |
-| `debugMode` | boolean | `0` | Registers the `letterbox:testmails:send` command. |
 | `enableBackendModule` | boolean | `1` | Shows the backend module. |
 | `mailsPerPage` | integer | `10` | Mails per page in the list. |
 | `maxMessages` | integer | `500` | Keep at most this many mails, the oldest are removed after a new mail is caught. `0` for no limit. See [retention](operations.md#retention). |
 | `maxAgeDays` | integer | `30` | Remove mails older than this many days after a new mail is caught. `0` for no limit. |
 | `showToolbarItem` | boolean | `1` | Shows the [toolbar item](operations.md#toolbar-item) to administrators while Letterbox catches mails. |
+| `externalAccess` | boolean | `0` | Enable external access: the tester inbox and the JSON API may answer. One of several conditions, see [external access](external-access.md#activation). |
+| `debugMode` | boolean | `0` | Registers the `letterbox:testmails:send` command. |
 
-Flush the caches after changing `enable`, `debugMode` or `enableBackendModule`.
+Flush the caches after changing `enable`, `debugMode` or `enableBackendModule`. `externalAccess` takes effect with the next request.
 
 `LETTERBOX_ENABLE` and the environment variables for [external access](external-access.md#activation) are set outside TYPO3.

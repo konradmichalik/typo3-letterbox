@@ -9,6 +9,8 @@ Letterbox can answer outside the backend: a [JSON API](api.md) for automated tes
 
 ## Activation
 
+Tick "Enable external access" (`externalAccess`) in the [extension settings](configuration.md#extension-settings). It is off by default and only one of the conditions: the environment variables below and the other checks still have to pass.
+
 Set these in the process environment of the web server or PHP, not in `additional.php`.
 
 | Variable | Meaning |
@@ -25,6 +27,7 @@ Access also needs the Letterbox transport in `MAIL/transport` and HTTPS. If anyt
 
 | Reason | Cause | What to do |
 |--------|-------|------------|
+| `setting_off` | "Enable external access" is not ticked in the extension settings | Tick it |
 | `env_missing` | `LETTERBOX_EXTERNAL_ACCESS` is unset or empty | Set it to the current context |
 | `env_context_mismatch` | The value differs from the context | Set it to exactly the context shown |
 | `production` | The context is the root context `Production` | Nothing, external access is never on there. Use a test system with its own context such as `Production/Staging` |
@@ -60,7 +63,7 @@ Everyone with the link can read the reset link of a backend user. Set `BE/passwo
 
 ## DDEV
 
-`.ddev/config.yaml` sets `LETTERBOX_EXTERNAL_ACCESS=Development` and a fixed test token, so the tester inbox and the API work right after `ddev install`. The token is public in this repository, so it is for DDEV only: never reuse it, and do not run `ddev share` with it. To use your own token, put it in the git-ignored `.ddev/config.local.yaml` and run `ddev restart`. The later file wins:
+`.ddev/config.yaml` sets `LETTERBOX_EXTERNAL_ACCESS=Development` and a fixed test token, and `ddev install` ticks "Enable external access", so the tester inbox and the API work right after `ddev install`. The token is public in this repository, so it is for DDEV only: never reuse it, and do not run `ddev share` with it. To use your own token, put it in the git-ignored `.ddev/config.local.yaml` and run `ddev restart`. The later file wins:
 
 ```yaml
 web_environment:

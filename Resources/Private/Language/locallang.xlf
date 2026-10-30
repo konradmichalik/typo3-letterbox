@@ -459,6 +459,9 @@
 			<trans-unit id="access.status.switch" resname="access.status.switch">
 				<source>Switch</source>
 			</trans-unit>
+			<trans-unit id="access.reason.setting_off" resname="access.reason.setting_off">
+				<source>Tick "Enable external access" in the extension configuration of typo3_letterbox.</source>
+			</trans-unit>
 			<trans-unit id="access.reason.env_missing" resname="access.reason.env_missing">
 				<source>Set the environment variable LETTERBOX_EXTERNAL_ACCESS to %s.</source>
 			</trans-unit>

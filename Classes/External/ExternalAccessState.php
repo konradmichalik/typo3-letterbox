@@ -20,6 +20,7 @@ namespace KonradMichalik\Typo3Letterbox\External;
  */
 final readonly class ExternalAccessState
 {
+    public const SETTING_OFF = 'setting_off';
     public const ENV_MISSING = 'env_missing';
     public const ENV_CONTEXT_MISMATCH = 'env_context_mismatch';
     public const PRODUCTION = 'production';

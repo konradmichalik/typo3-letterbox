@@ -1,20 +1,35 @@
-# cat=basic; type=boolean; label=Catch mails with Letterbox: take over the mail transport on this system
+# customcategory=backend=Backend
+# customcategory=retention=Retention
+# customcategory=external=External access
+# customcategory=debug=Debug
+
+# customsubcategory=catch=Catch mails
+# customsubcategory=module=Backend module
+# customsubcategory=toolbar=Toolbar item
+# customsubcategory=limits=Limits
+# customsubcategory=access=Tester inbox and API
+# customsubcategory=testing=Test mails
+
+# cat=basic/catch/10; type=boolean; label=Catch mails with Letterbox: Takes over the mail transport on this system. Every mail is stored in the mbox file and none is delivered. The environment variable LETTERBOX_ENABLE overrides this setting. Flush the caches after changing it.
 enable = 0
 
-# cat=basic; type=boolean; label=Enable debug mode: registers the letterbox:testmails:send command
-debugMode = 0
-
-# cat=basic; type=boolean; label=Enable the backend module
+# cat=backend/module/10; type=boolean; label=Enable the backend module: Shows the Letterbox module to read the caught mails. Without it the mails stay in the mbox file and can still be read through the console commands. Flush the caches after changing it.
 enableBackendModule = 1
 
-# cat=basic; type=int+; label=Mails per page
+# cat=backend/module/20; type=int+; label=Mails per page: Number of mails in the list of the backend module.
 mailsPerPage = 10
 
-# cat=basic; type=int+; label=Keep at most this many mails, the oldest are removed after a new mail arrives (0 = no limit)
+# cat=backend/toolbar/10; type=boolean; label=Show the backend toolbar item: Shows a badge with the unread mails and a dropdown with the latest mails to administrators while Letterbox catches mails.
+showToolbarItem = 1
+
+# cat=retention/limits/10; type=int+; label=Keep at most this many mails: The oldest mails are removed after a new mail arrives. 0 means no limit.
 maxMessages = 500
 
-# cat=basic; type=int+; label=Remove mails older than this many days after a new mail arrives (0 = no limit)
+# cat=retention/limits/20; type=int+; label=Remove mails older than this many days: Older mails are removed after a new mail arrives. 0 means no limit.
 maxAgeDays = 30
 
-# cat=basic; type=boolean; label=Show the backend toolbar item while Letterbox catches mails
-showToolbarItem = 1
+# cat=external/access/10; type=boolean; label=Enable external access: Lets testers without a backend account read the caught mails in the tester inbox and lets automated tests fetch them through the JSON API. Everyone with the link or the token sees every caught mail, including password reset links, so use it on test systems only. The environment variables LETTERBOX_EXTERNAL_ACCESS (the exact application context) and LETTERBOX_ACCESS_TOKEN (at least 32 characters) are required as well, and external access is always off in the root context Production. The backend page External access shows what is still missing.
+externalAccess = 0
+
+# cat=debug/testing/10; type=boolean; label=Enable debug mode: Registers the letterbox:testmails:send command to send test mails through the configured mail transport. Flush the caches after changing it.
+debugMode = 0
